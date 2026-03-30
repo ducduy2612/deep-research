@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants.js";
 import pkg from "./package.json";
+import { completePath } from "./src/utils/url";
 
 const BUILD_MODE = process.env.NEXT_PUBLIC_BUILD_MODE;
 // AI provider API base url
@@ -114,8 +115,8 @@ export default async function Config(phase: string) {
           destination: `${AZURE_API_BASE_URL}/:path*`,
         },
         {
-          source: "/api/ai/openaicompatible/:path*",
-          destination: `${OPENAI_COMPATIBLE_API_BASE_URL}/:path*`,
+          source: "/api/ai/openaicompatible/v1/:path*",
+          destination: `${completePath(OPENAI_COMPATIBLE_API_BASE_URL, "/v1")}/:path*`,
         },
         {
           source: "/api/ai/pollinations/:path*",

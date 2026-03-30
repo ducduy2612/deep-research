@@ -8,12 +8,13 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { usePWAInstall } from "react-use-pwa-install";
-import { RefreshCw, CircleHelp, MonitorDown } from "lucide-react";
+import { CircleHelp, MonitorDown } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Password } from "@/components/Internal/PasswordInput";
+import { ModelInput } from "@/components/Internal/ModelInput";
 import {
   Dialog,
   DialogContent,
@@ -35,10 +36,8 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectLabel,
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -83,7 +82,7 @@ import {
 } from "@/utils/model";
 import { researchStore } from "@/utils/storage";
 import { cn } from "@/utils/style";
-import { omit, capitalize } from "radash";
+import { omit } from "radash";
 
 type SettingProps = {
   open: boolean;
@@ -187,14 +186,6 @@ const formSchema = z.object({
   reportLength: z.enum(["brief", "standard", "comprehensive"]).optional(),
   deepResearchPromptOverrides: z.string().optional(),
 });
-
-function convertModelName(name: string) {
-  return name
-    .replaceAll("/", "-")
-    .split("-")
-    .map((word) => capitalize(word))
-    .join(" ");
-}
 
 let preLoading = false;
 
@@ -1309,72 +1300,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {thinkingModelList[0].length > 0 ? (
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      {t("setting.recommendedModels")}
-                                    </SelectLabel>
-                                    {thinkingModelList[0].map((name) => {
-                                      return !isDisabledAIModel(name) ? (
-                                        <SelectItem key={name} value={name}>
-                                          {convertModelName(name)}
-                                        </SelectItem>
-                                      ) : null;
-                                    })}
-                                  </SelectGroup>
-                                ) : null}
-                                <SelectGroup>
-                                  <SelectLabel>
-                                    {t("setting.basicModels")}
-                                  </SelectLabel>
-                                  {thinkingModelList[1].map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...thinkingModelList[0], ...thinkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -1393,72 +1326,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {networkingModelList[0].length > 0 ? (
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      {t("setting.recommendedModels")}
-                                    </SelectLabel>
-                                    {networkingModelList[0].map((name) => {
-                                      return !isDisabledAIModel(name) ? (
-                                        <SelectItem key={name} value={name}>
-                                          {convertModelName(name)}
-                                        </SelectItem>
-                                      ) : null;
-                                    })}
-                                  </SelectGroup>
-                                ) : null}
-                                <SelectGroup>
-                                  <SelectLabel>
-                                    {t("setting.basicModels")}
-                                  </SelectLabel>
-                                  {networkingModelList[1].map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...networkingModelList[0], ...networkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -1483,72 +1358,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {thinkingModelList[0].length > 0 ? (
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      {t("setting.recommendedModels")}
-                                    </SelectLabel>
-                                    {thinkingModelList[0].map((name) => {
-                                      return !isDisabledAIModel(name) ? (
-                                        <SelectItem key={name} value={name}>
-                                          {convertModelName(name)}
-                                        </SelectItem>
-                                      ) : null;
-                                    })}
-                                  </SelectGroup>
-                                ) : null}
-                                <SelectGroup>
-                                  <SelectLabel>
-                                    {t("setting.basicModels")}
-                                  </SelectLabel>
-                                  {thinkingModelList[1].map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...thinkingModelList[0], ...thinkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -1567,72 +1384,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {networkingModelList[0].length > 0 ? (
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      {t("setting.recommendedModels")}
-                                    </SelectLabel>
-                                    {networkingModelList[0].map((name) => {
-                                      return !isDisabledAIModel(name) ? (
-                                        <SelectItem key={name} value={name}>
-                                          {convertModelName(name)}
-                                        </SelectItem>
-                                      ) : null;
-                                    })}
-                                  </SelectGroup>
-                                ) : null}
-                                <SelectGroup>
-                                  <SelectLabel>
-                                    {t("setting.basicModels")}
-                                  </SelectLabel>
-                                  {networkingModelList[1].map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...networkingModelList[0], ...networkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -1657,13 +1416,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Input
-                              placeholder={t("setting.modelListPlaceholder")}
-                              value={field.value}
-                              onChange={field.onChange}
-                            />
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...thinkingModelList[0], ...thinkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -1682,13 +1442,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Input
-                              placeholder={t("setting.modelListPlaceholder")}
-                              value={field.value}
-                              onChange={field.onChange}
-                            />
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...networkingModelList[0], ...networkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -1713,72 +1474,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {thinkingModelList[0].length > 0 ? (
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      {t("setting.recommendedModels")}
-                                    </SelectLabel>
-                                    {thinkingModelList[0].map((name) => {
-                                      return !isDisabledAIModel(name) ? (
-                                        <SelectItem key={name} value={name}>
-                                          {convertModelName(name)}
-                                        </SelectItem>
-                                      ) : null;
-                                    })}
-                                  </SelectGroup>
-                                ) : null}
-                                <SelectGroup>
-                                  <SelectLabel>
-                                    {t("setting.basicModels")}
-                                  </SelectLabel>
-                                  {thinkingModelList[1].map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...thinkingModelList[0], ...thinkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -1797,72 +1500,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {networkingModelList[0].length > 0 ? (
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      {t("setting.recommendedModels")}
-                                    </SelectLabel>
-                                    {networkingModelList[0].map((name) => {
-                                      return !isDisabledAIModel(name) ? (
-                                        <SelectItem key={name} value={name}>
-                                          {convertModelName(name)}
-                                        </SelectItem>
-                                      ) : null;
-                                    })}
-                                  </SelectGroup>
-                                ) : null}
-                                <SelectGroup>
-                                  <SelectLabel>
-                                    {t("setting.basicModels")}
-                                  </SelectLabel>
-                                  {networkingModelList[1].map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...networkingModelList[0], ...networkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -1887,53 +1532,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {modelList.map((name) => {
-                                  return !isDisabledAIModel(name) ? (
-                                    <SelectItem key={name} value={name}>
-                                      {convertModelName(name)}
-                                    </SelectItem>
-                                  ) : null;
-                                })}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={modelList.filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -1952,53 +1558,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {modelList.map((name) => {
-                                  return !isDisabledAIModel(name) ? (
-                                    <SelectItem key={name} value={name}>
-                                      {convertModelName(name)}
-                                    </SelectItem>
-                                  ) : null;
-                                })}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={modelList.filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2023,72 +1590,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {thinkingModelList[0].length > 0 ? (
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      {t("setting.recommendedModels")}
-                                    </SelectLabel>
-                                    {thinkingModelList[0].map((name) => {
-                                      return !isDisabledAIModel(name) ? (
-                                        <SelectItem key={name} value={name}>
-                                          {convertModelName(name)}
-                                        </SelectItem>
-                                      ) : null;
-                                    })}
-                                  </SelectGroup>
-                                ) : null}
-                                <SelectGroup>
-                                  <SelectLabel>
-                                    {t("setting.basicModels")}
-                                  </SelectLabel>
-                                  {thinkingModelList[1].map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...thinkingModelList[0], ...thinkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2107,72 +1616,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {networkingModelList[0].length > 0 ? (
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      {t("setting.recommendedModels")}
-                                    </SelectLabel>
-                                    {networkingModelList[0].map((name) => {
-                                      return !isDisabledAIModel(name) ? (
-                                        <SelectItem key={name} value={name}>
-                                          {convertModelName(name)}
-                                        </SelectItem>
-                                      ) : null;
-                                    })}
-                                  </SelectGroup>
-                                ) : null}
-                                <SelectGroup>
-                                  <SelectLabel>
-                                    {t("setting.basicModels")}
-                                  </SelectLabel>
-                                  {networkingModelList[1].map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...networkingModelList[0], ...networkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2197,53 +1648,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {modelList.map((name) => {
-                                  return !isDisabledAIModel(name) ? (
-                                    <SelectItem key={name} value={name}>
-                                      {convertModelName(name)}
-                                    </SelectItem>
-                                  ) : null;
-                                })}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={modelList.filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2262,53 +1674,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {modelList.map((name) => {
-                                  return !isDisabledAIModel(name) ? (
-                                    <SelectItem key={name} value={name}>
-                                      {convertModelName(name)}
-                                    </SelectItem>
-                                  ) : null;
-                                })}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={modelList.filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2333,72 +1706,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {thinkingModelList[0].length > 0 ? (
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      {t("setting.recommendedModels")}
-                                    </SelectLabel>
-                                    {thinkingModelList[0].map((name) => {
-                                      return !isDisabledAIModel(name) ? (
-                                        <SelectItem key={name} value={name}>
-                                          {convertModelName(name)}
-                                        </SelectItem>
-                                      ) : null;
-                                    })}
-                                  </SelectGroup>
-                                ) : null}
-                                <SelectGroup>
-                                  <SelectLabel>
-                                    {t("setting.basicModels")}
-                                  </SelectLabel>
-                                  {thinkingModelList[1].map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...thinkingModelList[0], ...thinkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2417,72 +1732,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {networkingModelList[0].length > 0 ? (
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      {t("setting.recommendedModels")}
-                                    </SelectLabel>
-                                    {networkingModelList[0].map((name) => {
-                                      return !isDisabledAIModel(name) ? (
-                                        <SelectItem key={name} value={name}>
-                                          {convertModelName(name)}
-                                        </SelectItem>
-                                      ) : null;
-                                    })}
-                                  </SelectGroup>
-                                ) : null}
-                                <SelectGroup>
-                                  <SelectLabel>
-                                    {t("setting.basicModels")}
-                                  </SelectLabel>
-                                  {networkingModelList[1].map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...networkingModelList[0], ...networkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2507,12 +1764,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Input
-                              placeholder={t("setting.modelListPlaceholder")}
-                              {...field}
-                            />
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...thinkingModelList[0], ...thinkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2531,12 +1790,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Input
-                              placeholder={t("setting.modelListPlaceholder")}
-                              {...field}
-                            />
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...networkingModelList[0], ...networkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2561,53 +1822,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field flex gap-2">
-                            <Input
-                              className={cn("flex-1", {
-                                hidden: modelList.length > 0,
-                              })}
-                              placeholder={t("setting.modelListPlaceholder")}
-                              {...field}
-                            />
-                            <div
-                              className={cn("flex-1", {
-                                hidden: modelList.length === 0,
-                              })}
-                            >
-                              <Select
-                                defaultValue={field.value}
-                                onValueChange={field.onChange}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue
-                                    placeholder={t(
-                                      "setting.modelListLoadingPlaceholder",
-                                    )}
-                                  />
-                                </SelectTrigger>
-                                <SelectContent className="max-sm:max-h-72">
-                                  {modelList.map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              <RefreshCw
-                                className={isRefreshing ? "animate-spin" : ""}
-                              />
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={modelList.filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2626,53 +1848,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full flex gap-2">
-                            <Input
-                              className={cn("flex-1", {
-                                hidden: modelList.length > 0,
-                              })}
-                              placeholder={t("setting.modelListPlaceholder")}
-                              {...field}
-                            />
-                            <div
-                              className={cn("flex-1", {
-                                hidden: modelList.length === 0,
-                              })}
-                            >
-                              <Select
-                                defaultValue={field.value}
-                                onValueChange={field.onChange}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue
-                                    placeholder={t(
-                                      "setting.modelListLoadingPlaceholder",
-                                    )}
-                                  />
-                                </SelectTrigger>
-                                <SelectContent className="max-sm:max-h-72">
-                                  {modelList.map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              <RefreshCw
-                                className={isRefreshing ? "animate-spin" : ""}
-                              />
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={modelList.filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2697,72 +1880,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {thinkingModelList[0].length > 0 ? (
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      {t("setting.recommendedModels")}
-                                    </SelectLabel>
-                                    {thinkingModelList[0].map((name) => {
-                                      return !isDisabledAIModel(name) ? (
-                                        <SelectItem key={name} value={name}>
-                                          {convertModelName(name)}
-                                        </SelectItem>
-                                      ) : null;
-                                    })}
-                                  </SelectGroup>
-                                ) : null}
-                                <SelectGroup>
-                                  <SelectLabel>
-                                    {t("setting.basicModels")}
-                                  </SelectLabel>
-                                  {thinkingModelList[1].map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...thinkingModelList[0], ...thinkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2781,72 +1906,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full">
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className={cn({
-                                  hidden: modelList.length === 0,
-                                })}
-                              >
-                                <SelectValue
-                                  placeholder={t(
-                                    "setting.modelListLoadingPlaceholder",
-                                  )}
-                                />
-                              </SelectTrigger>
-                              <SelectContent className="max-sm:max-h-72">
-                                {networkingModelList[0].length > 0 ? (
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      {t("setting.recommendedModels")}
-                                    </SelectLabel>
-                                    {networkingModelList[0].map((name) => {
-                                      return !isDisabledAIModel(name) ? (
-                                        <SelectItem key={name} value={name}>
-                                          {convertModelName(name)}
-                                        </SelectItem>
-                                      ) : null;
-                                    })}
-                                  </SelectGroup>
-                                ) : null}
-                                <SelectGroup>
-                                  <SelectLabel>
-                                    {t("setting.basicModels")}
-                                  </SelectLabel>
-                                  {networkingModelList[1].map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              className={cn("w-full", {
-                                hidden: modelList.length > 0,
-                              })}
-                              type="button"
-                              variant="outline"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              {isRefreshing ? (
-                                <>
-                                  <RefreshCw className="animate-spin" />{" "}
-                                  {t("setting.modelListLoading")}
-                                </>
-                              ) : (
-                                <>
-                                  <RefreshCw /> {t("setting.refresh")}
-                                </>
-                              )}
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={[...networkingModelList[0], ...networkingModelList[1]].filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2871,53 +1938,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field flex gap-2">
-                            <Input
-                              className={cn("flex-1", {
-                                hidden: modelList.length > 0,
-                              })}
-                              placeholder={t("setting.modelListPlaceholder")}
-                              {...field}
-                            />
-                            <div
-                              className={cn("flex-1", {
-                                hidden: modelList.length === 0,
-                              })}
-                            >
-                              <Select
-                                defaultValue={field.value}
-                                onValueChange={field.onChange}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue
-                                    placeholder={t(
-                                      "setting.modelListLoadingPlaceholder",
-                                    )}
-                                  />
-                                </SelectTrigger>
-                                <SelectContent className="max-sm:max-h-72">
-                                  {modelList.map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              <RefreshCw
-                                className={isRefreshing ? "animate-spin" : ""}
-                              />
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={modelList.filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -2936,53 +1964,14 @@ function Setting({ open, onClose }: SettingProps) {
                           </HelpTip>
                         </FormLabel>
                         <FormControl>
-                          <div className="form-field w-full flex gap-2">
-                            <Input
-                              className={cn("flex-1", {
-                                hidden: modelList.length > 0,
-                              })}
-                              placeholder={t("setting.modelListPlaceholder")}
-                              {...field}
-                            />
-                            <div
-                              className={cn("flex-1", {
-                                hidden: modelList.length === 0,
-                              })}
-                            >
-                              <Select
-                                defaultValue={field.value}
-                                onValueChange={field.onChange}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue
-                                    placeholder={t(
-                                      "setting.modelListLoadingPlaceholder",
-                                    )}
-                                  />
-                                </SelectTrigger>
-                                <SelectContent className="max-sm:max-h-72">
-                                  {modelList.map((name) => {
-                                    return !isDisabledAIModel(name) ? (
-                                      <SelectItem key={name} value={name}>
-                                        {convertModelName(name)}
-                                      </SelectItem>
-                                    ) : null;
-                                  })}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              disabled={isRefreshing}
-                              onClick={() => fetchModelList()}
-                            >
-                              <RefreshCw
-                                className={isRefreshing ? "animate-spin" : ""}
-                              />
-                            </Button>
-                          </div>
+                          <ModelInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            models={modelList.filter((n) => !isDisabledAIModel(n))}
+                            hasModels={modelList.length > 0}
+                            isRefreshing={isRefreshing}
+                            onRefresh={() => fetchModelList()}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
