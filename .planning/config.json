@@ -4,6 +4,7 @@
   "parallelization": true,
   "commit_docs": true,
   "model_profile": "quality",
+  "researcher_model": "glm-5",
   "workflow": {
     "research": true,
     "plan_check": true,
