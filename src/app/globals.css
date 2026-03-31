@@ -2,7 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  padding: 0;
+@layer base {
+  :root {
+    /* Obsidian Deep — dark only, no light theme toggle */
+    --background: #0e0e10;
+    --foreground: #e5e1e4;
+
+    --card: #201f22;
+    --card-foreground: #e5e1e4;
+
+    --popover: #353437;
+    --popover-foreground: #e5e1e4;
+
+    --primary: #c0c1ff;
+    --primary-foreground: #1000a9;
+
+    --secondary: #2a2a2c;
+    --secondary-foreground: #e5e1e4;
+
+    --muted: #1c1b1d;
+    --muted-foreground: #c7c4d7;
+
+    --accent: #2a2a2c;
+    --accent-foreground: #e5e1e4;
+
+    --destructive: #ffb4ab;
+    --destructive-foreground: #93000a;
+
+    --border: rgba(70, 69, 84, 0.15);
+    --input: rgba(70, 69, 84, 0.15);
+    --ring: #c0c1ff;
+
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-[var(--border)];
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
