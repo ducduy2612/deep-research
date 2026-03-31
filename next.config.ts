@@ -10,7 +10,6 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_VERSION: pkg.version,
   },
-  transpilePackages: ["pdfjs-dist", "mermaid"],
 };
 
 if (BUILD_MODE === "export") {
@@ -29,6 +28,5 @@ if (BUILD_MODE === "export") {
 } else if (BUILD_MODE === "standalone") {
   nextConfig.output = "standalone";
 }
-// API rewrites will be added back in Phase 2 (Provider Factory)
 
 export default nextConfig;
