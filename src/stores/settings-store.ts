@@ -62,6 +62,10 @@ export interface SettingsStoreState {
   readonly autoReviewRounds: number;
   readonly maxSearchQueries: number;
 
+  // Knowledge integration
+  readonly localOnlyMode: boolean;
+  readonly selectedKnowledgeIds: readonly string[];
+
   // Hydration state
   readonly loaded: boolean;
 }
@@ -97,6 +101,10 @@ export interface SettingsStoreActions {
   // Advanced settings
   setAutoReviewRounds: (rounds: number) => void;
   setMaxSearchQueries: (max: number) => void;
+
+  // Knowledge integration
+  setLocalOnlyMode: (enabled: boolean) => void;
+  setSelectedKnowledgeIds: (ids: string[]) => void;
 
   /** Reset all settings to defaults. */
   reset: () => Promise<void>;
@@ -142,6 +150,8 @@ const settingsSchema = z.object({
   promptOverrides: z.record(z.string(), z.string()).optional().default({}),
   autoReviewRounds: z.number().int().min(0).max(5).optional().default(0),
   maxSearchQueries: z.number().int().min(1).max(30).optional().default(8),
+  localOnlyMode: z.boolean().optional().default(false),
+  selectedKnowledgeIds: z.array(z.string()).optional().default([]),
 });
 
 // ---------------------------------------------------------------------------
@@ -162,6 +172,8 @@ const DEFAULT_STATE: SettingsStoreState = {
   promptOverrides: {},
   autoReviewRounds: 0,
   maxSearchQueries: 8,
+  localOnlyMode: false,
+  selectedKnowledgeIds: [],
   loaded: false,
 };
 
@@ -264,6 +276,16 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
     persistSettings(get());
   },
 
+  setLocalOnlyMode: (enabled: boolean) => {
+    set({ localOnlyMode: enabled });
+    persistSettings(get());
+  },
+
+  setSelectedKnowledgeIds: (ids: string[]) => {
+    set({ selectedKnowledgeIds: ids });
+    persistSettings(get());
+  },
+
   reset: async () => {
     await storage.remove(STORAGE_KEY);
     set({ ...DEFAULT_STATE, loaded: true });
@@ -288,6 +310,8 @@ function persistSettings(state: SettingsStoreState): void {
     promptOverrides: state.promptOverrides,
     autoReviewRounds: state.autoReviewRounds,
     maxSearchQueries: state.maxSearchQueries,
+    localOnlyMode: state.localOnlyMode,
+    selectedKnowledgeIds: state.selectedKnowledgeIds,
   };
   storage.set(STORAGE_KEY, toSave, settingsSchema).catch(() => {
     // Silently ignore persistence failures — settings still work in-memory

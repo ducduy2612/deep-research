@@ -4,6 +4,7 @@ import {
   Settings,
   History,
   BookOpen,
+  Database,
   Github,
   Sparkles,
 } from "lucide-react";
@@ -98,6 +99,11 @@ export function Header({ className }: HeaderProps) {
           label="Report"
           active={activeView === "report"}
           onClick={() => navigate("report")}
+        />
+        <NavButton
+          icon={<Database className="h-[18px] w-[18px]" />}
+          label="Knowledge"
+          onClick={() => openDialog("knowledge")}
         />
         <NavButton
           icon={<History className="h-[18px] w-[18px]" />}

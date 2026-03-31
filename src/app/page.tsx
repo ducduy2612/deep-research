@@ -10,6 +10,7 @@ import { ActiveResearch } from "@/components/research/ActiveResearch";
 import { FinalReport } from "@/components/research/FinalReport";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { HistoryDialog } from "@/components/settings/HistoryDialog";
+import { KnowledgeDialog } from "@/components/knowledge/KnowledgeDialog";
 import { useResearch } from "@/hooks/use-research";
 import { useUIStore } from "@/stores/ui-store";
 import { useResearchStore } from "@/stores/research-store";
@@ -69,6 +70,7 @@ export default function Home() {
       {/* Global dialogs */}
       <SettingsDialog />
       <HistoryDialog />
+      <KnowledgeDialog />
     </div>
   );
 }

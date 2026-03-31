@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 /**
  * @vitest-environment jsdom
  * Tests for useResearch hook — SSE parsing, lifecycle, settings integration, auto-save.
@@ -111,6 +110,7 @@ describe("useResearch hook", () => {
     act(() => {
       result.current.start({ topic: "quantum computing", reportStyle: "technical", reportLength: "comprehensive", language: "English" });
     });
+    await act(async () => { await wait(50); });
     expect(mockFetch).toHaveBeenCalledWith("/api/research/stream", expect.objectContaining({ method: "POST" }));
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.topic).toBe("quantum computing");
@@ -264,5 +264,69 @@ describe("useResearch hook", () => {
     await act(async () => { result.current.start({ topic: "second" }); await wait(50); });
     expect(useResearchStore.getState().topic).toBe("second");
     expect(useResearchStore.getState().state).toBe("completed");
+  });
+
+  // -------------------------------------------------------------------------
+  // Knowledge integration tests
+  // -------------------------------------------------------------------------
+  it("includes localOnly flag in request body when enabled", async () => {
+    const { useSettingsStore: settings } = await import("@/stores/settings-store");
+    settings.setState({ localOnlyMode: true, selectedKnowledgeIds: [] });
+    const { result } = renderHook(() => useResearch());
+    mockFetch.mockResolvedValue({ ok: true, body: createMockStream([sse("done", {})]) });
+    act(() => { result.current.start({ topic: "local only test" }); });
+    await act(async () => { await wait(50); });
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.localOnly).toBe(true);
+    expect(body.knowledgeContent).toEqual([]);
+    // Reset
+    settings.setState({ localOnlyMode: false });
+  });
+
+  it("includes knowledge content when selected IDs are set", async () => {
+    const { useSettingsStore: settings } = await import("@/stores/settings-store");
+    const { useKnowledgeStore: knowledge } = await import("@/stores/knowledge-store");
+    knowledge.setState({
+      items: [
+        { id: "k1", title: "Doc A", content: "Content A", type: "file", chunkCount: 1, createdAt: Date.now(), updatedAt: Date.now() },
+        { id: "k2", title: "Doc B", content: "Content B", type: "url", chunkCount: 1, createdAt: Date.now(), updatedAt: Date.now() },
+      ],
+      loaded: true,
+    });
+    settings.setState({ localOnlyMode: false, selectedKnowledgeIds: ["k1", "k2"] });
+    const { result } = renderHook(() => useResearch());
+    mockFetch.mockResolvedValue({ ok: true, body: createMockStream([sse("done", {})]) });
+    act(() => { result.current.start({ topic: "knowledge test" }); });
+    await act(async () => { await wait(50); });
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.localOnly).toBe(false);
+    expect(body.knowledgeContent).toHaveLength(2);
+    expect(body.knowledgeContent[0]).toEqual({ title: "Doc A", content: "Content A" });
+    expect(body.knowledgeContent[1]).toEqual({ title: "Doc B", content: "Content B" });
+    // Reset
+    settings.setState({ selectedKnowledgeIds: [] });
+    knowledge.setState({ items: [], loaded: false });
+  });
+
+  it("filters out deleted knowledge items from request body", async () => {
+    const { useSettingsStore: settings } = await import("@/stores/settings-store");
+    const { useKnowledgeStore: knowledge } = await import("@/stores/knowledge-store");
+    knowledge.setState({
+      items: [
+        { id: "k1", title: "Doc A", content: "Content A", type: "file", chunkCount: 1, createdAt: Date.now(), updatedAt: Date.now() },
+      ],
+      loaded: true,
+    });
+    settings.setState({ selectedKnowledgeIds: ["k1", "k-deleted"] });
+    const { result } = renderHook(() => useResearch());
+    mockFetch.mockResolvedValue({ ok: true, body: createMockStream([sse("done", {})]) });
+    act(() => { result.current.start({ topic: "deleted item test" }); });
+    await act(async () => { await wait(50); });
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.knowledgeContent).toHaveLength(1);
+    expect(body.knowledgeContent[0].title).toBe("Doc A");
+    // Reset
+    settings.setState({ selectedKnowledgeIds: [] });
+    knowledge.setState({ items: [], loaded: false });
   });
 });

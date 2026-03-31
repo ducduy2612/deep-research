@@ -19,11 +19,15 @@ import { useUIStore } from "@/stores/ui-store";
 import { useHistoryStore } from "@/stores/history-store";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+/** Lazy import — keeps fuse.js out of the hot module path. */
+let _ks: typeof import("@/stores/knowledge-store").useKnowledgeStore | null = null;
+async function getKS() {
+  if (!_ks) { _ks = (await import("@/stores/knowledge-store")).useKnowledgeStore; }
+  return _ks;
+}
 
-/** Options for starting a research run. */
+// Types
+
 export interface StartOptions {
   topic: string;
   reportStyle?: ReportStyle;
@@ -31,40 +35,18 @@ export interface StartOptions {
   language?: string;
 }
 
-/** Return type of useResearch(). */
 export interface UseResearchReturn {
-  /** Start a new research run. */
   start: (options: StartOptions) => void;
-  /** Abort an active research run. */
   abort: () => void;
-  /** Reset store state to idle. */
   reset: () => void;
-  /** Whether the hook is currently connected to an SSE stream. */
   isConnected: boolean;
-  /** Milliseconds since research started (live-updating). */
   elapsedMs: number | null;
-  /** Whether a research run is in progress. */
   isActive: boolean;
-  /** Last connection error, if any. */
   connectionError: string | null;
 }
 
-// ---------------------------------------------------------------------------
-// SSE parser
-// ---------------------------------------------------------------------------
+// SSE parser — splits on double-newlines, extracts event/data pairs.
 
-/**
- * Parse SSE text from a ReadableStream, calling back for each event.
- *
- * SSE format:
- *   event: <type>\n
- *   data: <json>\n
- *   \n
- *
- * The parser is intentionally simple — it buffers text, splits on double
- * newlines, then extracts event/data pairs. This avoids needing a full
- * SSE library for a single endpoint.
- */
 export function parseSSEChunk(
   chunk: string,
   onEvent: (eventType: string, data: unknown) => void,
@@ -93,14 +75,8 @@ export function parseSSEChunk(
   }
 }
 
-// ---------------------------------------------------------------------------
-// SSE buffer for cross-chunk events
-// ---------------------------------------------------------------------------
+// SSE buffer — handles events split across chunks.
 
-/**
- * Creates a buffered SSE parser that handles events spanning multiple chunks.
- * Returns a function that accepts raw text chunks and dispatches complete events.
- */
 export function createSSEBuffer(
   onEvent: (eventType: string, data: unknown) => void,
 ): (chunk: string) => void {
@@ -134,9 +110,7 @@ export function createSSEBuffer(
   };
 }
 
-// ---------------------------------------------------------------------------
 // Hook
-// ---------------------------------------------------------------------------
 
 export function useResearch(): UseResearchReturn {
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -157,19 +131,16 @@ export function useResearch(): UseResearchReturn {
   const promptOverrides = useSettingsStore((s) => s.promptOverrides);
   const autoReviewRounds = useSettingsStore((s) => s.autoReviewRounds);
   const maxSearchQueries = useSettingsStore((s) => s.maxSearchQueries);
+  const localOnlyMode = useSettingsStore((s) => s.localOnlyMode);
+  const selectedKnowledgeIds = useSettingsStore((s) => s.selectedKnowledgeIds);
 
   // UI navigation
   const navigate = useUIStore((s) => s.navigate);
 
-  // ---------------------------------------------------------------------------
-  // Timer management
-  // ---------------------------------------------------------------------------
+  // Timer
 
   const stopTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }, []);
 
   const startTimer = useCallback(() => {
@@ -177,29 +148,20 @@ export function useResearch(): UseResearchReturn {
     setElapsedMs(0);
     timerRef.current = setInterval(() => {
       const startedAt = useResearchStore.getState().startedAt;
-      if (startedAt) {
-        setElapsedMs(Date.now() - startedAt);
-      }
+      if (startedAt) setElapsedMs(Date.now() - startedAt);
     }, 1000);
   }, [stopTimer]);
 
-  // ---------------------------------------------------------------------------
   // Cleanup
-  // ---------------------------------------------------------------------------
 
   const cleanup = useCallback(() => {
     setIsConnected(false);
     stopTimer();
-    // Final elapsed update
     const { startedAt, completedAt } = useResearchStore.getState();
-    if (startedAt && completedAt) {
-      setElapsedMs(completedAt - startedAt);
-    }
+    if (startedAt && completedAt) setElapsedMs(completedAt - startedAt);
   }, [stopTimer]);
 
-  // ---------------------------------------------------------------------------
   // SSE connection
-  // ---------------------------------------------------------------------------
 
   const connectSSE = useCallback(
     async (options: StartOptions) => {
@@ -208,6 +170,13 @@ export function useResearch(): UseResearchReturn {
       abortControllerRef.current = controller;
 
       // Build request body — merge settings with per-run options
+      // Load knowledge content for selected items (defensive: skip deleted)
+      const knowledgeStore = await getKS();
+      const allItems = knowledgeStore.getState().items;
+      const knowledgeContent = selectedKnowledgeIds
+        .map((id) => { const it = allItems.find((k) => k.id === id); return it ? { title: it.title, content: it.content } : null; })
+        .filter((x): x is { title: string; content: string } => x !== null);
+
       const body = {
         topic: options.topic,
         language: options.language,
@@ -216,6 +185,8 @@ export function useResearch(): UseResearchReturn {
         promptOverrides: Object.keys(promptOverrides).length > 0 ? promptOverrides : undefined,
         autoReviewRounds,
         maxSearchQueries,
+        localOnly: localOnlyMode,
+        knowledgeContent,
         // Send provider keys for server-side config building reference
         // (server builds from env, but we include search config)
         search: {
@@ -226,9 +197,7 @@ export function useResearch(): UseResearchReturn {
         },
       };
 
-      console.info("[useResearch] SSE connection opening", {
-        topic: options.topic,
-      });
+      console.info("[useResearch] SSE connection opening", { topic: options.topic });
 
       try {
         const response = await fetch("/api/research/stream", {
@@ -259,18 +228,12 @@ export function useResearch(): UseResearchReturn {
         setConnectionError(null);
         startTimer();
 
-        // Create buffered SSE parser
         const sseBuffer = createSSEBuffer((eventType, data) => {
-          console.info("[useResearch] SSE event received", {
-            type: eventType,
-            step: (data as Record<string, unknown>).step ?? "n/a",
-          });
+          console.info("[useResearch] SSE event received", { type: eventType, step: (data as Record<string, unknown>).step ?? "n/a" });
           useResearchStore.getState().handleEvent(eventType, data);
 
           // Auto-stop on terminal events
-          if (eventType === "done" || eventType === "error") {
-            cleanup();
-          }
+          if (eventType === "done" || eventType === "error") cleanup();
 
           // Auto-save completed research to history
           if (eventType === "done") {
@@ -294,17 +257,13 @@ export function useResearch(): UseResearchReturn {
                 console.info("[useResearch] Auto-saved session to history");
               }
             } catch (err) {
-              // History save failure must not block research flow
               console.error("[useResearch] Failed to auto-save to history:", err);
             }
           }
         });
 
-        // Consume ReadableStream
         const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error("Response body is not readable");
-        }
+        if (!reader) throw new Error("Response body is not readable");
 
         const decoder = new TextDecoder();
         try {
@@ -318,7 +277,6 @@ export function useResearch(): UseResearchReturn {
           cleanup();
         }
       } catch (err) {
-        // AbortError means intentional cancel — not a real error
         if (err instanceof DOMException && err.name === "AbortError") {
           console.info("[useResearch] SSE connection aborted");
           useResearchStore.getState().abort();
@@ -326,11 +284,8 @@ export function useResearch(): UseResearchReturn {
           return;
         }
 
-        const message =
-          err instanceof Error ? err.message : "Connection failed";
-        console.error("[useResearch] SSE connection error", {
-          message,
-        });
+        const message = err instanceof Error ? err.message : "Connection failed";
+        console.error("[useResearch] SSE connection error", { message });
 
         setConnectionError(message);
         useResearchStore.getState().handleEvent("error", {
@@ -340,12 +295,10 @@ export function useResearch(): UseResearchReturn {
         cleanup();
       }
     },
-    [searchProvider, includeDomains, excludeDomains, citationImages, promptOverrides, autoReviewRounds, maxSearchQueries, startTimer, cleanup],
+    [searchProvider, includeDomains, excludeDomains, citationImages, promptOverrides, autoReviewRounds, maxSearchQueries, localOnlyMode, selectedKnowledgeIds, startTimer, cleanup],
   );
 
-  // ---------------------------------------------------------------------------
   // Public actions
-  // ---------------------------------------------------------------------------
 
   const start = useCallback(
     (options: StartOptions) => {
@@ -387,9 +340,7 @@ export function useResearch(): UseResearchReturn {
     setConnectionError(null);
   }, [cleanup]);
 
-  // ---------------------------------------------------------------------------
   // Cleanup on unmount
-  // ---------------------------------------------------------------------------
 
   useEffect(() => {
     return () => {
@@ -405,9 +356,7 @@ export function useResearch(): UseResearchReturn {
     };
   }, []);
 
-  // ---------------------------------------------------------------------------
-  // Sync elapsed from store completedAt changes
-  // ---------------------------------------------------------------------------
+  // Sync elapsed from store
 
   const storeCompletedAt = useResearchStore((s) => s.completedAt);
 

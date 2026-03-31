@@ -2,6 +2,7 @@
 
 import { cn } from "@/utils/style";
 import { useSettingsStore } from "@/stores/settings-store";
+import { Switch } from "@/components/ui/switch";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
 
 // ---------------------------------------------------------------------------
@@ -44,8 +45,10 @@ interface ReportConfigProps {
 export function ReportConfig({ className }: ReportConfigProps) {
   const reportStyle = useSettingsStore((s) => s.reportStyle);
   const reportLength = useSettingsStore((s) => s.reportLength);
+  const localOnlyMode = useSettingsStore((s) => s.localOnlyMode);
   const setReportStyle = useSettingsStore((s) => s.setReportStyle);
   const setReportLength = useSettingsStore((s) => s.setReportLength);
+  const setLocalOnlyMode = useSettingsStore((s) => s.setLocalOnlyMode);
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -108,6 +111,35 @@ export function ReportConfig({ className }: ReportConfigProps) {
               </div>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Local-only mode toggle */}
+      <div>
+        <h4 className="mb-2 font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
+          Knowledge Mode
+        </h4>
+        <div className="flex items-center justify-between rounded-lg border border-obsidian-surface-raised px-3 py-2.5">
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-obsidian-on-surface">
+                Local Only
+              </span>
+              {localOnlyMode && (
+                <span className="rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-wider text-amber-400">
+                  No Web Search
+                </span>
+              )}
+            </div>
+            <span className="font-mono text-[10px] text-obsidian-on-surface-var/50">
+              Research using only your knowledge base documents
+            </span>
+          </div>
+          <Switch
+            checked={localOnlyMode}
+            onCheckedChange={setLocalOnlyMode}
+            className="data-[state=checked]:bg-obsidian-primary"
+          />
         </div>
       </div>
     </div>
