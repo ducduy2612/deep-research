@@ -119,13 +119,61 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| — | — | — |
+| UI-01 | Phase 1: Foundation and Design System | Pending |
+| UI-02 | Phase 1: Foundation and Design System | Pending |
+| UI-03 | Phase 1: Foundation and Design System | Pending |
+| UI-04 | Phase 1: Foundation and Design System | Pending |
+| UI-05 | Phase 1: Foundation and Design System | Pending |
+| AI-01 | Phase 2: Provider Factory and AI Integration | Pending |
+| AI-02 | Phase 2: Provider Factory and AI Integration | Pending |
+| AI-03 | Phase 2: Provider Factory and AI Integration | Pending |
+| AI-04 | Phase 2: Provider Factory and AI Integration | Pending |
+| AI-05 | Phase 2: Provider Factory and AI Integration | Pending |
+| AI-06 | Phase 2: Provider Factory and AI Integration | Pending |
+| RES-01 | Phase 3: Research Engine Core | Pending |
+| RES-02 | Phase 3: Research Engine Core | Pending |
+| RES-03 | Phase 3: Research Engine Core | Pending |
+| RES-05 | Phase 3: Research Engine Core | Pending |
+| RES-06 | Phase 3: Research Engine Core | Pending |
+| SRC-01 | Phase 4: Search Provider Integration | Pending |
+| SRC-02 | Phase 4: Search Provider Integration | Pending |
+| SRC-03 | Phase 4: Search Provider Integration | Pending |
+| SRC-04 | Phase 4: Search Provider Integration | Pending |
+| SRC-05 | Phase 4: Search Provider Integration | Pending |
+| SRC-06 | Phase 4: Search Provider Integration | Pending |
+| SRC-07 | Phase 4: Search Provider Integration | Pending |
+| SRC-08 | Phase 4: Search Provider Integration | Pending |
+| RES-04 | Phase 5: Core Research UI | Pending |
+| SET-01 | Phase 6: Settings and History | Pending |
+| SET-02 | Phase 6: Settings and History | Pending |
+| SET-03 | Phase 6: Settings and History | Pending |
+| SET-04 | Phase 6: Settings and History | Pending |
+| SET-05 | Phase 6: Settings and History | Pending |
+| HIST-01 | Phase 6: Settings and History | Pending |
+| HIST-02 | Phase 6: Settings and History | Pending |
+| HIST-03 | Phase 6: Settings and History | Pending |
+| HIST-04 | Phase 6: Settings and History | Pending |
+| KB-01 | Phase 7: Knowledge Base | Pending |
+| KB-02 | Phase 7: Knowledge Base | Pending |
+| KB-03 | Phase 7: Knowledge Base | Pending |
+| KB-04 | Phase 7: Knowledge Base | Pending |
+| KB-05 | Phase 7: Knowledge Base | Pending |
+| KB-06 | Phase 7: Knowledge Base | Pending |
+| SEC-01 | Phase 8: CORS Proxy Mode | Pending |
+| SEC-02 | Phase 8: CORS Proxy Mode | Pending |
+| SEC-03 | Phase 8: CORS Proxy Mode | Pending |
+| SEC-04 | Phase 8: CORS Proxy Mode | Pending |
+| PWA-01 | Phase 9: PWA, i18n, and Polish | Pending |
+| PWA-02 | Phase 9: PWA, i18n, and Polish | Pending |
+| I18N-01 | Phase 9: PWA, i18n, and Polish | Pending |
+| I18N-02 | Phase 9: PWA, i18n, and Polish | Pending |
+| I18N-03 | Phase 9: PWA, i18n, and Polish | Pending |
 
 **Coverage:**
-- v1 requirements: 37 total
-- Mapped to phases: 0
-- Unmapped: 37 ⚠️
+- v1 requirements: 49 total
+- Mapped to phases: 49
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after initial definition*
+*Last updated: 2026-03-31 after roadmap creation*
