@@ -1,11 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
 
 import { useSettingsStore } from "@/stores/settings-store";
 import { useHistoryStore } from "@/stores/history-store";
 import { useKnowledgeStore } from "@/stores/knowledge-store";
+
+const SerwistProvider = dynamic(
+  () =>
+    import("@serwist/next/react").then((mod) => mod.SerwistProvider),
+  { ssr: false },
+);
 
 // ---------------------------------------------------------------------------
 // Providers
@@ -51,7 +58,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <>
+    <SerwistProvider swUrl="/sw.js">
       {children}
       <Toaster
         position="bottom-right"
@@ -64,6 +71,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         }}
       />
-    </>
+    </SerwistProvider>
   );
 }

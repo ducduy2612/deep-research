@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import withSerwistInit from "@serwist/next";
 import pkg from "./package.json";
 
 const BUILD_MODE = process.env.NEXT_PUBLIC_BUILD_MODE;
@@ -30,4 +31,9 @@ if (BUILD_MODE === "export") {
   nextConfig.output = "standalone";
 }
 
-export default nextConfig;
+const withSerwist = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
+});
+
+export default withSerwist(nextConfig);

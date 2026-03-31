@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -20,6 +20,29 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Deep Research",
   description: "AI-powered deep research tool",
+  applicationName: "Deep Research",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Deep Research",
+  },
+  manifest: "/manifest.webmanifest",
+  icons: [
+    {
+      url: "/logo.png",
+      sizes: "512x512",
+      type: "image/png",
+    },
+    {
+      url: "/logo.svg",
+      sizes: "any",
+      type: "image/svg+xml",
+    },
+  ],
+};
+
+export const viewport: Viewport = {
+  themeColor: "#c0c1ff",
 };
 
 export default function RootLayout({
