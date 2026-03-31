@@ -1,122 +1,145 @@
-# AGENTS.md
+# CLAUDE.md — Deep Research
 
-This document provides essential guidelines and technical references for AI agents (and human developers) working on the **Deep Research** repository. Adhere to these patterns to ensure consistency, security, and maintainability.
+AI-powered deep research tool. Ground-up rewrite in progress (v1.0 milestone).
 
----
+## Quick Start
 
-## 🚀 Development Workflow & Commands
+```bash
+pnpm install
+cp env.tpl .env.local   # then fill in at least GOOGLE_GENERATIVE_AI_API_KEY
+pnpm dev                # http://localhost:3000 (Turbopack)
+```
 
-The project uses **pnpm** as the primary package manager.
+## Tech Stack
 
-### Core Commands
+- Next.js 15 (App Router) + React 19 + TypeScript (strict)
+- Vercel AI SDK 4.x for AI/streaming
+- Zustand for state, localforage for persistence
+- Tailwind CSS + shadcn/ui + lucide-react icons
+- pnpm as package manager
 
-- **Install Dependencies**: `pnpm install`
-- **Development Server**: `pnpm dev` (Runs at `http://localhost:3000`)
-- **Build Project**: `pnpm build`
-- **Static Export**: `pnpm build:export` (Generates `out/` directory)
-- **Standalone Build**: `pnpm build:standalone`
-- **Linting**: `pnpm lint`
+## Project Layout
 
-### Testing
+```
+src/              — Clean slate for v1.0 rewrite (GSD phases build here)
+_archive/src-v0/  — Old v0 codebase (read-only reference, do not modify)
+.planning/        — GSD planning (PROJECT.md, REQUIREMENTS.md, ROADMAP.md, STATE.md)
+design/           — Obsidian Deep design system specs and HTML mockups
+```
 
-- **Status**: Currently, there are no automated tests in the codebase.
-- **Guideline**: If adding tests, use **Vitest** or **Jest** following standard Next.js patterns. Place test files next to the code they test (e.g., `ComponentName.test.tsx`) or in a `__tests__` directory.
-- **Single Test**: To run a single test (if added), use `pnpm vitest run path/to/file.test.ts`.
+**Working with old code:**
+- `_archive/src-v0/` is the old codebase — read it to understand existing behavior, never edit it
+- New code goes in `src/` only, written from scratch following clean architecture
+- When referencing old patterns (e.g., how a provider was integrated), read the archived file but build new in `src/`
 
----
+## Code Conventions
 
-## 📂 Project Structure
+- **Path alias:** `@/` maps to `src/`
+- **Import order:** React/Next → third-party → components → hooks/stores → utils/types
+- **Components:** Max 300 lines per file. Use `"use client"` for browser-dependent components
+- **Styling:** Tailwind CSS, mobile-first responsive. Dark mode with `dark:` classes
+- **State:** Zustand stores with `persist` middleware. Use radash utilities for common ops
+- **Validation:** Zod for all external input (API responses, user input)
+- **Error handling:** Standardized API error format: `{ isError: true, content: [{ type: "text", text: "..." }] }`
+- **i18n:** All UI strings via `useTranslation` with `t("key.path")`
+- **Icons:** lucide-react only
 
-- `src/app`: Next.js App Router (Pages, API routes, Layouts).
-- `src/components`: UI components.
-  - `ui/`: Shadcn primitives.
-  - `Internal/`: Custom shared components.
-  - `Research/`, `Knowledge/`, etc.: Feature-specific components.
-- `src/hooks`: Custom React hooks for business logic and state interaction.
-- `src/libs`: External service integrations (e.g., MCP server logic).
-- `src/store`: Zustand stores for global state and persistence.
-- `src/utils`: Helper functions and core deep research logic.
-- `src/locales`: I18n translation files (JSON).
+## Commands
 
----
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Dev server with Turbopack (port 3000) |
+| `pnpm build` | Production build |
+| `pnpm build:standalone` | Standalone build for Docker |
+| `pnpm build:export` | Static export |
+| `pnpm lint` | ESLint |
+| `pnpm start` | Start production server |
 
-## 🎨 Code Style & Conventions
+## GSD Workflow
 
-### 1. TypeScript & Types
+This project uses GSD (Get Stuff Done) for phased development. Key files:
 
-- **Strict Mode**: `strict: true` is enabled in `tsconfig.json`. Always provide explicit types for function parameters and return values.
-- **Global Types**: Core business logic types (e.g., `SearchTask`, `Knowledge`, `Source`) are defined in `src/types.d.ts`. Check this file before creating new interfaces.
-- **Explicit Any**: While `@typescript-eslint/no-explicit-any` is currently `off`, avoid `any` unless absolutely necessary for external library compatibility. Prefer `unknown` or specific interfaces.
-- **Zod**: Use **Zod** for schema validation, especially for AI response parsing and API request bodies. See `src/app/api/mcp/server.ts` for examples.
+- `.planning/PROJECT.md` — Project definition, requirements, decisions
+- `.planning/ROADMAP.md` — 9-phase roadmap for v1.0 rewrite
+- `.planning/REQUIREMENTS.md` — 49 requirements mapped to phases
+- `.planning/STATE.md` — Current phase and progress tracking
 
-### 2. React & Next.js
+Current state: Phase 1 (Foundation and Design System), 0% complete.
 
-- **App Router**: This project uses the Next.js App Router.
-- **Client Components**: Use `"use client";` at the top of files that require browser APIs or React hooks (state, effects).
-- **Dynamic Imports**: Use Next.js `dynamic()` for heavy components or those that rely on browser-only libraries (e.g., `MagicDown`, `Mermaid`).
-- **Hooks**: Prefer custom hooks for complex logic (e.g., `useDeepResearch`, `useKnowledge`).
+Use GSD commands to advance work:
+- `/gsd:next` — Advance to next logical step
+- `/gsd:plan-phase` — Plan current phase
+- `/gsd:execute-phase` — Execute phase plans
+- `/gsd:progress` — Check current progress
 
-### 3. Components & UI
+## E2E Testing with gsd-browser
 
-- **Shadcn UI**: UI primitives are located in `@/components/ui`. Do not modify them directly; extend them or create wrappers in `src/components/Internal`.
-- **Styling**: Use **Tailwind CSS**. Follow mobile-first responsive design patterns.
-- **Icons**: Use **lucide-react**.
-- **I18n**: All UI strings must use `useTranslation` from `react-i18next`. Use `t("key.path")` for all labels.
+Use `gsd-browser` for end-to-end browser testing during development. This is a native Rust browser automation CLI for AI agents.
 
-### 4. State Management
+### When to Use gsd-browser
 
-- **Zustand**: Used for global state and persistence.
-- **Persistence**: Most stores use the `persist` middleware (e.g., `useTaskStore` in `src/store/task.ts`) to save research data in `localStorage`.
-- **Radash**: Use **radash** utilities for common operations like `pick`, `isString`, `isObject`, etc.
+- Verify UI screens match design system after implementation
+- Test research workflow end-to-end (input query → receive report)
+- Validate settings configuration and persistence
+- Test search provider integration
+- Verify responsive layouts and dark mode rendering
+- Check PWA installability and offline behavior
 
-### 5. Imports
+### Common Testing Patterns
 
-- **Path Alias**: Always use the `@/` prefix for absolute imports from the `src` directory.
-- **Ordering**:
-  1. React/Next.js core
-  2. Third-party libraries
-  3. Components (Internal/UI)
-  4. Hooks & Stores
-  5. Utils & Types
+```
+# Navigate to the app
+/gsd-browser open http://localhost:3000
 
----
+# Take a screenshot to verify UI
+/gsd-browser screenshot
 
-## 🛠 Backend & API Patterns
+# Test research workflow - fill in a query
+/gsd-browser fill "textarea" "What are the latest advances in quantum computing?"
+/gsd-browser click "button[type=submit]"
 
-### 1. Error Handling
+# Wait for research to progress and verify
+/gsd-browser wait-for ".research-progress"
+/gsd-browser screenshot
 
-- Use the `parseError` utility from `@/utils/error.ts` to standardize error messages.
-- In async functions, use `try...catch...finally` to manage loading states and error reporting.
-- Standardized API error format: `{ isError: true, content: [{ type: "text", text: "..." }] }`.
+# Test settings
+/gsd-browser click "[data-testid=settings]"
+/gsd-browser fill "#api-key-input" "test-key"
+/gsd-browser screenshot
 
-### 2. API Routes
+# Check responsive layout
+/gsd-browser set-viewport 375 812
+/gsd-browser screenshot
 
-- **SSE API**: Located at `src/app/api/sse`. Handles real-time streaming research reports.
-- **MCP Server**: Located at `src/app/api/mcp`. Implements the Model Context Protocol for tool use by other AI agents.
-- **Proxying**: The project proxies various AI and search providers via `next.config.ts` rewrites to avoid CORS issues and manage keys.
+# Assert page state
+/gsd-browser assert-text "Research Report"
+/gsd-browser assert-visible ".final-report"
+```
 
-### 3. Environment Variables
+### Testing Checklist Per Phase
 
-- Refer to `env.tpl` for all available environment variables.
-- Critical variables include `GOOGLE_GENERATIVE_AI_API_KEY`, `TAVILY_API_BASE_URL`, and `ACCESS_PASSWORD`.
-- Never commit `.env` or `.env.local` files.
+After implementing each phase, run these verification steps:
 
----
+1. **Visual:** Screenshot each affected screen, verify against design mockups
+2. **Functional:** Walk through primary user flows (research query, settings change, history access)
+3. **Responsive:** Test at mobile (375x812) and desktop (1440x900) viewports
+4. **Dark mode:** Verify all components render correctly in dark theme
+5. **Error states:** Test with invalid inputs, missing API keys, network failures
+6. **Persistence:** Refresh page and verify Zustand/localforage state is restored
 
-## 🔒 Security & Safety
+## Design System
 
-- **Secrets**: Do not hardcode API keys or credentials.
-- **Sanitization**: Use Zod to sanitize and validate all external inputs (web search results, user input).
-- **Destructive Actions**: Avoid `rm -rf` or history rewriting in git unless explicitly requested.
+Obsidian Deep — dark-only design with tonal layering. Key references:
+- `design/DESIGN.md` — Design tokens and Tailwind mapping
+- `design/SCREENS.md` — Screen index with routes
+- `design/screens/*.html` — HTML mockups
 
----
+Surface hierarchy: Well → Deck → Sheet → Raised → Float
 
-## 🤖 Agent Instructions
+## Important Notes
 
-- **Read First**: Always read the relevant file and its neighbors before proposing edits.
-- **Follow Patterns**: If adding a new component, look at `src/components/Research/SearchResult.tsx` for a reference implementation.
-- **Keep it Focused**: Make small, cohesive changes. Avoid unrelated refactors.
-- **Validate**: Run `pnpm lint` and `pnpm build` to ensure your changes don't break the build.
-- **Communication**: Summarize what changed, where, and why. Call out tradeoffs, assumptions, and known limitations. If validation could not be run, say so explicitly.
-- **Clarity**: Prefer clarity and simplicity over cleverness. Preserve existing behavior unless the task explicitly requires changes.
-- **UI Consistency**: Ensure all new UI elements support both light and dark modes using Tailwind `dark:` classes.
+- Never commit `.env` or `.env.local` files
+- Run `pnpm lint` and `pnpm build` to validate changes
+- AI providers simplified to 2 integrations: Google Gemini (native) + OpenAI-compatible layer
+- No data migration from old version — fresh start
+- MCP server integration is out of scope for v1.0

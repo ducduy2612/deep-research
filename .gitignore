@@ -43,3 +43,30 @@ next-env.d.ts
 # Serwist
 public/sw*
 public/swe-worker*
+
+# ── GSD baseline (auto-generated) ──
+.gsd
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.code-workspace
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+dist/
+build/
+__pycache__/
+*.pyc
+.venv/
+venv/
+target/
+vendor/
+*.log
+coverage/
+.cache/
+tmp/
