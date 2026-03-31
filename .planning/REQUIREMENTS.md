@@ -71,7 +71,7 @@ Requirements for milestone v1.0 Full Rewrite. Each maps to roadmap phases.
 
 - [x] **UI-01**: All 6 screens implement Obsidian Deep design system (dark-only, tonal layering, no borders)
 - [x] **UI-02**: System uses surface hierarchy (Well → Deck → Sheet → Raised → Float) consistently across all components
-- [ ] **UI-03**: Floating elements use glassmorphism (backdrop-blur, semi-transparent backgrounds)
+- [x] **UI-03**: Floating elements use glassmorphism (backdrop-blur, semi-transparent backgrounds)
 - [x] **UI-04**: Typography uses Inter for body and JetBrains Mono for code, with consistent spacing tokens
 - [x] **UI-05**: No component file exceeds 300 lines
 
@@ -121,7 +121,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | UI-01 | Phase 1: Foundation and Design System | Complete |
 | UI-02 | Phase 1: Foundation and Design System | Complete |
-| UI-03 | Phase 1: Foundation and Design System | Pending |
+| UI-03 | Phase 1: Foundation and Design System | Complete |
 | UI-04 | Phase 1: Foundation and Design System | Complete |
 | UI-05 | Phase 1: Foundation and Design System | Complete |
 | AI-01 | Phase 2: Provider Factory and AI Integration | Pending |
