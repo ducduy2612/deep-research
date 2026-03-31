@@ -37,7 +37,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Design tokens, Tailwind config, fonts, directory scaffolding, ESLint, package cleanup
+- [x] 01-01-PLAN.md — Design tokens, Tailwind config, fonts, directory scaffolding, ESLint, package cleanup
 - [ ] 01-02-PLAN.md — shadcn/ui primitives installation + infrastructure utilities (AppError, env, logger, storage)
 - [ ] 01-03-PLAN.md — /design showcase route + human verification checkpoint
 
