@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 
 import { useSettingsStore } from "@/stores/settings-store";
 import { useHistoryStore } from "@/stores/history-store";
+import { useKnowledgeStore } from "@/stores/knowledge-store";
 
 // ---------------------------------------------------------------------------
 // Providers
@@ -21,6 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const hydrate = useSettingsStore((s) => s.hydrate);
   const loaded = useSettingsStore((s) => s.loaded);
   const hydrateHistory = useHistoryStore((s) => s.hydrate);
+  const hydrateKnowledge = useKnowledgeStore((s) => s.hydrate);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -30,7 +32,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     hydrateHistory().catch((err) => {
       console.error("[Providers] Failed to hydrate history:", err);
     });
-  }, [hydrate, hydrateHistory]);
+    hydrateKnowledge().catch((err) => {
+      console.error("[Providers] Failed to hydrate knowledge:", err);
+    });
+  }, [hydrate, hydrateHistory, hydrateKnowledge]);
 
   useEffect(() => {
     setMounted(true);

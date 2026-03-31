@@ -66,3 +66,16 @@ export type {
   HistoryStoreActions,
   HistorySession,
 } from "./history-store";
+
+// Knowledge store
+export {
+  useKnowledgeStore,
+  selectItemCount,
+  selectItemsByType,
+} from "./knowledge-store";
+
+export type {
+  KnowledgeStore,
+  KnowledgeStoreState,
+  KnowledgeStoreActions,
+} from "./knowledge-store";
