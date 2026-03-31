@@ -4,7 +4,10 @@
   "parallelization": true,
   "commit_docs": true,
   "model_profile": "quality",
-  "researcher_model": "glm-5",
+  "model_overrides": {
+    "gsd-project-researcher": "glm-5",
+    "gsd-phase-researcher": "glm-5"
+  },
   "workflow": {
     "research": true,
     "plan_check": true,
