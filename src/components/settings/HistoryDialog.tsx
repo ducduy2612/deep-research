@@ -190,7 +190,7 @@ export function HistoryDialog() {
 
   const [filter, setFilter] = useState<FilterType>("all");
   const [search, setSearch] = useState("");
-  const filtered = useMemo(() => { = useMemo(() => {
+  const filtered = useMemo(() => {
     const byFilter = selectSessionsByFilter(filter)({ sessions, loaded });
     if (!search.trim()) return byFilter;
     const q = search.toLowerCase();

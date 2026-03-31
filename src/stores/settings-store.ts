@@ -16,6 +16,7 @@ import type {
   ReportStyle,
   ReportLength,
 } from "@/engine/research/types";
+import type { PromptOverrideKey } from "@/engine/research/types";
 import type { ProviderId } from "@/engine/provider/types";
 import * as storage from "@/lib/storage";
 import { z } from "zod";
@@ -54,6 +55,13 @@ export interface SettingsStoreState {
   // Citation images
   readonly citationImages: boolean;
 
+  // Prompt overrides
+  readonly promptOverrides: Partial<Record<PromptOverrideKey, string>>;
+
+  // Advanced settings
+  readonly autoReviewRounds: number;
+  readonly maxSearchQueries: number;
+
   // Hydration state
   readonly loaded: boolean;
 }
@@ -81,6 +89,14 @@ export interface SettingsStoreActions {
 
   // Citation images
   setCitationImages: (enabled: boolean) => void;
+
+  // Prompt overrides
+  setPromptOverrides: (overrides: Partial<Record<PromptOverrideKey, string>>) => void;
+  setPromptOverride: (key: PromptOverrideKey, value: string | undefined) => void;
+
+  // Advanced settings
+  setAutoReviewRounds: (rounds: number) => void;
+  setMaxSearchQueries: (max: number) => void;
 
   /** Reset all settings to defaults. */
   reset: () => Promise<void>;
@@ -123,6 +139,9 @@ const settingsSchema = z.object({
   includeDomains: z.array(z.string()),
   excludeDomains: z.array(z.string()),
   citationImages: z.boolean(),
+  promptOverrides: z.record(z.string(), z.string()).optional().default({}),
+  autoReviewRounds: z.number().int().min(0).max(5).optional().default(0),
+  maxSearchQueries: z.number().int().min(1).max(30).optional().default(8),
 });
 
 // ---------------------------------------------------------------------------
@@ -140,6 +159,9 @@ const DEFAULT_STATE: SettingsStoreState = {
   includeDomains: [],
   excludeDomains: [],
   citationImages: true,
+  promptOverrides: {},
+  autoReviewRounds: 0,
+  maxSearchQueries: 8,
   loaded: false,
 };
 
@@ -214,6 +236,34 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
     persistSettings(get());
   },
 
+  setPromptOverrides: (overrides: Partial<Record<PromptOverrideKey, string>>) => {
+    set({ promptOverrides: overrides });
+    persistSettings(get());
+  },
+
+  setPromptOverride: (key: PromptOverrideKey, value: string | undefined) => {
+    set((s) => {
+      const next = { ...s.promptOverrides };
+      if (value === undefined || value === "") {
+        delete next[key];
+      } else {
+        next[key] = value;
+      }
+      return { promptOverrides: next };
+    });
+    persistSettings(get());
+  },
+
+  setAutoReviewRounds: (rounds: number) => {
+    set({ autoReviewRounds: rounds });
+    persistSettings(get());
+  },
+
+  setMaxSearchQueries: (max: number) => {
+    set({ maxSearchQueries: max });
+    persistSettings(get());
+  },
+
   reset: async () => {
     await storage.remove(STORAGE_KEY);
     set({ ...DEFAULT_STATE, loaded: true });
@@ -235,6 +285,9 @@ function persistSettings(state: SettingsStoreState): void {
     includeDomains: state.includeDomains,
     excludeDomains: state.excludeDomains,
     citationImages: state.citationImages,
+    promptOverrides: state.promptOverrides,
+    autoReviewRounds: state.autoReviewRounds,
+    maxSearchQueries: state.maxSearchQueries,
   };
   storage.set(STORAGE_KEY, toSave, settingsSchema).catch(() => {
     // Silently ignore persistence failures — settings still work in-memory

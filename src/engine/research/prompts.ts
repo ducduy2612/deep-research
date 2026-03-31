@@ -340,7 +340,6 @@ Follow these rules to organize your output:
 /** Maps every prompt key to its default generator function. */
 export const DEFAULT_PROMPTS: Record<
   PromptOverrideKey,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- individual functions have different signatures
   (...args: any[]) => string
 > = {
   system: getSystemPrompt,
