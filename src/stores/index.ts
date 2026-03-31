@@ -52,3 +52,17 @@ export type {
   AppView,
   DialogType,
 } from "./ui-store";
+
+// History store
+export {
+  useHistoryStore,
+  selectSessionCount,
+  selectSessionsByFilter,
+} from "./history-store";
+
+export type {
+  HistoryStore,
+  HistoryStoreState,
+  HistoryStoreActions,
+  HistorySession,
+} from "./history-store";
