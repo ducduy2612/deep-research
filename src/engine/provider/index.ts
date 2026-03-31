@@ -33,3 +33,10 @@ export {
   resolveModel,
   getDefaultModel,
 } from "./registry";
+
+// Streaming
+export type { StreamOptions, GenerateStructuredOptions } from "./streaming";
+export {
+  streamWithAbort,
+  generateStructured,
+} from "./streaming";

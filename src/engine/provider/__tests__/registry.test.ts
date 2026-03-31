@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockProviderInstances: Record<string, { languageModel: ReturnType<typeof vi.fn> }> = {};
 
 vi.mock("@ai-sdk/google", () => ({
-  createGoogleGenerativeAI: vi.fn((opts: Record<string, unknown>) => {
+  createGoogleGenerativeAI: vi.fn(() => {
     const lm = vi.fn().mockReturnValue({ __type: "language-model" });
     const provider = { languageModel: lm, __type: "google-provider" };
     mockProviderInstances["google"] = provider as never;
@@ -74,7 +74,7 @@ import { AppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 
 import { createRegistry, resolveModel, getDefaultModel } from "../registry";
-import type { ProviderRegistry, ProviderConfig } from "../index";
+import type { ProviderConfig } from "../index";
 
 // ---------------------------------------------------------------------------
 // Test fixtures
