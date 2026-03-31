@@ -34,12 +34,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Floating elements display glassmorphism effect (backdrop-blur, semi-transparent background) confirming the design token system is wired end-to-end
   4. All shadcn/ui primitives are installed and restyled with Obsidian Deep CSS variables, producing dark-mode-appropriate controls
   5. Every component file in the project is under 300 lines (lint rule or CI check enforces this)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
-- [ ] 01-03: TBD
+- [ ] 01-01-PLAN.md — Design tokens, Tailwind config, fonts, directory scaffolding, ESLint, package cleanup
+- [ ] 01-02-PLAN.md — shadcn/ui primitives installation + infrastructure utilities (AppError, env, logger, storage)
+- [ ] 01-03-PLAN.md — /design showcase route + human verification checkpoint
 
 ### Phase 2: Provider Factory and AI Integration
 **Goal**: Users can configure and connect to any supported AI provider (Gemini + OpenAI-compatible) with validated API keys and working streaming responses
@@ -168,7 +168,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation and Design System | 0/? | Not started | - |
+| 1. Foundation and Design System | 0/3 | Planning complete | - |
 | 2. Provider Factory and AI Integration | 0/? | Not started | - |
 | 3. Research Engine Core | 0/? | Not started | - |
 | 4. Search Provider Integration | 0/? | Not started | - |
