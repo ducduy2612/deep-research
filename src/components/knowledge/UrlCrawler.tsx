@@ -15,6 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useKnowledgeStore } from "@/stores/knowledge-store";
+import { useSettingsStore } from "@/stores/settings-store";
+import { createAuthHeaders } from "@/lib/client-signature";
 import type { KnowledgeItem } from "@/engine/knowledge/types";
 
 // ---------------------------------------------------------------------------
@@ -68,9 +70,15 @@ export function UrlCrawler() {
       setCrawling(true);
 
       try {
+        const { proxyMode, accessPassword } = useSettingsStore.getState();
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          ...(proxyMode ? createAuthHeaders(accessPassword) : {}),
+        };
+
         const res = await fetch("/api/knowledge/crawl", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({ url: trimmed, crawler }),
         });
 

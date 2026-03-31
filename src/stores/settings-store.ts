@@ -66,6 +66,10 @@ export interface SettingsStoreState {
   readonly localOnlyMode: boolean;
   readonly selectedKnowledgeIds: readonly string[];
 
+  // Proxy mode (CORS proxy with HMAC auth)
+  readonly proxyMode: boolean;
+  readonly accessPassword: string;
+
   // Hydration state
   readonly loaded: boolean;
 }
@@ -105,6 +109,10 @@ export interface SettingsStoreActions {
   // Knowledge integration
   setLocalOnlyMode: (enabled: boolean) => void;
   setSelectedKnowledgeIds: (ids: string[]) => void;
+
+  // Proxy mode
+  setProxyMode: (enabled: boolean) => void;
+  setAccessPassword: (password: string) => void;
 
   /** Reset all settings to defaults. */
   reset: () => Promise<void>;
@@ -152,6 +160,8 @@ const settingsSchema = z.object({
   maxSearchQueries: z.number().int().min(1).max(30).optional().default(8),
   localOnlyMode: z.boolean().optional().default(false),
   selectedKnowledgeIds: z.array(z.string()).optional().default([]),
+  proxyMode: z.boolean().optional().default(false),
+  accessPassword: z.string().optional().default(""),
 });
 
 // ---------------------------------------------------------------------------
@@ -174,6 +184,8 @@ const DEFAULT_STATE: SettingsStoreState = {
   maxSearchQueries: 8,
   localOnlyMode: false,
   selectedKnowledgeIds: [],
+  proxyMode: false,
+  accessPassword: "",
   loaded: false,
 };
 
@@ -286,6 +298,16 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
     persistSettings(get());
   },
 
+  setProxyMode: (enabled: boolean) => {
+    set({ proxyMode: enabled });
+    persistSettings(get());
+  },
+
+  setAccessPassword: (password: string) => {
+    set({ accessPassword: password });
+    persistSettings(get());
+  },
+
   reset: async () => {
     await storage.remove(STORAGE_KEY);
     set({ ...DEFAULT_STATE, loaded: true });
@@ -312,6 +334,8 @@ function persistSettings(state: SettingsStoreState): void {
     maxSearchQueries: state.maxSearchQueries,
     localOnlyMode: state.localOnlyMode,
     selectedKnowledgeIds: state.selectedKnowledgeIds,
+    proxyMode: state.proxyMode,
+    accessPassword: state.accessPassword,
   };
   storage.set(STORAGE_KEY, toSave, settingsSchema).catch(() => {
     // Silently ignore persistence failures — settings still work in-memory

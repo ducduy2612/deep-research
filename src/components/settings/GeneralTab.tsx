@@ -2,6 +2,7 @@
 
 import { cn } from "@/utils/style";
 import { useSettingsStore } from "@/stores/settings-store";
+import { Switch } from "@/components/ui/switch";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
 
 // ---------------------------------------------------------------------------
@@ -73,9 +74,61 @@ export function GeneralTab() {
   const setAutoReviewRounds = useSettingsStore((s) => s.setAutoReviewRounds);
   const maxSearchQueries = useSettingsStore((s) => s.maxSearchQueries);
   const setMaxSearchQueries = useSettingsStore((s) => s.setMaxSearchQueries);
+  const proxyMode = useSettingsStore((s) => s.proxyMode);
+  const setProxyMode = useSettingsStore((s) => s.setProxyMode);
+  const accessPassword = useSettingsStore((s) => s.accessPassword);
+  const setAccessPassword = useSettingsStore((s) => s.setAccessPassword);
 
   return (
     <div className="space-y-6">
+      {/* Connection / Proxy Mode */}
+      <div>
+        <h4 className="mb-2 font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
+          Connection
+        </h4>
+        <div className="space-y-3 rounded-lg border border-obsidian-border/30 bg-obsidian-surface-deck p-3">
+          {/* Mode indicator + toggle */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-obsidian-on-surface">Proxy Mode</span>
+              <span
+                className={cn(
+                  "rounded px-1.5 py-0.5 font-mono text-[9px] uppercase",
+                  proxyMode
+                    ? "bg-obsidian-primary/20 text-obsidian-primary"
+                    : "bg-obsidian-surface-well text-obsidian-on-surface-var/50",
+                )}
+              >
+                {proxyMode ? "Proxy" : "Local"}
+              </span>
+            </div>
+            <Switch
+              checked={proxyMode}
+              onCheckedChange={setProxyMode}
+            />
+          </div>
+
+          {/* Access password (visible when proxy mode enabled) */}
+          {proxyMode && (
+            <div>
+              <label className="mb-1 block font-mono text-[10px] text-obsidian-on-surface-var/60">
+                Access Password
+              </label>
+              <input
+                type="password"
+                value={accessPassword}
+                onChange={(e) => setAccessPassword(e.target.value)}
+                placeholder="Enter access password"
+                className="w-full rounded-md border border-obsidian-surface-raised bg-obsidian-surface-well px-3 py-1.5 text-xs text-obsidian-on-surface placeholder:text-obsidian-on-surface-var/40 focus:border-obsidian-primary focus:outline-none"
+              />
+              <p className="mt-1 text-[10px] text-obsidian-on-surface-var/40">
+                Required when connecting through a CORS proxy server.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Language */}
       <div>
         <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">

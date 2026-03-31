@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { nanoid } from "nanoid";
 
 import { useKnowledgeStore } from "@/stores/knowledge-store";
+import { useSettingsStore } from "@/stores/settings-store";
+import { createAuthHeaders } from "@/lib/client-signature";
 import { cn } from "@/utils/style";
 import type { KnowledgeItem } from "@/engine/knowledge/types";
 
@@ -40,8 +42,14 @@ export function FileUpload() {
         const formData = new FormData();
         formData.append("file", file);
 
+        const { proxyMode, accessPassword } = useSettingsStore.getState();
+        const headers: Record<string, string> = {
+          ...(proxyMode ? createAuthHeaders(accessPassword) : {}),
+        };
+
         const res = await fetch("/api/knowledge/parse", {
           method: "POST",
+          headers,
           body: formData,
         });
 

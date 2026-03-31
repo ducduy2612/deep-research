@@ -17,6 +17,7 @@ import {
 import { useSettingsStore } from "@/stores/settings-store";
 import { useUIStore } from "@/stores/ui-store";
 import { useHistoryStore } from "@/stores/history-store";
+import { createAuthHeaders } from "@/lib/client-signature";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
 
 /** Lazy import — keeps fuse.js out of the hot module path. */
@@ -133,6 +134,8 @@ export function useResearch(): UseResearchReturn {
   const maxSearchQueries = useSettingsStore((s) => s.maxSearchQueries);
   const localOnlyMode = useSettingsStore((s) => s.localOnlyMode);
   const selectedKnowledgeIds = useSettingsStore((s) => s.selectedKnowledgeIds);
+  const proxyMode = useSettingsStore((s) => s.proxyMode);
+  const accessPassword = useSettingsStore((s) => s.accessPassword);
 
   // UI navigation
   const navigate = useUIStore((s) => s.navigate);
@@ -200,9 +203,14 @@ export function useResearch(): UseResearchReturn {
       console.info("[useResearch] SSE connection opening", { topic: options.topic });
 
       try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          ...(proxyMode ? createAuthHeaders(accessPassword) : {}),
+        };
+
         const response = await fetch("/api/research/stream", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify(body),
           signal: controller.signal,
         });
@@ -295,7 +303,7 @@ export function useResearch(): UseResearchReturn {
         cleanup();
       }
     },
-    [searchProvider, includeDomains, excludeDomains, citationImages, promptOverrides, autoReviewRounds, maxSearchQueries, localOnlyMode, selectedKnowledgeIds, startTimer, cleanup],
+    [searchProvider, includeDomains, excludeDomains, citationImages, promptOverrides, autoReviewRounds, maxSearchQueries, localOnlyMode, selectedKnowledgeIds, proxyMode, accessPassword, startTimer, cleanup],
   );
 
   // Public actions
