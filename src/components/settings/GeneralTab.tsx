@@ -87,7 +87,7 @@ export function GeneralTab() {
         <h4 className="mb-2 font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
           {t("connection")}
         </h4>
-        <div className="space-y-3 rounded-lg border border-obsidian-border/30 bg-obsidian-surface-deck p-3">
+        <div className="space-y-3 rounded-lg border border-obsidian-outline-ghost/20 bg-obsidian-surface-deck p-3">
           {/* Mode indicator + toggle */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

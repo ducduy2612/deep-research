@@ -129,7 +129,7 @@ export function UrlCrawler() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={crawling}
-            className="h-9 border-obsidian-border/50 bg-obsidian-surface-deck pl-8 text-sm text-obsidian-on-surface placeholder:text-obsidian-on-surface/30"
+            className="h-9 border-obsidian-outline-ghost/30 bg-obsidian-surface-deck pl-8 text-sm text-obsidian-on-surface placeholder:text-obsidian-on-surface/30"
           />
         </div>
       </div>
@@ -140,10 +140,10 @@ export function UrlCrawler() {
           value={crawler}
           onValueChange={(v) => setCrawler(v as CrawlerType)}
         >
-          <SelectTrigger className="h-9 w-[160px] border-obsidian-border/50 bg-obsidian-surface-deck text-sm text-obsidian-on-surface">
+          <SelectTrigger className="h-9 w-[160px] border-obsidian-outline-ghost/30 bg-obsidian-surface-deck text-sm text-obsidian-on-surface">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="border-obsidian-border/50 bg-obsidian-surface-sheet">
+          <SelectContent className="border-obsidian-outline-ghost/30 bg-obsidian-surface-float">
             <SelectItem value="jina" className="text-sm text-obsidian-on-surface">
               {t("jina")}
             </SelectItem>

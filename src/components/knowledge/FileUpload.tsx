@@ -162,7 +162,7 @@ export function FileUpload() {
           "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 transition-colors",
           isDragging
             ? "border-obsidian-primary bg-obsidian-primary/10"
-            : "border-obsidian-border/50 bg-obsidian-surface-deck hover:border-obsidian-on-surface/30",
+            : "border-obsidian-outline-ghost/30 bg-obsidian-surface-deck hover:border-obsidian-on-surface/30",
           uploading && "pointer-events-none opacity-60",
         )}
       >

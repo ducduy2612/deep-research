@@ -20,12 +20,8 @@ import {
   BarChart3,
   ExternalLink,
 } from "lucide-react";
-
 import { useUIStore } from "@/stores/ui-store";
-import {
-  useHistoryStore,
-  selectSessionsByFilter,
-} from "@/stores/history-store";
+import { useHistoryStore, selectSessionsByFilter } from "@/stores/history-store";
 import { useResearchStore } from "@/stores/research-store";
 import type { HistorySession } from "@/stores/history-store";
 
@@ -123,7 +119,7 @@ function SessionCard({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <div className="flex items-start justify-between gap-3 rounded-lg border border-obsidian-border/50 bg-obsidian-surface-deck p-3">
+    <div className="flex items-start justify-between gap-3 rounded-lg border border-obsidian-outline-ghost/30 bg-obsidian-surface-sheet p-3">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-medium text-obsidian-on-surface">
@@ -235,7 +231,7 @@ export function HistoryDialog() {
         if (!open) closeDialog();
       }}
     >
-      <DialogContent className="max-h-[80vh] max-w-2xl border-obsidian-border/50 bg-obsidian-surface-sheet backdrop-blur-xl sm:rounded-xl">
+      <DialogContent className="max-h-[80vh] max-w-2xl border-obsidian-outline-ghost/20 bg-obsidian-surface-sheet backdrop-blur-xl sm:rounded-xl">
         <DialogHeader>
           <DialogTitle className="text-obsidian-on-surface">
             {t("title")}
@@ -269,7 +265,7 @@ export function HistoryDialog() {
               placeholder={t("searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-8 border-obsidian-border/50 bg-obsidian-surface-deck pl-8 text-xs text-obsidian-on-surface placeholder:text-obsidian-on-surface/30"
+              className="h-8 border-obsidian-outline-ghost/30 bg-obsidian-surface-deck pl-8 text-xs text-obsidian-on-surface placeholder:text-obsidian-on-surface/30"
             />
           </div>
         </div>

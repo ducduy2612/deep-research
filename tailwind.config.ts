@@ -29,6 +29,7 @@ export default {
   				'on-surface-var': '#c7c4d7',
   				outline: '#908fa0',
   				'outline-ghost': 'rgba(70, 69, 84, 0.15)',
+  				border: 'rgba(70, 69, 84, 0.15)',
   				error: '#ffb4ab',
   				'error-bg': '#93000a'
   			},
