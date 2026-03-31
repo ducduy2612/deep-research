@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   experimental: {
     reactCompiler: true,
   },
+  serverExternalPackages: ["officeparser", "pdfjs-dist"],
   env: {
     NEXT_PUBLIC_VERSION: pkg.version,
   },
