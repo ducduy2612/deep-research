@@ -12,7 +12,7 @@ Last activity: 2026-03-31 — Milestone v1.0 started
 ### Decisions
 - Simplified AI providers: Google Gemini (native) + OpenAI-compatible layer only
 - Full rewrite scope: all current features kept
-- All search providers retained: Tavily, Bing, Serper, SearXNG
+- All search providers retained: Tavily, Firecrawl, Exa, Brave, SearXNG
 
 ### Blockers
 None

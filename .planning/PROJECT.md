@@ -4,7 +4,7 @@
 
 A ground-up rewrite of the Deep Research application — an AI-powered research tool that orchestrates multi-step web research using various LLM providers. The rewrite applies the Obsidian Dark design system to create a premium, high-cognitive-load research environment while restructuring the codebase to eliminate technical debt and establish maintainable architecture.
 
-The app supports multiple AI providers (Anthropic, OpenAI, Google, Azure, Mistral, DeepSeek, xAI, OpenRouter, Ollama), runs as a PWA with Docker deployment, and includes i18n support.
+The app supports multiple AI providers (Anthropic, OpenAI, Google, Azure, Mistral, DeepSeek, xAI, OpenRouter, Ollama), runs as a PWA, and includes i18n support.
 
 ## Core Value
 
@@ -18,11 +18,10 @@ Users can input a research question and receive a comprehensive, sourced AI-gene
 
 - ✓ Multi-provider AI integration (10+ providers) — existing
 - ✓ Deep research workflow with multi-step reasoning — existing
-- ✓ Search provider integration (Tavily, Bing, Serper, SearXNG, etc.) — existing
+- ✓ Search provider integration (Tavily, Firecrawl, Exa, Brave, SearXNG, etc.) — existing
 - ✓ Knowledge base with file upload and parsing (PDF, Office, text) — existing
 - ✓ Research history with session management — existing
 - ✓ PWA support with offline capability — existing
-- ✓ MCP server integration — existing
 - ✓ i18n (internationalization) support — existing
 - ✓ CORS proxy mode for API calls — existing
 - ✓ Settings management with provider configuration — existing
@@ -34,12 +33,11 @@ Users can input a research question and receive a comprehensive, sourced AI-gene
 - [ ] Obsidian Deep design system applied across all screens
 - [ ] Component architecture: max 300 lines per component file
 - [ ] AI provider integration: Google Gemini (native) + OpenAI-compatible layer (covers OpenAI, DeepSeek, OpenRouter, Groq, xAI)
-- [ ] All search providers: Tavily, Bing, Serper, SearXNG
+- [ ] All search providers: Tavily, Firecrawl, Exa, Brave, SearXNG
 - [ ] Knowledge base with file upload and parsing (PDF, Office, text)
-- [ ] MCP server integration
 - [ ] PWA support with offline capability
 - [ ] i18n support
-- [ ] Docker deployment and CORS proxy mode
+- [ ] CORS proxy mode
 - [ ] Centralized environment configuration with Zod validation
 - [ ] Centralized AI provider factory (eliminate switch-case duplication)
 - [ ] Structured error handling with consistent error boundaries
@@ -59,6 +57,7 @@ Users can input a research question and receive a comprehensive, sourced AI-gene
 - Real-time chat — not core to research workflow
 - Mobile native app — web-first, PWA is sufficient
 - Server-side deployment with user accounts — client-side model continues
+- MCP server integration — focus on web app only; programmatic access via API is not needed for v1.0
 
 ## Context
 
@@ -93,7 +92,7 @@ The Obsidian Deep design system (in `/design/`) defines:
 
 - **Tech Stack**: Next.js 15, React 19, Vercel AI SDK 4.x, Zustand — must stay
 - **AI Providers**: Google Gemini (native) + OpenAI-compatible layer only (covers OpenAI, DeepSeek, OpenRouter, Groq, xAI) — other providers dropped for v1.0
-- **Platforms**: PWA support, Docker deployment, static export capability, i18n
+- **Platforms**: PWA support, static export capability, i18n
 - **Design**: Obsidian Deep design system direction — matching the vision, not pixel-perfect
 - **No Migration**: Fresh start — no need to carry data from old version
 
@@ -104,8 +103,8 @@ The Obsidian Deep design system (in `/design/`) defines:
 **Target features:**
 - All 6 screens with Obsidian Deep design system
 - Google Gemini + OpenAI-compatible AI provider integration
-- All search providers (Tavily, Bing, Serper, SearXNG)
-- Knowledge base, MCP server, PWA, i18n, Docker, CORS proxy
+- All search providers (Tavily, Firecrawl, Exa, Brave, SearXNG)
+- Knowledge base, PWA, i18n, CORS proxy
 - Clean architecture: centralized config, provider factory, error handling, logging, validation
 
 ## Key Decisions
@@ -118,5 +117,22 @@ The Obsidian Deep design system (in `/design/`) defines:
 | Fresh start (no data migration) | Simplifies rewrite; localStorage data is research history — acceptable to reset | — Pending |
 | Simplified AI providers (Gemini + OpenAI-compatible) | Reduces 10+ integrations to 2. OpenAI-compatible covers DeepSeek, OpenRouter, Groq, xAI via shared interface. | — Pending |
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-31 after milestone v1.0 started*
+*Last updated: 2026-03-31 — milestone v1.0 confirmed, proceeding to requirements*
