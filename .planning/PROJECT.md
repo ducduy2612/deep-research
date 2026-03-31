@@ -33,6 +33,13 @@ Users can input a research question and receive a comprehensive, sourced AI-gene
 
 - [ ] Obsidian Deep design system applied across all screens
 - [ ] Component architecture: max 300 lines per component file
+- [ ] AI provider integration: Google Gemini (native) + OpenAI-compatible layer (covers OpenAI, DeepSeek, OpenRouter, Groq, xAI)
+- [ ] All search providers: Tavily, Bing, Serper, SearXNG
+- [ ] Knowledge base with file upload and parsing (PDF, Office, text)
+- [ ] MCP server integration
+- [ ] PWA support with offline capability
+- [ ] i18n support
+- [ ] Docker deployment and CORS proxy mode
 - [ ] Centralized environment configuration with Zod validation
 - [ ] Centralized AI provider factory (eliminate switch-case duplication)
 - [ ] Structured error handling with consistent error boundaries
@@ -85,10 +92,21 @@ The Obsidian Deep design system (in `/design/`) defines:
 ## Constraints
 
 - **Tech Stack**: Next.js 15, React 19, Vercel AI SDK 4.x, Zustand — must stay
-- **AI Providers**: All 10+ providers must continue working — Anthropic, OpenAI, Google, Azure, Mistral, DeepSeek, xAI, OpenRouter, Ollama
+- **AI Providers**: Google Gemini (native) + OpenAI-compatible layer only (covers OpenAI, DeepSeek, OpenRouter, Groq, xAI) — other providers dropped for v1.0
 - **Platforms**: PWA support, Docker deployment, static export capability, i18n
 - **Design**: Obsidian Deep design system direction — matching the vision, not pixel-perfect
 - **No Migration**: Fresh start — no need to carry data from old version
+
+## Current Milestone: v1.0 — Full Rewrite
+
+**Goal:** Ground-up rewrite of Deep Research with Obsidian Deep design system, simplified AI provider layer (Gemini + OpenAI-compatible), and clean architecture.
+
+**Target features:**
+- All 6 screens with Obsidian Deep design system
+- Google Gemini + OpenAI-compatible AI provider integration
+- All search providers (Tavily, Bing, Serper, SearXNG)
+- Knowledge base, MCP server, PWA, i18n, Docker, CORS proxy
+- Clean architecture: centralized config, provider factory, error handling, logging, validation
 
 ## Key Decisions
 
@@ -98,6 +116,7 @@ The Obsidian Deep design system (in `/design/`) defines:
 | Same tech stack (Next.js + React + AI SDK) | Core dependencies work; the problem is architecture, not framework choice | — Pending |
 | Obsidian Deep as design direction | Premium dark-mode design already specified with full tokens and mockups | — Pending |
 | Fresh start (no data migration) | Simplifies rewrite; localStorage data is research history — acceptable to reset | — Pending |
+| Simplified AI providers (Gemini + OpenAI-compatible) | Reduces 10+ integrations to 2. OpenAI-compatible covers DeepSeek, OpenRouter, Groq, xAI via shared interface. | — Pending |
 
 ---
-*Last updated: 2026-03-31 after initialization*
+*Last updated: 2026-03-31 after milestone v1.0 started*
