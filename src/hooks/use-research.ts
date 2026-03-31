@@ -16,6 +16,7 @@ import {
 } from "@/stores/research-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useUIStore } from "@/stores/ui-store";
+import { useHistoryStore } from "@/stores/history-store";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
 
 // ---------------------------------------------------------------------------
@@ -153,6 +154,9 @@ export function useResearch(): UseResearchReturn {
   const includeDomains = useSettingsStore((s) => s.includeDomains);
   const excludeDomains = useSettingsStore((s) => s.excludeDomains);
   const citationImages = useSettingsStore((s) => s.citationImages);
+  const promptOverrides = useSettingsStore((s) => s.promptOverrides);
+  const autoReviewRounds = useSettingsStore((s) => s.autoReviewRounds);
+  const maxSearchQueries = useSettingsStore((s) => s.maxSearchQueries);
 
   // UI navigation
   const navigate = useUIStore((s) => s.navigate);
@@ -209,6 +213,9 @@ export function useResearch(): UseResearchReturn {
         language: options.language,
         reportStyle: options.reportStyle,
         reportLength: options.reportLength,
+        promptOverrides: Object.keys(promptOverrides).length > 0 ? promptOverrides : undefined,
+        autoReviewRounds,
+        maxSearchQueries,
         // Send provider keys for server-side config building reference
         // (server builds from env, but we include search config)
         search: {
@@ -264,6 +271,33 @@ export function useResearch(): UseResearchReturn {
           if (eventType === "done" || eventType === "error") {
             cleanup();
           }
+
+          // Auto-save completed research to history
+          if (eventType === "done") {
+            try {
+              const rs = useResearchStore.getState();
+              if (rs.result) {
+                useHistoryStore.getState().save({
+                  id: rs.topic + "-" + (rs.startedAt ?? Date.now()),
+                  topic: rs.topic,
+                  title: rs.result.title ?? rs.topic,
+                  state: rs.state === "failed" ? "failed" : "completed",
+                  startedAt: rs.startedAt ?? Date.now(),
+                  completedAt: rs.completedAt ?? Date.now(),
+                  report: rs.result.report,
+                  learnings: rs.result.learnings,
+                  sources: rs.result.sources,
+                  images: rs.result.images,
+                  reportStyle: options.reportStyle ?? "balanced",
+                  reportLength: options.reportLength ?? "standard",
+                });
+                console.info("[useResearch] Auto-saved session to history");
+              }
+            } catch (err) {
+              // History save failure must not block research flow
+              console.error("[useResearch] Failed to auto-save to history:", err);
+            }
+          }
         });
 
         // Consume ReadableStream
@@ -306,7 +340,7 @@ export function useResearch(): UseResearchReturn {
         cleanup();
       }
     },
-    [searchProvider, includeDomains, excludeDomains, citationImages, startTimer, cleanup],
+    [searchProvider, includeDomains, excludeDomains, citationImages, promptOverrides, autoReviewRounds, maxSearchQueries, startTimer, cleanup],
   );
 
   // ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
 
 import { useSettingsStore } from "@/stores/settings-store";
+import { useHistoryStore } from "@/stores/history-store";
 
 // ---------------------------------------------------------------------------
 // Providers
@@ -19,13 +20,17 @@ import { useSettingsStore } from "@/stores/settings-store";
 export function Providers({ children }: { children: React.ReactNode }) {
   const hydrate = useSettingsStore((s) => s.hydrate);
   const loaded = useSettingsStore((s) => s.loaded);
+  const hydrateHistory = useHistoryStore((s) => s.hydrate);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     hydrate().catch((err) => {
       console.error("[Providers] Failed to hydrate settings:", err);
     });
-  }, [hydrate]);
+    hydrateHistory().catch((err) => {
+      console.error("[Providers] Failed to hydrate history:", err);
+    });
+  }, [hydrate, hydrateHistory]);
 
   useEffect(() => {
     setMounted(true);

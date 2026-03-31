@@ -8,6 +8,8 @@ import { TopicInput } from "@/components/research/TopicInput";
 import { ReportConfig } from "@/components/research/ReportConfig";
 import { ActiveResearch } from "@/components/research/ActiveResearch";
 import { FinalReport } from "@/components/research/FinalReport";
+import { SettingsDialog } from "@/components/settings/SettingsDialog";
+import { HistoryDialog } from "@/components/settings/HistoryDialog";
 import { useResearch } from "@/hooks/use-research";
 import { useUIStore } from "@/stores/ui-store";
 import { useResearchStore } from "@/stores/research-store";
@@ -63,6 +65,10 @@ export default function Home() {
           <FinalReport className="flex-1" />
         )}
       </main>
+
+      {/* Global dialogs */}
+      <SettingsDialog />
+      <HistoryDialog />
     </div>
   );
 }
