@@ -15,7 +15,7 @@ import { create } from "zustand";
 export type AppView = "hub" | "active" | "report";
 
 /** The possible dialog states. */
-export type DialogType = "settings" | "history" | "about" | null;
+export type DialogType = "settings" | "history" | "knowledge" | "about" | null;
 
 // ---------------------------------------------------------------------------
 // Store state & actions
