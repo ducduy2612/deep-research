@@ -6,7 +6,7 @@
 
 ## Recommended Architecture
 
-The rewrite uses a **layered modular monolith** within Next.js 15 App Router. Each subsystem (provider factory, research engine, knowledge base, MCP, PWA) is a self-contained module with clear boundaries. Client-side state lives in Zustand stores split by domain. Server-side logic runs in API routes and composable middleware. The research workflow engine is extracted from React hooks into a standalone orchestrator class.
+The rewrite uses a **layered modular monolith** within Next.js 15 App Router. Each subsystem (provider factory, research engine, knowledge base, PWA) is a self-contained module with clear boundaries. Client-side state lives in Zustand stores split by domain. Server-side logic runs in API routes and composable middleware. The research workflow engine is extracted from React hooks into a standalone orchestrator class.
 
 ```
 src/
@@ -20,8 +20,6 @@ src/
       ai/[...slug]/route.ts     # Unified AI proxy (single route, provider in body)
       search/[provider]/[...slug]/route.ts  # Search provider proxy
       research/route.ts         # SSE streaming endpoint for research workflow
-      mcp/route.ts              # MCP server HTTP endpoint
-      mcp/[...slug]/route.ts    # MCP server slug routes
 
   config/                       # Centralized configuration (Zod-validated)
     env.ts                      # Environment variable schema + validation
@@ -54,11 +52,11 @@ src/
       searxng.ts                # SearXNG adapter
       types.ts                  # Shared search interface
     knowledge/
-      processor.ts              # File processing pipeline
-      parsers/                  # File format parsers
-        pdf.ts
-        office.ts
-        text.ts
+      processor.ts              # File processing pipeline (routes by MIME type)
+      parsers/
+        office.ts               # officeparser adapter (DOCX, PPTX, XLSX, ODT, ODP, ODS, RTF)
+        pdf-ocr.ts              # PDF → LLM OCR via OpenAI-compatible vision model (e.g. GLM-OCR)
+        text.ts                 # Plain text parser (for text/JSON/XML/YAML/code)
       store.ts                  # Knowledge base CRUD operations
       search.ts                 # Local knowledge search (Fuse.js)
 
@@ -148,7 +146,6 @@ src/
 | **Zustand Stores** | Client-side state management with persistence | Components (via selectors), Hooks |
 | **React Hooks** | Thin wrappers connecting engine to React lifecycle | Engine modules, Zustand Stores, Components |
 | **UI Components** | Render interface, capture user input | Hooks (for data/actions), Design System primitives |
-| **MCP Server** | Expose research capabilities to external MCP clients | Research Orchestrator, Provider Factory |
 | **Service Worker** | Offline caching, precaching, runtime strategies | Next.js build manifest |
 
 ### Data Flow
@@ -547,10 +544,7 @@ const envSchema = z.object({
 
   // Security
   ACCESS_PASSWORD: z.string().optional(),
-  HMAC_SECRET: z.string().optional(),
-
-  // MCP
-  MCP_ENABLED: z.coerce.boolean().default(true),
+  HMAC_SECRET: z.string().optional()
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -858,28 +852,22 @@ export { Button, buttonVariants };
 
 ### 3. Knowledge Base Subsystem
 
-**Problem solved:** File parsing is scattered, parsers are untested, and knowledge search has no clear interface.
+**Problem solved:** File parsing uses a modified inline library (718 lines of custom `officeParser.ts` + 62-line `pdfParser.ts`) with no table structure, no formatting metadata, and no OCR capability for PDFs. Knowledge search has no clear interface.
 
 **New architecture:**
-
-- **KnowledgeProcessor:** Accepts a File, detects MIME type, routes to appropriate parser. Returns structured text with metadata.
-- **Parsers:** Each format (PDF via pdfjs-dist, Office via @zip.js/zip.js XML extraction, plain text) has its own module with a `parse(buffer: ArrayBuffer): Promise<ParsedContent>` interface.
+- **KnowledgeProcessor:** Accepts a File, detects MIME type, and routes to the appropriate parser:
+  - **Office docs** (DOCX, PPTX, XLSX, ODT, ODP, ODS, RTF) → `officeparser` v6 for structured AST extraction
+  - **PDFs** → Send PDF file directly to an LLM-based OCR service via the OpenAI-compatible provider factory (e.g. GLM-OCR). No rendering to images needed — models accept PDF input natively. Returns structured text preserving tables, layout, and reading order.
+  - **Plain text** (text, JSON, XML, YAML, code) → lightweight `text.ts` parser
+- **Parsers:**
+  - `office.ts`: Thin adapter wrapping `officeparser.parseOffice()` to return `{ text, ast }` (using `ast.toText()` for backward compatibility). Handles DOCX, PPTX, XLSX, ODT, ODP, ODS, RTF.
+  - `pdf-ocr.ts`: Sends PDF bytes directly to a vision-capable LLM (configured via the existing OpenAI-compatible provider factory — e.g. GLM-OCR) for OCR. The model accepts PDF input natively — no rendering to images needed. Returns structured text preserving tables, layout, and reading order. Handles scanned documents, images with text, and handwritten content that traditional text extraction misses.
+  - `text.ts`: Handles plain text, JSON, XML, YAML, and code files directly.
 - **KnowledgeStore (engine):** CRUD operations on knowledge entries. Uses IndexedDB via localforage for storage (not Zustand -- knowledge data can be large).
 - **KnowledgeSearch:** Uses Fuse.js to fuzzy-match queries against stored knowledge content. Returns ranked results with relevance scores.
 - **Integration:** Research orchestrator optionally includes knowledge search results in the search phase alongside web results.
 
-### 4. MCP Server Subsystem
-
-**Problem solved:** Current MCP implementation is 4000+ lines across 7 files with no tests and inline protocol handling.
-
-**New architecture:**
-
-- **Use official SDK:** Replace custom MCP protocol implementation with `@modelcontextprotocol/sdk`. The official SDK handles transport, serialization, and protocol compliance.
-- **Tool definitions:** Register research-specific tools (start_research, get_research_status, search_web, query_knowledge) using the SDK's tool API.
-- **Transport:** Support both SSE and StreamableHTTP transports (matching current functionality) via the SDK.
-- **Single API route:** `/api/mcp` and `/api/mcp/[...slug]` handle all MCP requests. Route handler is thin -- delegates to SDK-configured server instance.
-
-### 5. PWA Subsystem
+### 4. PWA Subsystem
 
 **Problem solved:** PWA support exists but service worker configuration is tangled with build config.
 
@@ -922,7 +910,7 @@ export { Button, buttonVariants };
 | **API proxy throughput** | Next.js serverless handles easily | Add rate limiting per IP, request queuing | Need dedicated proxy (Nginx/Cloudflare), offload from Next.js |
 | **Research concurrency** | In-process orchestrator fine | AbortController cleanup critical, memory monitoring | Need job queue (BullMQ/Redis), offload research to workers |
 | **Knowledge storage** | IndexedDB ~50MB sufficient | IndexedDB ~50MB sufficient (per user, client-side) | Same -- client-side storage scales linearly |
-| **Bundle size** | Code-split by route, tree-shake providers | Monitor with bundle analyzer, lazy-load heavy parsers | Consider WASM for PDF parsing, defer MCP SDK |
+| **Bundle size** | Code-split by route, tree-shake providers | Monitor with bundle analyzer, lazy-load heavy parsers | Consider WASM for PDF parsing |
 | **Search API costs** | Pay-per-request, acceptable | Add result caching (LRU), deduplicate queries | Server-side cache layer (Redis), search result pooling |
 | **Offline support** | Basic precache sufficient | Background sync for pending research submissions | Full offline-first with IndexedDB queue + sync |
 
@@ -938,7 +926,6 @@ Settings Store   <----> Provider Factory (provides API keys, model selection)
 Settings Store   <----> Search Factory (provides search API keys)
 Research Store   <----> UI Components (reactive rendering)
 History Store    <----> Research Engine (saves completed research)
-MCP Server       <----> Research Engine (exposes as MCP tool)
 Service Worker   <----> API Routes (caching strategies)
 Middleware       <----> API Routes (auth, key injection)
 Logger           <----> All subsystems (structured logging)
@@ -956,7 +943,6 @@ Error Hierarchy  <----> All subsystems (consistent error handling)
 | Exa Search API | HTTPS REST | Settings Store / env |
 | Brave Search API | HTTPS REST | Settings Store / env |
 | SearXNG | HTTPS REST (self-hosted) | Settings Store (base URL) |
-| MCP Clients | SSE / StreamableHTTP | MCP Server config |
 
 ## Build Order Implications
 
@@ -973,9 +959,8 @@ Based on the dependency graph between subsystems, the recommended build order fo
 9. **React hooks** (depends on engine + stores): Thin adapters connecting orchestrator to React
 10. **API routes + middleware** (depends on engine + config): Server-side proxy layer
 11. **Page components** (depends on UI + hooks + stores): Assemble screens from components
-12. **MCP server** (depends on research orchestrator): Expose research as MCP tools
-13. **PWA + service worker** (depends on API routes): Offline caching layer
-14. **i18n** (cross-cutting, can be integrated incrementally): Translation files and hook integration
+12. **PWA + service worker** (depends on API routes): Offline caching layer
+13. **i18n** (cross-cutting, can be integrated incrementally): Translation files and hook integration
 
 ## Sources
 
@@ -983,8 +968,6 @@ Based on the dependency graph between subsystems, the recommended build order fo
 - AI SDK Core providers and models: https://sdk.vercel.ai/docs/ai-sdk-core
 - Zustand documentation: https://zustand.docs.pmnd.rs
 - Serwist (PWA for Next.js): https://serwist.pages.dev
-- MCP Protocol specification: https://modelcontextprotocol.io
-- MCP TypeScript SDK: https://github.com/anthropics/mcp
 - Next.js App Router documentation: https://nextjs.org/docs/app
 - Project codebase analysis: `.planning/codebase/ARCHITECTURE.md`, `.planning/codebase/CONCERNS.md`
 

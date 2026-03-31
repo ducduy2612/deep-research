@@ -48,14 +48,6 @@ Mistakes that cause rewrites or major issues.
 **Prevention:** (1) For the server-full mode (`standalone`), store keys server-side in encrypted cookies or a session store. (2) For static export mode, use `crypto.subtle` to encrypt keys with a user-provided passphrase before storing. (3) Never log or include keys in error reports. (4) Consider using `sessionStorage` for ephemeral use cases where persistence is not needed. (5) At minimum, do not persist API keys by default -- require explicit opt-in.
 **Detection:** DevTools > Application > Local Storage showing plaintext API keys.
 
-### Pitfall 6: MCP Server Using Deprecated SSE Transport
-
-**What goes wrong:** The existing MCP server implementation at `src/libs/mcp-server/` includes an `sse.ts` file implementing the SSE transport. The MCP specification has officially deprecated the SSE transport in favor of Streamable HTTP. The existing `streamableHttp.ts` (1210 lines) suggests a custom implementation rather than using the official `@modelcontextprotocol/sdk` package.
-**Why it happens:** The MCP protocol evolved quickly. The original HTTP+SSE transport was deprecated when Streamable HTTP was introduced. Custom implementations of the transport layer miss security fixes and protocol updates.
-**Consequences:** MCP clients that only support the current protocol will fail to connect. Security vulnerabilities in custom transport implementations (DNS rebinding, session hijacking) will not receive upstream patches. The 1210-line custom implementation is a maintenance burden.
-**Prevention:** Use the official `@modelcontextprotocol/sdk` package for both server and transport. Do not implement custom transport layers. The SDK handles Streamable HTTP with session management, resumability, and security considerations out of the box. If custom behavior is needed, extend the SDK's transport class rather than reimplementing.
-**Detection:** Import paths pointing to local files instead of `@modelcontextprotocol/sdk`. Any SSE-based MCP endpoint (`/sse` route).
-
 ### Pitfall 7: Provider Abstraction That Cannot Handle Provider-Specific Features
 
 **What goes wrong:** The rewrite simplifies to "Gemini native + OpenAI-compatible layer" but the existing `provider.ts` shows 13 provider branches with provider-specific behavior scattered throughout: OpenAI uses `openai.responses()` for certain models, Gemini uses `useSearchGrounding`, OpenRouter requires special `providerOptions`, Ollama needs custom `fetch` with credential handling. A naive two-branch abstraction will miss these.
@@ -93,8 +85,8 @@ Mistakes that cause rewrites or major issues.
 
 ### Pitfall 13: File Upload Processing Blocking Serverless Functions
 
-**What goes wrong:** Parsing PDF and Office documents is CPU-intensive and memory-heavy. PDF parsing loads entire files into memory. Office files (.xlsx, .docx) are ZIP archives requiring decompression. In serverless environments (Vercel), this hits the 4.5MB payload limit (Hobby) or 50MB (Pro) and can exceed function timeouts (10s Hobby, 60s Pro).
-**Prevention:** Set explicit file size limits. Use streaming parsers where possible (`pdfjs-dist` with page-by-page processing). Run document parsing on the Node.js runtime (not Edge). Add progress indicators for large files. Consider processing files client-side with Web Workers for the static export mode.
+**What goes wrong:** Parsing documents is CPU-intensive and memory-heavy. Office files are ZIP archives requiring decompression via `officeparser`. PDFs are sent to an LLM-based OCR service (e.g. GLM-OCR) which adds API latency per file — large multi-page PDFs can be slow. In serverless environments (Vercel), this hits the 4.5MB payload limit (Hobby) or 50MB (Pro) and can exceed function timeouts (10s Hobby, 60s Pro).
+**Prevention:** Set explicit file size limits. Limit PDF page count. Run document parsing on the Node.js runtime (not Edge). Add progress indicators for large files. Consider processing files client-side with Web Workers for the static export mode. For LLM-based OCR, send the PDF file directly (models accept PDF natively) to minimize overhead.
 
 ### Pitfall 14: Environment Variable Validation at Runtime Not Build Time
 
@@ -152,7 +144,6 @@ Mistakes that cause rewrites or major issues.
 | API key management | Pitfall 5: Plaintext keys in localStorage | Design encryption or server-side storage strategy before implementing settings |
 | Provider factory | Pitfall 7: Provider-specific feature gaps | Use AI SDK dedicated provider packages; test each provider independently |
 | Research orchestration | Pitfall 2: Stream cleanup on unmount; Pitfall 3: JSON parse failures | Design AbortController integration from the start; use `generateObject` for structured output |
-| MCP server | Pitfall 6: Deprecated SSE transport | Use official `@modelcontextprotocol/sdk`; do not implement custom transport |
 | Middleware/authorization | Pitfall 15: Complex auth logic in middleware | Design composable middleware with proper HMAC/JWT before implementation |
 | File upload/knowledge base | Pitfall 13: Serverless payload limits | Set explicit size limits; use Node.js runtime; test with real files |
 | Search provider integration | Pitfall 10: Sequential vs parallel execution | Design concurrency from the start; rate-limit per provider |
@@ -179,7 +170,6 @@ Mistakes that cause rewrites or major issues.
 
 - Vercel AI SDK generating-text documentation (verified 2026-03-31): https://sdk.vercel.ai/docs/ai-sdk-core/generating-text -- MEDIUM confidence (official docs, page live but URL structure may change)
 - Vercel AI SDK providers and models documentation (verified 2026-03-31): https://sdk.vercel.ai/docs/foundations/providers-and-models -- HIGH confidence (official docs, lists all provider packages including `@ai-sdk/deepseek`, `@openrouter/ai-sdk-provider`)
-- MCP Transports specification (verified 2026-03-31): https://modelcontextprotocol.io/docs/concepts/transports -- HIGH confidence (official MCP spec, confirms SSE deprecated, Streamable HTTP is current standard)
 - Existing codebase analysis: `.planning/codebase/CONCERNS.md` -- HIGH confidence (direct code review)
 - AI SDK provider-specific behavior (DeepSeek, OpenRouter, Groq): LOW confidence (training data only, not verified against current SDK versions)
 - Next.js 15 breaking changes (async params, caching defaults): MEDIUM confidence (well-documented change, consistent across multiple sources)

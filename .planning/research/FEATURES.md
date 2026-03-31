@@ -28,8 +28,7 @@ Features that set this tool apart from basic "ask an LLM" interfaces. Not univer
 |---------|-------------------|------------|-------|
 | Dual-model architecture (thinking + networking) | Separates deep reasoning from search/processing tasks. Thinking model (e.g., Gemini 2.5 Pro) for planning and report writing. Networking model (e.g., Gemini 2.5 Flash) for search result processing. Optimizes cost and speed. | Medium | Both models configured per-provider. ThinkingModel handles: questions, report plan, SERP generation, review, final report. NetworkingModel handles: search result processing, knowledge extraction. |
 | Auto-review loops | After initial search, the AI reviews results and generates follow-up queries to fill gaps. Configurable 0-5 rounds. Produces much more thorough reports than single-pass search. | Medium | `reviewSearchResult()` uses thinking model to evaluate learnings and suggest new queries. Loops until no new queries generated or max rounds reached. Key differentiator vs. simple search-summarize tools. |
-| Knowledge base (file upload + URL crawling) | Users can inject proprietary documents, PDFs, and web pages into research. Enables research over private data that search engines cannot reach. | High | File parser supports: text, JSON, XML, YAML, code, PDF (pdf.js), Office docs (custom officeParser), OpenDocument. URL crawling via Jina Reader or local server-side crawler. Content chunked at 10K chars, rewritten by AI for XML/HTML content. Stored in KnowledgeStore with localforage persistence. |
-| MCP server integration | Enables programmatic access to deep research from AI agents (Claude Desktop, Cursor, etc.). Turns the tool into a research backend, not just a web app. | High | 5 MCP tools exposed: `deep-research` (full pipeline), `write-research-plan`, `generate-SERP-query`, `search-task`, `write-final-report`. Supports both StreamableHTTP and SSE transports. Edge runtime compatible. Zod-validated input schemas with rich descriptions. |
+| Knowledge base (file upload + URL crawling) | Users can inject proprietary documents, PDFs, and web pages into research. Enables research over private data that search engines cannot reach. | High | File parsing: Office docs (DOCX, PPTX, XLSX, ODT, ODP, ODS, RTF) via `officeparser` v6 with structured AST; PDFs sent directly to an LLM-based OCR service (e.g. GLM-OCR) via the OpenAI-compatible provider factory — models accept PDF bytes natively, no rendering needed; plain text/JSON/XML/YAML/code via lightweight text parser. URL crawling via Jina Reader or local server-side crawler. Content chunked at 10K chars, rewritten by AI for XML/HTML content. Stored in KnowledgeStore with localforage persistence. |
 | Prompt customization (deep research prompt overrides) | Power users can customize every prompt in the research pipeline. Enables domain-specific research tuning (academic, legal, medical, etc.). | Medium | `DeepResearchPromptOverrides` allows overriding: systemInstruction, outputGuidelinesPrompt, systemQuestionPrompt, reportPlanPrompt, generateSerpQueriesPrompt, processResultPrompt, processSearchResultPrompt, processSearchKnowledgeResultPrompt, reviewSerpQueriesPrompt, writeFinalReportPrompt, rewritingPrompt. Stored as JSON string in settings. |
 | SSE endpoint for programmatic research | Server-side research execution with streamed events. Enables integration with external tools and workflows. | Medium | `/api/sse` route runs full DeepResearch pipeline server-side. Streams progress events (progress, message, error, reasoning). Client can abort via signal. Uses env vars for API keys (no browser needed). |
 | CORS proxy mode | Allows deployment where API keys stay server-side. Users access the app via a password, not API keys. | Medium | `mode` setting: "local" (browser calls APIs directly), "proxy" (server-side middleware injects keys). Middleware verifies HMAC signature from access password. Provider disabling and model filtering via env vars. |
@@ -50,7 +49,7 @@ Features to explicitly NOT build in the rewrite.
 | Anthropic/Azure/Mistral/Ollama provider integrations | Dropped from v1.0 scope. 10+ integrations created massive switch-case duplication (150-line provider factory, 350-line useAiProvider hook, 200-line getModel function, 40-line hasApiKey function). Maintaining all of them slowed iteration. | Google Gemini (native) + OpenAI-compatible layer. OpenAI-compatible covers DeepSeek, OpenRouter, Groq, xAI, and any future provider that exposes an OpenAI-compatible API. |
 | Multi-user collaboration | Single-user tool. Adding user accounts, auth, and real-time sync adds enormous complexity for unclear value. The app runs client-side with user-owned API keys. | Keep single-user, client-side model. PWA with localStorage/localforage for persistence. |
 | Real-time chat interface | Research is a structured workflow, not a conversation. Chat adds UI complexity (message threads, scroll management, context windows) that conflicts with the multi-step pipeline. | Keep the workflow-driven UI: input topic, watch progress, read report. The clarifying questions step provides interactivity without full chat. |
-| Server-side deployment with user accounts | Requires backend infrastructure, database, auth, billing. Contradicts the client-side-first architecture. | Keep the proxy/CORS mode for server-side API key management. MCP server for programmatic access. No user accounts needed. |
+| Server-side deployment with user accounts | Requires backend infrastructure, database, auth, billing. Contradicts the client-side-first architecture. | Keep the proxy/CORS mode for server-side API key management. No user accounts needed. |
 | Built-in vector database / RAG | Knowledge base is currently raw text with AI rewriting. Adding embeddings, vector search, and RAG pipeline is a separate product. | Keep simple text-based knowledge extraction. Content chunked and rewritten by AI. For the rewrite, consider improving chunk quality but skip vector search. |
 | Mobile native app | Web-first with PWA covers mobile use cases. Native apps require separate codebases and app store distribution. | PWA is sufficient. Responsive design with Obsidian Deep system should handle mobile well. |
 | Plugin/extension system | Over-engineering for v1.0. The prompt override system already provides extensibility without a formal plugin architecture. | Prompt customization + OpenAI-compatible provider support covers most extensibility needs. Revisit if/when community demand justifies it. |
@@ -111,12 +110,6 @@ Knowledge Base
   +---> Knowledge Storage (localforage/IndexedDB)
   +---> Knowledge Lookup during research tasks
 
-MCP Server
-  |
-  +---> Depends on: AI Provider, Search Provider, DeepResearch engine
-  +---> Tools: deep-research, write-research-plan, generate-SERP-query, search-task, write-final-report
-  +---> Transports: StreamableHTTP, SSE
-
 Research History
   |
   +---> Depends on: TaskStore (research session data)
@@ -167,12 +160,11 @@ Prioritize (Phase 2 - Essential Features):
 9. Obsidian Deep design system across all screens -- visual polish
 
 Prioritize (Phase 3 - Differentiators):
-10. MCP server -- programmatic access
-11. Auto-review loops -- deeper research
-12. Prompt customization -- power user feature
-13. All search providers + domain filtering
-14. CORS proxy mode -- server-side deployment
-15. PWA + i18n -- accessibility
+10. Auto-review loops -- deeper research
+11. Prompt customization -- power user feature
+12. All search providers + domain filtering
+13. CORS proxy mode -- server-side deployment
+14. PWA + i18n -- accessibility
 
 Defer:
 - Google Vertex AI: Complex auth, Gemini native covers the same models. LOW priority.
@@ -186,8 +178,7 @@ Defer:
 | AI Provider Factory (Gemini + OpenAI-compatible) | Medium | Two integration paths. Gemini has native SDK quirks (grounding metadata, search grounding). OpenAI-compatible is well-standardized but needs baseURL/apiKey abstraction. |
 | Multi-step research workflow | High | 5+ sequential steps, each with streaming, error recovery, and state management. The orchestration logic in useDeepResearch.ts is 855 lines -- needs clean decomposition. |
 | Search provider integration | Medium | 6 providers, each with different API shapes. Standardize to `{ sources, images }` output. Model-native search adds per-provider tool/providerOptions config. |
-| Knowledge base | High | File parsing (3 parsers), content chunking, AI rewriting, storage management, and integration into research pipeline. Current officeParser is a modified inline library. |
-| MCP server | High | 5 tools with Zod schemas, dual transport (SSE + StreamableHTTP), edge runtime, abort signal handling. Reuses DeepResearch engine class. |
+| Knowledge base | High | File parsing: `officeparser` v6 for Office docs (DOCX, PPTX, XLSX, ODT, ODP, ODS, RTF) + LLM-based OCR via OpenAI-compatible vision model (e.g. GLM-OCR) for PDFs (model accepts PDF directly, no rendering) + lightweight text parser. Replaces 3 legacy parsers. LLM OCR handles scanned docs, handwritten text, and complex layouts. |
 | Settings | Medium | 92 flat fields currently. Rewrite needs Zod-validated schema, focused sub-components, and provider-specific conditional rendering. |
 | Research history | Medium | CRUD over localforage storage. Session backup/restore. Import/export. Simple data model but storage quota management matters. |
 | Streaming display | Medium | ThinkTagStreamProcessor + smoothStream + fullStream parsing. Google grounding metadata handling. OpenAI Chinese bracket fix. Provider-specific post-processing. |
@@ -198,7 +189,7 @@ Defer:
 
 ## Sources
 
-- Existing codebase analysis: useDeepResearch.ts (855 lines), DeepResearch engine (577 lines), provider.ts (150 lines), search.ts (458 lines), useKnowledge.ts (333 lines), MCP server.ts (434 lines)
+- Existing codebase analysis: useDeepResearch.ts (855 lines), DeepResearch engine (577 lines), provider.ts (150 lines), search.ts (458 lines), useKnowledge.ts (333 lines)
 - Settings store: 92 configuration fields across AI, search, and general preferences
 - Design system: SCREENS.md defines 6 screens with detailed element descriptions
 - PROJECT.md: Validated requirements, active scope, and out-of-scope decisions

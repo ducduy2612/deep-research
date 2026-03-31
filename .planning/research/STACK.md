@@ -150,13 +150,21 @@ Tailwind v4 uses CSS-first configuration. No `tailwind.config.ts` file needed. s
 
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| `pdfjs-dist` | 5.6.205 | PDF text extraction | Official Mozilla PDF.js library, extracts text from uploaded PDFs for knowledge base |
-| `mammoth` | 1.12.0 | DOCX to HTML/text conversion | Best DOCX parser for JS, handles styles, tables, images |
-| `xlsx` | 0.18.5 | Excel file parsing | SheetJS community edition, reads .xlsx/.xls/.csv |
-| `@zip.js/zip.js` | 2.8.23 | ZIP handling | Office files (.docx, .xlsx) are ZIP archives; needed for extraction |
+| `officeparser` | 6.0.7 | Office document parser | Handles DOCX, PPTX, XLSX, ODT, ODP, ODS, RTF. Returns structured AST with tables, formatting, metadata, images, chart data. Replaces custom officeParser.ts (718 lines) |
 | `file-saver` | 2.0.5 | Client-side file download trigger | Small utility for saving generated reports |
 
-**Note:** The old codebase had a modified inline `officeParser`. Replace with `mammoth` (DOCX) + `xlsx` (Excel) -- both are mature, maintained, and handle the actual formats needed.
+**PDF OCR via LLM (no pdfjs-dist needed):**
+
+PDFs are NOT parsed with officeparser or pdfjs-dist. Instead, the PDF file is sent directly to an OpenAI-compatible vision/OCR model (e.g. GLM-OCR, GPT-4o, Gemini) that natively accepts PDF input. The model returns structured text preserving layout, tables, and reading order.
+
+This leverages the existing OpenAI-compatible provider factory — no new dependency needed. The OCR endpoint is configured in settings as another OpenAI-compatible provider with a custom `baseURL` and `apiKey`. Benefits:
+- Handles scanned documents, images with text, handwritten content, complex layouts
+- No intermediate rendering step — model reads PDF natively
+- Same API surface across all vision-capable models (GLM-OCR, GPT-4o, Gemini, etc.)
+- Improves as models improve — no code changes needed
+
+**Office docs** (DOCX, PPTX, XLSX, ODT, ODP, ODS, RTF) use `officeparser` v6 for structured AST extraction.
+**Plain text** formats (text, JSON, XML, YAML, code) are handled by a lightweight `text.ts` parser in the engine layer.
 
 ### PWA / Offline
 
@@ -343,8 +351,8 @@ npx shadcn@latest init  # then add components: npx shadcn@latest add button dial
 npm install react-markdown@10 remark-gfm@4 remark-math@6
 npm install rehype-highlight@7 rehype-katex@7 rehype-raw@7 katex@0.16 mermaid@11
 
-# File processing
-npm install pdfjs-dist@5 mammoth@1 xlsx@0.18 @zip.js/zip.js@2 file-saver@2
+# File processing (officeparser for Office docs, LLM OCR for PDFs via existing provider factory)
+npm install officeparser@6 file-saver@2
 
 # PWA
 npm install serwist@9 @serwist/next@9 @serwist/cli@9 react-use-pwa-install@1
