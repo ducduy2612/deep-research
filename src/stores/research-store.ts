@@ -1,0 +1,263 @@
+/**
+ * Zustand store for the active research session.
+ *
+ * Tracks: topic, orchestrator lifecycle state, streaming text per step,
+ * search tasks/results, final result, errors, elapsed time, and activity log.
+ * Consumes SSE events from /api/research/stream via handleEvent().
+ */
+
+import { create } from "zustand";
+
+import type {
+  ResearchState,
+  ResearchResult,
+  SearchTask,
+  SearchResult,
+  Source,
+  ImageSource,
+} from "@/engine/research/types";
+import type { ResearchStep } from "@/engine/provider/types";
+
+// ---------------------------------------------------------------------------
+// Activity log
+// ---------------------------------------------------------------------------
+
+export type ActivityLevel = "info" | "success" | "warn" | "error";
+
+export interface ActivityEntry {
+  readonly id: string;
+  readonly timestamp: number;
+  readonly level: ActivityLevel;
+  readonly message: string;
+  readonly step?: ResearchStep;
+}
+
+// ---------------------------------------------------------------------------
+// Per-step streaming state
+// ---------------------------------------------------------------------------
+
+export interface StepStreamState {
+  readonly text: string;
+  readonly reasoning: string;
+  readonly progress: number;
+  readonly startTime: number | null;
+  readonly endTime: number | null;
+  readonly duration: number | null;
+}
+
+const EMPTY_STEP: StepStreamState = {
+  text: "",
+  reasoning: "",
+  progress: 0,
+  startTime: null,
+  endTime: null,
+  duration: null,
+};
+
+// ---------------------------------------------------------------------------
+// Store state & actions
+// ---------------------------------------------------------------------------
+
+export interface ResearchStoreState {
+  readonly topic: string;
+  readonly state: ResearchState;
+  readonly steps: Readonly<Record<ResearchStep, StepStreamState>>;
+  readonly searchTasks: readonly SearchTask[];
+  readonly searchResults: readonly SearchResult[];
+  readonly result: ResearchResult | null;
+  readonly error: { code: string; message: string } | null;
+  readonly startedAt: number | null;
+  readonly completedAt: number | null;
+  readonly activityLog: readonly ActivityEntry[];
+}
+
+export interface ResearchStoreActions {
+  setTopic: (topic: string) => void;
+  handleEvent: (eventType: string, data: unknown) => void;
+  reset: () => void;
+  abort: () => void;
+}
+
+export type ResearchStore = ResearchStoreState & ResearchStoreActions;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+let activityCounter = 0;
+
+function makeActivity(
+  level: ActivityLevel,
+  message: string,
+  step?: ResearchStep,
+): ActivityEntry {
+  activityCounter += 1;
+  return { id: `act-${activityCounter}`, timestamp: Date.now(), level, message, step };
+}
+
+const ALL_STEPS: ResearchStep[] = [
+  "clarify", "plan", "search", "analyze", "review", "report",
+];
+
+function emptySteps(): Record<ResearchStep, StepStreamState> {
+  return Object.fromEntries(
+    ALL_STEPS.map((s) => [s, { ...EMPTY_STEP }]),
+  ) as Record<ResearchStep, StepStreamState>;
+}
+
+const INITIAL_STATE: ResearchStoreState = {
+  topic: "",
+  state: "idle",
+  steps: emptySteps(),
+  searchTasks: [],
+  searchResults: [],
+  result: null,
+  error: null,
+  startedAt: null,
+  completedAt: null,
+  activityLog: [],
+};
+
+// ---------------------------------------------------------------------------
+// Store
+// ---------------------------------------------------------------------------
+
+export const useResearchStore = create<ResearchStore>()((set) => ({
+  ...INITIAL_STATE,
+
+  setTopic: (topic: string) => set({ topic }),
+
+  handleEvent: (eventType: string, data: unknown) => {
+    switch (eventType) {
+      case "start": {
+        const { topic } = data as { topic: string };
+        set({
+          topic,
+          state: "clarifying" as ResearchState,
+          startedAt: Date.now(),
+          completedAt: null,
+          steps: emptySteps(),
+          searchTasks: [],
+          searchResults: [],
+          result: null,
+          error: null,
+          activityLog: [makeActivity("info", `Starting research: ${topic}`)],
+        });
+        break;
+      }
+      case "step-start": {
+        const d = data as { step: ResearchStep; state: ResearchState };
+        set((s) => ({
+          state: d.state,
+          steps: { ...s.steps, [d.step]: { ...EMPTY_STEP, startTime: Date.now() } },
+          activityLog: [...s.activityLog, makeActivity("info", `Starting ${d.step} step`, d.step)],
+        }));
+        break;
+      }
+      case "step-delta": {
+        const d = data as { step: ResearchStep; text: string };
+        set((s) => ({
+          steps: { ...s.steps, [d.step]: { ...s.steps[d.step], text: s.steps[d.step].text + d.text } },
+        }));
+        break;
+      }
+      case "step-reasoning": {
+        const d = data as { step: ResearchStep; text: string };
+        set((s) => ({
+          steps: { ...s.steps, [d.step]: { ...s.steps[d.step], reasoning: s.steps[d.step].reasoning + d.text } },
+        }));
+        break;
+      }
+      case "step-complete": {
+        const d = data as { step: ResearchStep; duration: number };
+        set((s) => ({
+          steps: {
+            ...s.steps,
+            [d.step]: { ...s.steps[d.step], progress: 100, endTime: Date.now(), duration: d.duration },
+          },
+          activityLog: [
+            ...s.activityLog,
+            makeActivity("success", `Completed ${d.step} in ${(d.duration / 1000).toFixed(1)}s`, d.step),
+          ],
+        }));
+        break;
+      }
+      case "step-error": {
+        const d = data as { step: ResearchStep; error: { code: string; message: string } };
+        set((s) => ({
+          steps: { ...s.steps, [d.step]: { ...s.steps[d.step], endTime: Date.now() } },
+          activityLog: [...s.activityLog, makeActivity("error", `${d.step} failed: ${d.error.message}`, d.step)],
+        }));
+        break;
+      }
+      case "progress": {
+        const d = data as { step: ResearchStep; progress: number };
+        set((s) => ({
+          steps: { ...s.steps, [d.step]: { ...s.steps[d.step], progress: d.progress } },
+        }));
+        break;
+      }
+      case "result": {
+        const result = data as ResearchResult;
+        set((s) => ({
+          result,
+          activityLog: [...s.activityLog, makeActivity("success", `Report generated: ${result.title}`)],
+        }));
+        break;
+      }
+      case "done": {
+        set((s) => ({
+          state: s.state === "failed" ? "failed" : "completed" as ResearchState,
+          completedAt: Date.now(),
+          activityLog: [...s.activityLog, makeActivity("success", "Research complete")],
+        }));
+        break;
+      }
+      case "error": {
+        const d = data as { code: string; message: string };
+        set((s) => ({
+          state: "failed" as ResearchState,
+          error: { code: d.code, message: d.message },
+          completedAt: Date.now(),
+          activityLog: [...s.activityLog, makeActivity("error", `Error: ${d.message}`)],
+        }));
+        break;
+      }
+      default: break;
+    }
+  },
+
+  reset: () => {
+    activityCounter = 0;
+    set({ ...INITIAL_STATE, steps: emptySteps() });
+  },
+
+  abort: () => {
+    set((s) => ({
+      state: "aborted" as ResearchState,
+      completedAt: Date.now(),
+      activityLog: [...s.activityLog, makeActivity("warn", "Research aborted")],
+    }));
+  },
+}));
+
+// ---------------------------------------------------------------------------
+// Selectors
+// ---------------------------------------------------------------------------
+
+export const selectElapsedMs = (s: ResearchStoreState): number | null => {
+  if (!s.startedAt) return null;
+  return (s.completedAt ?? Date.now()) - s.startedAt;
+};
+
+export const selectStepText = (step: ResearchStep) => (s: ResearchStoreState): string =>
+  s.steps[step].text;
+
+export const selectIsActive = (s: ResearchStoreState): boolean =>
+  !["idle", "completed", "failed", "aborted"].includes(s.state);
+
+export const selectAllSources = (s: ResearchStoreState): Source[] =>
+  s.searchResults.flatMap((r) => r.sources);
+
+export const selectAllImages = (s: ResearchStoreState): ImageSource[] =>
+  s.searchResults.flatMap((r) => r.images);
