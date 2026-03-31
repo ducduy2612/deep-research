@@ -72,7 +72,6 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
         "prose-sup:text-obsidian-primary prose-sup:font-bold prose-sup:text-xs",
         className,
       )}
-      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

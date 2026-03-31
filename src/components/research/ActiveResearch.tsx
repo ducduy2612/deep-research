@@ -3,23 +3,39 @@
 import { cn } from "@/utils/style";
 import { useResearchStore } from "@/stores/research-store";
 import { WorkflowProgress } from "./WorkflowProgress";
+import { ActiveResearchLeft } from "./ActiveResearchLeft";
 import { ActiveResearchCenter } from "./ActiveResearchCenter";
 import { ActiveResearchRight } from "./ActiveResearchRight";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
 
-import type { Direction } from "react-resizable-panels";
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
 
 interface ActiveResearchProps {
   className?: string;
 }
 
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export function ActiveResearch({ className }: ActiveResearchProps) {
   const state = useResearchStore((s) => s.state);
+
   return (
     <div className={cn("flex h-full flex-col overflow-hidden", className)}>
       <WorkflowProgress state={state} />
-      <ResizablePanelGroup direction={direction} className="flex-1">
-        <ResizablePanel defaultSize={50} minSize={30}>
+      <ResizablePanelGroup orientation="horizontal" className="flex-1">
+        <ResizablePanel defaultSize={25} minSize={15} maxSize={35}>
+          <ActiveResearchLeft />
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel defaultSize={45} minSize={30}>
           <ActiveResearchCenter />
         </ResizablePanel>
         <ResizableHandle withHandle />
