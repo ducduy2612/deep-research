@@ -1,14 +1,81 @@
+"use client";
+
+import { useEffect } from "react";
+import { toast } from "sonner";
+
+import { Header } from "@/components/Header";
+import { TopicInput } from "@/components/research/TopicInput";
+import { ReportConfig } from "@/components/research/ReportConfig";
+import { ActiveResearch } from "@/components/research/ActiveResearch";
+import { FinalReport } from "@/components/research/FinalReport";
+import { useResearch } from "@/hooks/use-research";
+import { useUIStore } from "@/stores/ui-store";
+import { useResearchStore } from "@/stores/research-store";
+
+// ---------------------------------------------------------------------------
+// Main page
+// ---------------------------------------------------------------------------
+
 export default function Home() {
+  const activeView = useUIStore((s) => s.activeView);
+  const navigate = useUIStore((s) => s.navigate);
+  const result = useResearchStore((s) => s.result);
+  const state = useResearchStore((s) => s.state);
+
+  const { connectionError } = useResearch();
+
+  // Show error toast when connection errors occur
+  useEffect(() => {
+    if (connectionError) {
+      toast.error("Research Error", {
+        description: connectionError,
+        duration: 8000,
+      });
+    }
+  }, [connectionError]);
+
+  // Auto-navigate to report when research completes with a result
+  useEffect(() => {
+    if (
+      (state === "completed" || state === "failed" || state === "aborted") &&
+      result &&
+      activeView === "active"
+    ) {
+      navigate("report");
+    }
+  }, [state, result, activeView, navigate]);
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-obsidian-surface-well">
-      <div className="text-center">
-        <h1 className="text-4xl font-semibold tracking-tight text-obsidian-on-surface">
-          Deep Research
-        </h1>
-        <p className="mt-4 text-sm leading-relaxed text-obsidian-on-surface-var font-mono">
-          v1.0 rewrite in progress
-        </p>
-      </div>
-    </main>
+    <div className="flex min-h-screen flex-col bg-obsidian-surface-well">
+      <Header />
+
+      {/* Main content area */}
+      <main className="flex flex-1 flex-col">
+        {activeView === "hub" && (
+          <HubView />
+        )}
+
+        {activeView === "active" && (
+          <ActiveResearch className="flex-1" />
+        )}
+
+        {activeView === "report" && (
+          <FinalReport className="flex-1" />
+        )}
+      </main>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Hub view — Topic input + report configuration
+// ---------------------------------------------------------------------------
+
+function HubView() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-12">
+      <TopicInput />
+      <ReportConfig className="w-full max-w-2xl rounded-xl bg-[rgba(32,31,34,0.6)] p-6 backdrop-blur-[20px]" />
+    </div>
   );
 }
