@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
+import createNextIntlPlugin from "next-intl/plugin";
 import pkg from "./package.json";
 
 const BUILD_MODE = process.env.NEXT_PUBLIC_BUILD_MODE;
@@ -36,4 +37,6 @@ const withSerwist = withSerwistInit({
   swDest: "public/sw.js",
 });
 
-export default withSerwist(nextConfig);
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withSerwist(withNextIntl(nextConfig));

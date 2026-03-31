@@ -1,26 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/utils/style";
 import { useSettingsStore } from "@/stores/settings-store";
 import { Switch } from "@/components/ui/switch";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
-
-// ---------------------------------------------------------------------------
-// Options
-// ---------------------------------------------------------------------------
-
-const STYLE_OPTIONS: { value: ReportStyle; label: string; desc: string }[] = [
-  { value: "balanced", label: "Balanced", desc: "Equal depth and readability" },
-  { value: "executive", label: "Executive", desc: "High-level strategic insights" },
-  { value: "technical", label: "Technical", desc: "Detailed technical analysis" },
-  { value: "concise", label: "Concise", desc: "Brief summary of key findings" },
-];
-
-const LENGTH_OPTIONS: { value: ReportLength; label: string; desc: string }[] = [
-  { value: "brief", label: "Brief", desc: "Quick overview (~500 words)" },
-  { value: "standard", label: "Standard", desc: "Balanced depth (~1,500 words)" },
-  { value: "comprehensive", label: "Comprehensive", desc: "Deep analysis (~3,000+ words)" },
-];
 
 // ---------------------------------------------------------------------------
 // Option button (reused for style/length selectors)
@@ -64,6 +48,8 @@ function OptionButton<T extends string>({
 // ---------------------------------------------------------------------------
 
 export function GeneralTab() {
+  const t = useTranslations("General");
+
   const language = useSettingsStore((s) => s.language);
   const setLanguage = useSettingsStore((s) => s.setLanguage);
   const reportStyle = useSettingsStore((s) => s.reportStyle);
@@ -78,19 +64,34 @@ export function GeneralTab() {
   const setProxyMode = useSettingsStore((s) => s.setProxyMode);
   const accessPassword = useSettingsStore((s) => s.accessPassword);
   const setAccessPassword = useSettingsStore((s) => s.setAccessPassword);
+  const uiLocale = useSettingsStore((s) => s.uiLocale);
+  const setUiLocale = useSettingsStore((s) => s.setUiLocale);
+
+  const STYLE_OPTIONS: { value: ReportStyle; label: string; desc: string }[] = [
+    { value: "balanced", label: t("balanced"), desc: t("balancedDesc") },
+    { value: "executive", label: t("executive"), desc: t("executiveDesc") },
+    { value: "technical", label: t("technical"), desc: t("technicalDesc") },
+    { value: "concise", label: t("concise"), desc: t("conciseDesc") },
+  ];
+
+  const LENGTH_OPTIONS: { value: ReportLength; label: string; desc: string }[] = [
+    { value: "brief", label: t("brief"), desc: t("briefDesc") },
+    { value: "standard", label: t("standard"), desc: t("standardDesc") },
+    { value: "comprehensive", label: t("comprehensive"), desc: t("comprehensiveDesc") },
+  ];
 
   return (
     <div className="space-y-6">
       {/* Connection / Proxy Mode */}
       <div>
         <h4 className="mb-2 font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-          Connection
+          {t("connection")}
         </h4>
         <div className="space-y-3 rounded-lg border border-obsidian-border/30 bg-obsidian-surface-deck p-3">
           {/* Mode indicator + toggle */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-obsidian-on-surface">Proxy Mode</span>
+              <span className="text-xs text-obsidian-on-surface">{t("proxyMode")}</span>
               <span
                 className={cn(
                   "rounded px-1.5 py-0.5 font-mono text-[9px] uppercase",
@@ -99,7 +100,7 @@ export function GeneralTab() {
                     : "bg-obsidian-surface-well text-obsidian-on-surface-var/50",
                 )}
               >
-                {proxyMode ? "Proxy" : "Local"}
+                {proxyMode ? t("proxy") : t("local")}
               </span>
             </div>
             <Switch
@@ -112,27 +113,27 @@ export function GeneralTab() {
           {proxyMode && (
             <div>
               <label className="mb-1 block font-mono text-[10px] text-obsidian-on-surface-var/60">
-                Access Password
+                {t("accessPassword")}
               </label>
               <input
                 type="password"
                 value={accessPassword}
                 onChange={(e) => setAccessPassword(e.target.value)}
-                placeholder="Enter access password"
+                placeholder={t("accessPasswordPlaceholder")}
                 className="w-full rounded-md border border-obsidian-surface-raised bg-obsidian-surface-well px-3 py-1.5 text-xs text-obsidian-on-surface placeholder:text-obsidian-on-surface-var/40 focus:border-obsidian-primary focus:outline-none"
               />
               <p className="mt-1 text-[10px] text-obsidian-on-surface-var/40">
-                Required when connecting through a CORS proxy server.
+                {t("accessPasswordHint")}
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Language */}
+      {/* Report Language */}
       <div>
         <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-          Report Language
+          {t("reportLanguage")}
         </label>
         <input
           type="text"
@@ -143,10 +144,25 @@ export function GeneralTab() {
         />
       </div>
 
+      {/* UI Language */}
+      <div>
+        <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
+          {t("uiLanguage")}
+        </label>
+        <select
+          value={uiLocale}
+          onChange={(e) => setUiLocale(e.target.value)}
+          className="w-full rounded-md border border-obsidian-surface-raised bg-obsidian-surface-well px-3 py-1.5 text-xs text-obsidian-on-surface focus:border-obsidian-primary focus:outline-none"
+        >
+          <option value="en">{t("uiLanguageEn")}</option>
+          <option value="vi">{t("uiLanguageVi")}</option>
+        </select>
+      </div>
+
       {/* Report style */}
       <div>
         <h4 className="mb-2 font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-          Style
+          {t("style")}
         </h4>
         <div className="space-y-1">
           {STYLE_OPTIONS.map((opt) => (
@@ -165,7 +181,7 @@ export function GeneralTab() {
       {/* Report length */}
       <div>
         <h4 className="mb-2 font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-          Length
+          {t("length")}
         </h4>
         <div className="space-y-1">
           {LENGTH_OPTIONS.map((opt) => (
@@ -185,7 +201,7 @@ export function GeneralTab() {
       <div>
         <div className="mb-2 flex items-center justify-between">
           <label className="font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-            Auto-Review Rounds
+            {t("autoReview")}
           </label>
           <span className="font-mono text-[10px] text-obsidian-primary">
             {autoReviewRounds}
@@ -210,7 +226,7 @@ export function GeneralTab() {
       <div>
         <div className="mb-2 flex items-center justify-between">
           <label className="font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-            Max Search Queries
+            {t("maxSearch")}
           </label>
           <span className="font-mono text-[10px] text-obsidian-primary">
             {maxSearchQueries}

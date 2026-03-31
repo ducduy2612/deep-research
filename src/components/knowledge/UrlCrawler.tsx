@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Globe, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { nanoid } from "nanoid";
@@ -30,6 +31,7 @@ type CrawlerType = "jina" | "local";
 // ---------------------------------------------------------------------------
 
 export function UrlCrawler() {
+  const t = useTranslations("UrlCrawler");
   const [url, setUrl] = useState("");
   const [crawler, setCrawler] = useState<CrawlerType>("jina");
   const [crawling, setCrawling] = useState(false);
@@ -58,12 +60,12 @@ export function UrlCrawler() {
 
       const trimmed = url.trim();
       if (!trimmed) {
-        toast.error("Please enter a URL");
+        toast.error(t("enterUrl"));
         return;
       }
 
       if (!isValidUrl(trimmed)) {
-        toast.error("Please enter a valid HTTP or HTTPS URL");
+        toast.error(t("invalidUrl"));
         return;
       }
 
@@ -109,7 +111,7 @@ export function UrlCrawler() {
         setCrawling(false);
       }
     },
-    [url, crawler, isValidUrl, addItem],
+    [url, crawler, isValidUrl, addItem, t],
   );
 
   // ---------------------------------------------------------------------------
@@ -123,7 +125,7 @@ export function UrlCrawler() {
         <div className="relative flex-1">
           <Globe className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-obsidian-on-surface/40" />
           <Input
-            placeholder="https://example.com/article"
+            placeholder={t("urlPlaceholder")}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={crawling}
@@ -143,10 +145,10 @@ export function UrlCrawler() {
           </SelectTrigger>
           <SelectContent className="border-obsidian-border/50 bg-obsidian-surface-sheet">
             <SelectItem value="jina" className="text-sm text-obsidian-on-surface">
-              Jina Reader
+              {t("jina")}
             </SelectItem>
             <SelectItem value="local" className="text-sm text-obsidian-on-surface">
-              Local Crawler
+              {t("localCrawler")}
             </SelectItem>
           </SelectContent>
         </Select>
@@ -159,16 +161,16 @@ export function UrlCrawler() {
           {crawling ? (
             <>
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              Crawling...
+              {t("crawling")}
             </>
           ) : (
-            "Crawl URL"
+            t("crawl")
           )}
         </Button>
       </div>
 
       <p className="text-xs text-obsidian-on-surface/30">
-        Jina Reader extracts clean article content. Local crawler fetches raw HTML.
+        {t("jinaDesc")}
       </p>
     </form>
   );

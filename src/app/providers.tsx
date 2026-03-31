@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { NextIntlClientProvider } from "next-intl";
 import { Toaster } from "sonner";
 
 import { useSettingsStore } from "@/stores/settings-store";
@@ -18,14 +19,21 @@ const SerwistProvider = dynamic(
 // Providers
 // ---------------------------------------------------------------------------
 
+interface ProvidersProps {
+  children: React.ReactNode;
+  messages: Record<string, unknown>;
+  locale: string;
+}
+
 /**
  * Client-side providers wrapper.
  *
+ * - Wraps children with NextIntlClientProvider for i18n.
  * - Hydrates settings store from localforage on mount.
  * - Renders sonner Toaster for error/status notifications.
  * - Shows a minimal loading state until settings are hydrated.
  */
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children, messages, locale }: ProvidersProps) {
   const hydrate = useSettingsStore((s) => s.hydrate);
   const loaded = useSettingsStore((s) => s.loaded);
   const hydrateHistory = useHistoryStore((s) => s.hydrate);
@@ -58,19 +66,21 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SerwistProvider swUrl="/sw.js">
-      {children}
-      <Toaster
-        position="bottom-right"
-        theme="dark"
-        toastOptions={{
-          style: {
-            background: "rgb(32, 31, 34)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            color: "#fff",
-          },
-        }}
-      />
-    </SerwistProvider>
+    <NextIntlClientProvider messages={messages} locale={locale}>
+      <SerwistProvider swUrl="/sw.js">
+        {children}
+        <Toaster
+          position="bottom-right"
+          theme="dark"
+          toastOptions={{
+            style: {
+              background: "rgb(32, 31, 34)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              color: "#fff",
+            },
+          }}
+        />
+      </SerwistProvider>
+    </NextIntlClientProvider>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/utils/style";
 import { useSettingsStore } from "@/stores/settings-store";
 import type { SearchProviderId } from "@/engine/search/types";
@@ -8,13 +9,13 @@ import type { SearchProviderId } from "@/engine/search/types";
 // Search provider options
 // ---------------------------------------------------------------------------
 
-const SEARCH_PROVIDERS: { id: SearchProviderId; name: string; needsApiKey: boolean; needsBaseUrl: boolean }[] = [
-  { id: "tavily", name: "Tavily", needsApiKey: true, needsBaseUrl: false },
-  { id: "firecrawl", name: "Firecrawl", needsApiKey: true, needsBaseUrl: false },
-  { id: "exa", name: "Exa", needsApiKey: true, needsBaseUrl: false },
-  { id: "brave", name: "Brave Search", needsApiKey: true, needsBaseUrl: false },
-  { id: "searxng", name: "SearXNG", needsApiKey: false, needsBaseUrl: true },
-  { id: "model-native", name: "Model Native", needsApiKey: false, needsBaseUrl: false },
+const SEARCH_PROVIDER_IDS: { id: SearchProviderId; needsApiKey: boolean; needsBaseUrl: boolean }[] = [
+  { id: "tavily", needsApiKey: true, needsBaseUrl: false },
+  { id: "firecrawl", needsApiKey: true, needsBaseUrl: false },
+  { id: "exa", needsApiKey: true, needsBaseUrl: false },
+  { id: "brave", needsApiKey: true, needsBaseUrl: false },
+  { id: "searxng", needsApiKey: false, needsBaseUrl: true },
+  { id: "model-native", needsApiKey: false, needsBaseUrl: false },
 ];
 
 // ---------------------------------------------------------------------------
@@ -37,6 +38,7 @@ function textToDomains(text: string): string[] {
 // ---------------------------------------------------------------------------
 
 export function SearchTab() {
+  const t = useTranslations("SearchTab");
   const searchProvider = useSettingsStore((s) => s.searchProvider);
   const setSearchProvider = useSettingsStore((s) => s.setSearchProvider);
   const includeDomains = useSettingsStore((s) => s.includeDomains);
@@ -46,7 +48,7 @@ export function SearchTab() {
   const setCitationImages = useSettingsStore((s) => s.setCitationImages);
 
   const currentId = searchProvider?.id ?? "tavily";
-  const providerDef = SEARCH_PROVIDERS.find((p) => p.id === currentId)!;
+  const providerDef = SEARCH_PROVIDER_IDS.find((p) => p.id === currentId)!;
 
   const updateProvider = (partial: Record<string, unknown>) => {
     setSearchProvider({
@@ -62,16 +64,16 @@ export function SearchTab() {
   return (
     <div className="space-y-5">
       <p className="font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-        Web search provider configuration
+        {t("subtitle")}
       </p>
 
       {/* Provider selector */}
       <div>
         <label className="mb-2 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-          Provider
+          {t("provider")}
         </label>
         <div className="grid grid-cols-3 gap-1.5">
-          {SEARCH_PROVIDERS.map((p) => (
+          {SEARCH_PROVIDER_IDS.map((p) => (
             <button
               key={p.id}
               type="button"
@@ -89,7 +91,7 @@ export function SearchTab() {
                   : "border-l-2 border-transparent text-obsidian-on-surface-var hover:bg-obsidian-surface-sheet",
               )}
             >
-              {p.name}
+              {t(`providers.${p.id}`)}
             </button>
           ))}
         </div>
@@ -99,7 +101,7 @@ export function SearchTab() {
       {providerDef.needsApiKey && (
         <div>
           <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-            API Key
+            {t("apiKey")}
           </label>
           <input
             type="password"
@@ -115,7 +117,7 @@ export function SearchTab() {
       {providerDef.needsBaseUrl && (
         <div>
           <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-            Base URL
+            {t("baseUrl")}
           </label>
           <input
             type="text"
@@ -131,7 +133,7 @@ export function SearchTab() {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-            Scope
+            {t("scope")}
           </label>
           <input
             type="text"
@@ -143,7 +145,7 @@ export function SearchTab() {
         </div>
         <div>
           <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-            Max Results
+            {t("maxResults")}
           </label>
           <input
             type="number"
@@ -160,7 +162,7 @@ export function SearchTab() {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-            Include Domains
+            {t("includeDomains")}
           </label>
           <textarea
             value={domainsToText(includeDomains)}
@@ -172,7 +174,7 @@ export function SearchTab() {
         </div>
         <div>
           <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-            Exclude Domains
+            {t("excludeDomains")}
           </label>
           <textarea
             value={domainsToText(excludeDomains)}
@@ -188,10 +190,10 @@ export function SearchTab() {
       <div className="flex items-center justify-between">
         <div>
           <span className="text-xs font-medium text-obsidian-on-surface">
-            Citation Images
+            {t("citationImages")}
           </span>
           <p className="font-mono text-[10px] text-obsidian-on-surface-var/50">
-            Include images from sources in the report
+            {t("citationImagesDesc")}
           </p>
         </div>
         <button

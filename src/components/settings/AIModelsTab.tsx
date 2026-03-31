@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/utils/style";
 import { useSettingsStore } from "@/stores/settings-store";
 import type { ProviderId } from "@/engine/provider/types";
@@ -9,17 +10,16 @@ import type { ProviderId } from "@/engine/provider/types";
 // Provider definitions
 // ---------------------------------------------------------------------------
 
-const PROVIDERS: {
+const PROVIDER_IDS: {
   id: ProviderId;
-  name: string;
   supportsBaseUrl: boolean;
 }[] = [
-  { id: "google", name: "Google Gemini", supportsBaseUrl: false },
-  { id: "openai", name: "OpenAI", supportsBaseUrl: true },
-  { id: "deepseek", name: "DeepSeek", supportsBaseUrl: true },
-  { id: "openrouter", name: "OpenRouter", supportsBaseUrl: false },
-  { id: "groq", name: "Groq", supportsBaseUrl: true },
-  { id: "xai", name: "xAI (Grok)", supportsBaseUrl: true },
+  { id: "google", supportsBaseUrl: false },
+  { id: "openai", supportsBaseUrl: true },
+  { id: "deepseek", supportsBaseUrl: true },
+  { id: "openrouter", supportsBaseUrl: false },
+  { id: "groq", supportsBaseUrl: true },
+  { id: "xai", supportsBaseUrl: true },
 ];
 
 // ---------------------------------------------------------------------------
@@ -35,7 +35,8 @@ function maskKey(key: string): string {
 // Provider card
 // ---------------------------------------------------------------------------
 
-function ProviderCard({ provider }: { provider: (typeof PROVIDERS)[number] }) {
+function ProviderCard({ provider }: { provider: (typeof PROVIDER_IDS)[number] }) {
+  const t = useTranslations("AIModels");
   const storeProviders = useSettingsStore((s) => s.providers);
   const setProvider = useSettingsStore((s) => s.setProvider);
   const removeProvider = useSettingsStore((s) => s.removeProvider);
@@ -81,11 +82,11 @@ function ProviderCard({ provider }: { provider: (typeof PROVIDERS)[number] }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-obsidian-on-surface">
-            {provider.name}
+            {t(`providers.${provider.id}`)}
           </span>
           {hasKey && (
             <span className="rounded-full bg-obsidian-primary/20 px-2 py-0.5 font-mono text-[10px] text-obsidian-primary">
-              {enabled ? "active" : "key set"}
+              {enabled ? t("active") : t("keySet")}
             </span>
           )}
         </div>
@@ -109,7 +110,7 @@ function ProviderCard({ provider }: { provider: (typeof PROVIDERS)[number] }) {
       {/* API Key */}
       <div>
         <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-          API Key
+          {t("apiKey")}
         </label>
         <div className="flex gap-2">
           <input
@@ -124,7 +125,7 @@ function ProviderCard({ provider }: { provider: (typeof PROVIDERS)[number] }) {
             onClick={() => setShowKey(!showKey)}
             className="rounded-md border border-obsidian-surface-raised px-2 text-[10px] text-obsidian-on-surface-var hover:bg-obsidian-surface-raised"
           >
-            {showKey ? "Hide" : "Show"}
+            {showKey ? t("hide") : t("show")}
           </button>
         </div>
       </div>
@@ -133,7 +134,7 @@ function ProviderCard({ provider }: { provider: (typeof PROVIDERS)[number] }) {
       {provider.supportsBaseUrl && (
         <div>
           <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-            Base URL <span className="normal-case tracking-normal">(optional)</span>
+            {t("baseUrl")} <span className="normal-case tracking-normal">{t("baseUrlOptional")}</span>
           </label>
           <input
             type="text"
@@ -152,7 +153,7 @@ function ProviderCard({ provider }: { provider: (typeof PROVIDERS)[number] }) {
           onClick={handleSave}
           className="rounded-md bg-obsidian-primary/20 px-3 py-1 text-[10px] font-medium text-obsidian-primary hover:bg-obsidian-primary/30"
         >
-          Save
+          {t("save")}
         </button>
         {hasKey && (
           <button
@@ -160,7 +161,7 @@ function ProviderCard({ provider }: { provider: (typeof PROVIDERS)[number] }) {
             onClick={handleRemove}
             className="rounded-md px-3 py-1 text-[10px] text-obsidian-on-surface-var hover:bg-obsidian-surface-raised"
           >
-            Remove
+            {t("remove")}
           </button>
         )}
       </div>
@@ -173,13 +174,15 @@ function ProviderCard({ provider }: { provider: (typeof PROVIDERS)[number] }) {
 // ---------------------------------------------------------------------------
 
 export function AIModelsTab() {
+  const t = useTranslations("AIModels");
+
   return (
     <div className="space-y-3">
       <p className="font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-        Configure AI model providers and API keys
+        {t("subtitle")}
       </p>
       <div className="grid gap-3">
-        {PROVIDERS.map((p) => (
+        {PROVIDER_IDS.map((p) => (
           <ProviderCard key={p.id} provider={p} />
         ))}
       </div>

@@ -1,0 +1,239 @@
+{
+  "Header": {
+    "appName": "Deep Research",
+    "hub": "Hub",
+    "report": "Báo cáo",
+    "knowledge": "Kiến thức",
+    "history": "Lịch sử",
+    "settings": "Cài đặt",
+    "github": "GitHub"
+  },
+  "Research": {
+    "steps": {
+      "clarify": "Làm rõ chủ đề",
+      "plan": "Lập kế hoạch nghiên cứu",
+      "search": "Tìm kiếm nguồn",
+      "analyze": "Phân tích kết quả",
+      "review": "Xem xét báo cáo",
+      "report": "Tạo báo cáo"
+    },
+    "idleText": "Nhập chủ đề để bắt đầu nghiên cứu.",
+    "streaming": "đang truyền"
+  },
+  "TopicInput": {
+    "title": "Bạn muốn nghiên cứu gì?",
+    "subtitle": "Xác định mục tiêu để bắt đầu phân tích.",
+    "placeholder": "vd, Phân tích chuyên sâu về xu hướng sản xuất pin thể rắn năm 2025...",
+    "frameworksLabel": "Khung đề xuất",
+    "marketMap": "Sơ đồ thị trường",
+    "techDive": "Phân tích kỹ thuật",
+    "compare": "So sánh lựa chọn",
+    "attachSources": "Đính kèm nguồn",
+    "startResearch": "Bắt đầu nghiên cứu",
+    "helpPrefix": "Nhập chủ đề ở trên và nhấn",
+    "helpSuffix": "để bắt đầu hành trình nghiên cứu."
+  },
+  "ReportConfig": {
+    "style": "Phong cách",
+    "length": "Độ dài",
+    "knowledgeMode": "Chế độ kiến thức",
+    "localOnly": "Chỉ nội bộ",
+    "noWebSearch": "Không tìm kiếm web",
+    "localOnlyDesc": "Nghiên cứu chỉ sử dụng tài liệu trong cơ sở kiến thức của bạn",
+    "styles": {
+      "balanced": "Cân bằng",
+      "balancedDesc": "Độ sâu và khả năng đọc đồng đều",
+      "executive": "Tổng quan",
+      "executiveDesc": "Thông tin chiến lược cấp cao",
+      "technical": "Kỹ thuật",
+      "technicalDesc": "Phân tích kỹ thuật chi tiết",
+      "concise": "Ngắn gọn",
+      "conciseDesc": "Tóm tắt ngắn các phát hiện chính"
+    },
+    "lengths": {
+      "brief": "Ngắn",
+      "briefDesc": "Tổng quan nhanh (~500 từ)",
+      "standard": "Tiêu chuẩn",
+      "standardDesc": "Độ sâu cân bằng (~1.500 từ)",
+      "comprehensive": "Chi tiết",
+      "comprehensiveDesc": "Phân tích chuyên sâu (~3.000+ từ)"
+    }
+  },
+  "Report": {
+    "contents": "Nội dung",
+    "sources": "Nguồn",
+    "date": "Ngày",
+    "verified": "Đã xác minh",
+    "processTime": "Thời gian xử lý",
+    "reportComplete": "Báo cáo hoàn thành",
+    "basedOn": "Dựa trên {count} nguồn đã xác minh.",
+    "newResearch": "Nghiên cứu mới",
+    "share": "Chia sẻ",
+    "export": "Xuất",
+    "noReport": "Chưa có báo cáo.",
+    "verified": "Đã xác minh",
+    "processTime": "Thời gian xử lý"
+  },
+  "Settings": {
+    "title": "Cài đặt",
+    "tabs": {
+      "ai": "Mô hình AI",
+      "search": "Tìm kiếm",
+      "general": "Chung",
+      "advanced": "Nâng cao"
+    }
+  },
+  "General": {
+    "connection": "Kết nối",
+    "proxyMode": "Chế độ Proxy",
+    "proxy": "Proxy",
+    "local": "Cục bộ",
+    "accessPassword": "Mật khẩu truy cập",
+    "accessPasswordPlaceholder": "Nhập mật khẩu truy cập",
+    "accessPasswordHint": "Bắt buộc khi kết nối qua máy chủ proxy CORS.",
+    "reportLanguage": "Ngôn ngữ báo cáo",
+    "uiLanguage": "Ngôn ngữ giao diện",
+    "uiLanguageEn": "English",
+    "uiLanguageVi": "Tiếng Việt",
+    "style": "Phong cách",
+    "length": "Độ dài",
+    "autoReview": "Vòng tự động xem xét",
+    "maxSearch": "Số truy vấn tìm kiếm tối đa",
+    "balanced": "Cân bằng",
+    "balancedDesc": "Độ sâu và khả năng đọc đồng đều",
+    "executive": "Tổng quan",
+    "executiveDesc": "Thông tin chiến lược cấp cao",
+    "technical": "Kỹ thuật",
+    "technicalDesc": "Phân tích kỹ thuật chi tiết",
+    "concise": "Ngắn gọn",
+    "conciseDesc": "Tóm tắt ngắn các phát hiện chính",
+    "brief": "Ngắn",
+    "briefDesc": "Tổng quan nhanh (~500 từ)",
+    "standard": "Tiêu chuẩn",
+    "standardDesc": "Độ sâu cân bằng (~1.500 từ)",
+    "comprehensive": "Chi tiết",
+    "comprehensiveDesc": "Phân tích chuyên sâu (~3.000+ từ)"
+  },
+  "AIModels": {
+    "title": "Mô hình AI",
+    "subtitle": "Cấu hình nhà cung cấp mô hình AI và khóa API",
+    "apiKey": "Khóa API",
+    "baseUrl": "URL cơ sở",
+    "baseUrlOptional": "(tùy chọn)",
+    "save": "Lưu",
+    "remove": "Xóa",
+    "hide": "Ẩn",
+    "show": "Hiện",
+    "active": "hoạt động",
+    "keySet": "đã đặt khóa",
+    "providers": {
+      "google": "Google Gemini",
+      "openai": "OpenAI",
+      "deepseek": "DeepSeek",
+      "openrouter": "OpenRouter",
+      "groq": "Groq",
+      "xai": "xAI (Grok)"
+    }
+  },
+  "SearchTab": {
+    "title": "Tìm kiếm",
+    "subtitle": "Cấu hình nhà cung cấp tìm kiếm web",
+    "provider": "Nhà cung cấp",
+    "apiKey": "Khóa API",
+    "baseUrl": "URL cơ sở",
+    "scope": "Phạm vi",
+    "maxResults": "Kết quả tối đa",
+    "includeDomains": "Tên miền bao gồm",
+    "excludeDomains": "Tên miền loại trừ",
+    "citationImages": "Hình ảnh trích dẫn",
+    "citationImagesDesc": "Bao gồm hình ảnh từ nguồn trong báo cáo",
+    "providers": {
+      "tavily": "Tavily",
+      "firecrawl": "Firecrawl",
+      "exa": "Exa",
+      "brave": "Brave Search",
+      "searxng": "SearXNG",
+      "model-native": "Model Native"
+    }
+  },
+  "Advanced": {
+    "description": "Ghi đè mẫu prompt mặc định. Để trống để sử dụng mặc định.",
+    "prompts": {
+      "system": "System",
+      "clarify": "Clarify",
+      "plan": "Plan",
+      "serpQueries": "SERP Queries",
+      "analyze": "Analyze",
+      "review": "Review",
+      "report": "Report",
+      "outputGuidelines": "Output Guidelines"
+    },
+    "resetAll": "Đặt lại tất cả cài đặt",
+    "resetDesc": "Khôi phục tất cả cài đặt và ghi đè về giá trị mặc định"
+  },
+  "History": {
+    "title": "Lịch sử nghiên cứu",
+    "description": "Duyệt, tìm kiếm và quản lý các phiên nghiên cứu trước đây.",
+    "filters": {
+      "all": "Tất cả",
+      "completed": "Hoàn thành",
+      "failed": "Thất bại"
+    },
+    "searchPlaceholder": "Tìm kiếm phiên...",
+    "emptyNoSessions": "Chưa có phiên nghiên cứu nào.",
+    "emptyNoMatch": "Không có phiên nào khớp với bộ lọc.",
+    "sessionsCount": "{count} phiên",
+    "thisWeek": "{count} tuần này",
+    "sourcesCount": "{count} nguồn",
+    "view": "Xem",
+    "confirm": "Xác nhận",
+    "cancel": "Hủy"
+  },
+  "Knowledge": {
+    "title": "Cơ sở kiến thức",
+    "description": "Tải lên tệp và URL để xây dựng cơ sở kiến thức nghiên cứu của bạn.",
+    "tabs": {
+      "files": "Tệp",
+      "urls": "URL",
+      "library": "Thư viện"
+    }
+  },
+  "KnowledgeList": {
+    "emptyTitle": "Chưa có tài liệu",
+    "emptyDesc": "Tải lên tệp hoặc thêm URL để xây dựng cơ sở kiến thức của bạn.",
+    "emptySearch": "Không có kết quả nào khớp với tìm kiếm.",
+    "justNow": "vừa xong",
+    "minutesAgo": "{count} phút trước",
+    "hoursAgo": "{count} giờ trước",
+    "daysAgo": "{count} ngày trước",
+    "searchPlaceholder": "Tìm kiếm cơ sở kiến thức..."
+  },
+  "FileUpload": {
+    "dragDrop": "Kéo thả tệp vào đây hoặc nhấn để duyệt",
+    "supportedFormats": "Tài liệu PDF, Office, tệp văn bản"
+  },
+  "UrlCrawler": {
+    "urlLabel": "URL",
+    "urlPlaceholder": "https://example.com/bai-viet",
+    "crawlerLabel": "Trình thu thập",
+    "crawl": "Thu thập URL",
+    "enterUrl": "Vui lòng nhập URL",
+    "invalidUrl": "Vui lòng nhập URL HTTP hoặc HTTPS hợp lệ",
+    "jina": "Jina Reader",
+    "localCrawler": "Trình thu thập nội bộ",
+    "jinaDesc": "Jina Reader trích xuất nội dung bài viết sạch. Trình thu thập nội bộ lấy HTML thô.",
+    "crawling": "Đang thu thập...",
+    "urlRequired": "Vui lòng nhập URL",
+    "invalidFormat": "Vui lòng nhập URL HTTP hoặc HTTPS hợp lệ"
+  },
+  "Workflow": {
+    "steps": {
+      "topic": "CHỦ ĐỀ",
+      "questions": "CÂU HỎI",
+      "research": "NGHIÊN CỨU",
+      "analyze": "PHÂN TÍCH",
+      "review": "XEM XÉT",
+      "report": "BÁO CÁO"
+    }
+  }
+}

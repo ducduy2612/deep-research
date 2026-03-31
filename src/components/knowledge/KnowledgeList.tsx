@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
   Search,
   Trash2,
@@ -20,16 +21,19 @@ import type { KnowledgeItem } from "@/engine/knowledge/types";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function relativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(ts).toLocaleDateString();
+function useRelativeTime() {
+  const t = useTranslations("KnowledgeList");
+  return (ts: number): string => {
+    const diff = Date.now() - ts;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return t("justNow");
+    if (mins < 60) return t("minutesAgo", { count: mins });
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return t("hoursAgo", { count: hours });
+    const days = Math.floor(hours / 24);
+    if (days < 7) return t("daysAgo", { count: days });
+    return new Date(ts).toLocaleDateString();
+  };
 }
 
 function truncate(text: string, max: number): string {
@@ -69,6 +73,8 @@ function KnowledgeCard({
   item: KnowledgeItem;
   onDelete: (id: string) => void;
 }) {
+  const t = useTranslations("History");
+  const relativeTime = useRelativeTime();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
@@ -111,7 +117,7 @@ function KnowledgeCard({
               className="h-7 px-2 text-xs text-red-400 hover:text-red-300"
               onClick={() => onDelete(item.id)}
             >
-              Confirm
+              {t("confirm")}
             </Button>
             <Button
               variant="ghost"
@@ -119,7 +125,7 @@ function KnowledgeCard({
               className="h-7 px-2 text-xs"
               onClick={() => setConfirmDelete(false)}
             >
-              Cancel
+              {t("cancel")}
             </Button>
           </div>
         ) : (
@@ -142,6 +148,7 @@ function KnowledgeCard({
 // ---------------------------------------------------------------------------
 
 export function KnowledgeList() {
+  const t = useTranslations("KnowledgeList");
   const [search, setSearch] = useState("");
   const items = useKnowledgeStore((s) => s.items);
   const removeItem = useKnowledgeStore((s) => s.remove);
@@ -164,7 +171,7 @@ export function KnowledgeList() {
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-obsidian-on-surface/40" />
         <Input
-          placeholder="Search knowledge base..."
+          placeholder={t("searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-8 border-obsidian-border/50 bg-obsidian-surface-deck pl-8 text-xs text-obsidian-on-surface placeholder:text-obsidian-on-surface/30"
@@ -178,8 +185,8 @@ export function KnowledgeList() {
             <FileText className="mb-2 h-8 w-8" />
             <p className="text-sm">
               {items.length === 0
-                ? "No knowledge items yet. Upload files or crawl URLs to get started."
-                : "No items match your search."}
+                ? t("emptyDesc")
+                : t("emptySearch")}
             </p>
           </div>
         ) : (

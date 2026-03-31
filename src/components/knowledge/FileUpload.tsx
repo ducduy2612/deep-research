@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { nanoid } from "nanoid";
@@ -23,6 +24,7 @@ const ACCEPTED_TYPES =
 // ---------------------------------------------------------------------------
 
 export function FileUpload() {
+  const t = useTranslations("FileUpload");
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
@@ -170,10 +172,10 @@ export function FileUpload() {
           <Upload className="h-8 w-8 text-obsidian-on-surface/40" />
         )}
         <p className="text-sm text-obsidian-on-surface/60">
-          {uploading ? progress : "Drop files here or click to browse"}
+          {uploading ? progress : t("dragDrop")}
         </p>
         <p className="text-xs text-obsidian-on-surface/30">
-          PDF, Office documents, text files
+          {t("supportedFormats")}
         </p>
       </div>
 

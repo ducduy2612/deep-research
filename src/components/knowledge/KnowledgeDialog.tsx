@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/utils/style";
 import { useUIStore } from "@/stores/ui-store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -8,23 +9,20 @@ import { UrlCrawler } from "@/components/knowledge/UrlCrawler";
 import { KnowledgeList } from "@/components/knowledge/KnowledgeList";
 
 // ---------------------------------------------------------------------------
-// Tab definitions
-// ---------------------------------------------------------------------------
-
-const TABS = [
-  { value: "files", label: "Files" },
-  { value: "urls", label: "URLs" },
-  { value: "library", label: "Library" },
-] as const;
-
-// ---------------------------------------------------------------------------
 // KnowledgeDialog
 // ---------------------------------------------------------------------------
 
 export function KnowledgeDialog() {
+  const t = useTranslations("Knowledge");
   const activeDialog = useUIStore((s) => s.activeDialog);
   const closeDialog = useUIStore((s) => s.closeDialog);
   const open = activeDialog === "knowledge";
+
+  const TABS = [
+    { value: "files", label: t("tabs.files") },
+    { value: "urls", label: t("tabs.urls") },
+    { value: "library", label: t("tabs.library") },
+  ] as const;
 
   if (!open) return null;
 
@@ -48,11 +46,9 @@ export function KnowledgeDialog() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-obsidian-surface-raised px-5 py-3">
           <h2 className="text-sm font-semibold text-obsidian-on-surface">
-            Knowledge Base
+            {t("title")}
           </h2>
-          <p className="sr-only">
-            Upload files, crawl URLs, and manage your knowledge base.
-          </p>
+          <p className="sr-only">{t("description")}</p>
           <button
             type="button"
             onClick={closeDialog}

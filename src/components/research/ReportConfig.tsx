@@ -1,34 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/utils/style";
 import { useSettingsStore } from "@/stores/settings-store";
 import { Switch } from "@/components/ui/switch";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
-
-// ---------------------------------------------------------------------------
-// Options
-// ---------------------------------------------------------------------------
-
-const STYLE_OPTIONS: {
-  value: ReportStyle;
-  label: string;
-  description: string;
-}[] = [
-  { value: "balanced", label: "Balanced", description: "Equal depth and readability" },
-  { value: "executive", label: "Executive", description: "High-level strategic insights" },
-  { value: "technical", label: "Technical", description: "Detailed technical analysis" },
-  { value: "concise", label: "Concise", description: "Brief summary of key findings" },
-];
-
-const LENGTH_OPTIONS: {
-  value: ReportLength;
-  label: string;
-  description: string;
-}[] = [
-  { value: "brief", label: "Brief", description: "Quick overview (~500 words)" },
-  { value: "standard", label: "Standard", description: "Balanced depth (~1,500 words)" },
-  { value: "comprehensive", label: "Comprehensive", description: "Deep analysis (~3,000+ words)" },
-];
 
 // ---------------------------------------------------------------------------
 // Props
@@ -43,6 +19,7 @@ interface ReportConfigProps {
 // ---------------------------------------------------------------------------
 
 export function ReportConfig({ className }: ReportConfigProps) {
+  const t = useTranslations("ReportConfig");
   const reportStyle = useSettingsStore((s) => s.reportStyle);
   const reportLength = useSettingsStore((s) => s.reportLength);
   const localOnlyMode = useSettingsStore((s) => s.localOnlyMode);
@@ -50,12 +27,33 @@ export function ReportConfig({ className }: ReportConfigProps) {
   const setReportLength = useSettingsStore((s) => s.setReportLength);
   const setLocalOnlyMode = useSettingsStore((s) => s.setLocalOnlyMode);
 
+  const STYLE_OPTIONS: {
+    value: ReportStyle;
+    label: string;
+    description: string;
+  }[] = [
+    { value: "balanced", label: t("styles.balanced"), description: t("styles.balancedDesc") },
+    { value: "executive", label: t("styles.executive"), description: t("styles.executiveDesc") },
+    { value: "technical", label: t("styles.technical"), description: t("styles.technicalDesc") },
+    { value: "concise", label: t("styles.concise"), description: t("styles.conciseDesc") },
+  ];
+
+  const LENGTH_OPTIONS: {
+    value: ReportLength;
+    label: string;
+    description: string;
+  }[] = [
+    { value: "brief", label: t("lengths.brief"), description: t("lengths.briefDesc") },
+    { value: "standard", label: t("lengths.standard"), description: t("lengths.standardDesc") },
+    { value: "comprehensive", label: t("lengths.comprehensive"), description: t("lengths.comprehensiveDesc") },
+  ];
+
   return (
     <div className={cn("space-y-6", className)}>
       {/* Style selector */}
       <div>
         <h4 className="mb-2 font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-          Style
+          {t("style")}
         </h4>
         <div className="space-y-1">
           {STYLE_OPTIONS.map((opt) => (
@@ -86,7 +84,7 @@ export function ReportConfig({ className }: ReportConfigProps) {
       {/* Length selector */}
       <div>
         <h4 className="mb-2 font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-          Length
+          {t("length")}
         </h4>
         <div className="space-y-1">
           {LENGTH_OPTIONS.map((opt) => (
@@ -117,22 +115,22 @@ export function ReportConfig({ className }: ReportConfigProps) {
       {/* Local-only mode toggle */}
       <div>
         <h4 className="mb-2 font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-          Knowledge Mode
+          {t("knowledgeMode")}
         </h4>
         <div className="flex items-center justify-between rounded-lg border border-obsidian-surface-raised px-3 py-2.5">
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-obsidian-on-surface">
-                Local Only
+                {t("localOnly")}
               </span>
               {localOnlyMode && (
                 <span className="rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-[9px] font-medium uppercase tracking-wider text-amber-400">
-                  No Web Search
+                  {t("noWebSearch")}
                 </span>
               )}
             </div>
             <span className="font-mono text-[10px] text-obsidian-on-surface-var/50">
-              Research using only your knowledge base documents
+              {t("localOnlyDesc")}
             </span>
           </div>
           <Switch

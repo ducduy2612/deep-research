@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Loader2, ExternalLink } from "lucide-react";
 
 import { cn } from "@/utils/style";
@@ -16,17 +17,8 @@ interface ActiveResearchCenterProps {
 }
 
 // ---------------------------------------------------------------------------
-// Step metadata
+// Step order
 // ---------------------------------------------------------------------------
-
-const STEP_LABELS: Record<ResearchStep, string> = {
-  clarify: "Clarifying topic",
-  plan: "Planning research",
-  search: "Searching sources",
-  analyze: "Analyzing findings",
-  review: "Reviewing report",
-  report: "Generating report",
-};
 
 const STEP_ORDER: ResearchStep[] = [
   "clarify", "plan", "search", "analyze", "review", "report",
@@ -37,6 +29,7 @@ const STEP_ORDER: ResearchStep[] = [
 // ---------------------------------------------------------------------------
 
 export function ActiveResearchCenter({ className }: ActiveResearchCenterProps) {
+  const t = useTranslations("Research");
   const steps = useResearchStore((s) => s.steps);
   const error = useResearchStore((s) => s.error);
   const searchResults = useResearchStore((s) => s.searchResults);
@@ -52,7 +45,7 @@ export function ActiveResearchCenter({ className }: ActiveResearchCenterProps) {
     }
   }
 
-  const currentLabel = currentStep ? STEP_LABELS[currentStep] : null;
+  const currentLabel = currentStep ? t(`steps.${currentStep}`) : null;
   const activeText = currentStep ? steps[currentStep].text : "";
 
   // Completed steps
@@ -100,7 +93,7 @@ export function ActiveResearchCenter({ className }: ActiveResearchCenterProps) {
             <div key={step} className="mb-8">
               <div className="mb-3 flex items-center gap-2">
                 <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-obsidian-on-surface-var">
-                  {STEP_LABELS[step]}
+                  {t(`steps.${step}`)}
                 </span>
                 {stepData.duration && (
                   <span className="font-mono text-[10px] text-obsidian-on-surface-var/40">
@@ -121,7 +114,7 @@ export function ActiveResearchCenter({ className }: ActiveResearchCenterProps) {
             <div className="mb-3 flex items-center gap-2">
               <Loader2 className="h-3 w-3 animate-spin text-obsidian-primary-deep" />
               <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-obsidian-primary-deep">
-                {currentLabel} — streaming
+                {currentLabel} — {t("streaming")}
               </span>
             </div>
             <div className="rounded-lg bg-obsidian-surface-sheet p-6">
@@ -148,7 +141,7 @@ export function ActiveResearchCenter({ className }: ActiveResearchCenterProps) {
         {isIdle && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <p className="text-obsidian-on-surface-var/40">
-              Enter a topic to begin research.
+              {t("idleText")}
             </p>
           </div>
         )}

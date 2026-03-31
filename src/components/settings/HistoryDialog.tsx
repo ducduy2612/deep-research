@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import {
   Dialog,
   DialogContent,
@@ -34,26 +35,25 @@ import type { HistorySession } from "@/stores/history-store";
 
 type FilterType = "all" | "completed" | "failed";
 
-const FILTERS: { label: string; value: FilterType }[] = [
-  { label: "All", value: "all" },
-  { label: "Completed", value: "completed" },
-  { label: "Failed", value: "failed" },
-];
+const FILTER_VALUES: FilterType[] = ["all", "completed", "failed"];
 
 // ---------------------------------------------------------------------------
-// Relative time
+// Relative time (uses translations)
 // ---------------------------------------------------------------------------
 
-function relativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(ts).toLocaleDateString();
+function useRelativeTime() {
+  const t = useTranslations("KnowledgeList");
+  return (ts: number): string => {
+    const diff = Date.now() - ts;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return t("justNow");
+    if (mins < 60) return t("minutesAgo", { count: mins });
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return t("hoursAgo", { count: hours });
+    const days = Math.floor(hours / 24);
+    if (days < 7) return t("daysAgo", { count: days });
+    return new Date(ts).toLocaleDateString();
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -80,6 +80,7 @@ function StatusBadge({ state }: { state: HistorySession["state"] }) {
 // ---------------------------------------------------------------------------
 
 function StatsRow({ sessions }: { sessions: readonly HistorySession[] }) {
+  const t = useTranslations("History");
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const thisWeek = sessions.filter((s) => (s.startedAt ?? 0) > weekAgo).length;
   const totalSources = sessions.reduce(
@@ -90,15 +91,15 @@ function StatsRow({ sessions }: { sessions: readonly HistorySession[] }) {
     <div className="flex gap-4 text-sm text-obsidian-on-surface/60">
       <span className="flex items-center gap-1">
         <BarChart3 className="h-3.5 w-3.5" />
-        {sessions.length} sessions
+        {t("sessionsCount", { count: sessions.length })}
       </span>
       <span className="flex items-center gap-1">
         <Clock className="h-3.5 w-3.5" />
-        {thisWeek} this week
+        {t("thisWeek", { count: thisWeek })}
       </span>
       <span className="flex items-center gap-1">
         <FileText className="h-3.5 w-3.5" />
-        {totalSources} sources
+        {t("sourcesCount", { count: totalSources })}
       </span>
     </div>
   );
@@ -117,6 +118,8 @@ function SessionCard({
   onDelete: (id: string) => void;
   onViewReport: (session: HistorySession) => void;
 }) {
+  const t = useTranslations("History");
+  const relativeTime = useRelativeTime();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
@@ -141,7 +144,7 @@ function SessionCard({
           onClick={() => onViewReport(session)}
         >
           <ExternalLink className="mr-1 h-3 w-3" />
-          View
+          {t("view")}
         </Button>
         {confirmDelete ? (
           <div className="flex items-center gap-1">
@@ -151,7 +154,7 @@ function SessionCard({
               className="h-7 px-2 text-xs text-red-400 hover:text-red-300"
               onClick={() => onDelete(session.id)}
             >
-              Confirm
+              {t("confirm")}
             </Button>
             <Button
               variant="ghost"
@@ -159,7 +162,7 @@ function SessionCard({
               className="h-7 px-2 text-xs"
               onClick={() => setConfirmDelete(false)}
             >
-              Cancel
+              {t("cancel")}
             </Button>
           </div>
         ) : (
@@ -182,6 +185,7 @@ function SessionCard({
 // ---------------------------------------------------------------------------
 
 export function HistoryDialog() {
+  const t = useTranslations("History");
   const activeDialog = useUIStore((s) => s.activeDialog);
   const closeDialog = useUIStore((s) => s.closeDialog);
   const sessions = useHistoryStore((s) => s.sessions);
@@ -234,10 +238,10 @@ export function HistoryDialog() {
       <DialogContent className="max-h-[80vh] max-w-2xl border-obsidian-border/50 bg-obsidian-surface-sheet backdrop-blur-xl sm:rounded-xl">
         <DialogHeader>
           <DialogTitle className="text-obsidian-on-surface">
-            Research History
+            {t("title")}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Browse, search, and manage your past research sessions.
+            {t("description")}
           </DialogDescription>
           <StatsRow sessions={sessions} />
         </DialogHeader>
@@ -245,24 +249,24 @@ export function HistoryDialog() {
         {/* Filters + Search */}
         <div className="flex items-center gap-2">
           <div className="flex gap-1">
-            {FILTERS.map((f) => (
+            {FILTER_VALUES.map((f) => (
               <button
-                key={f.value}
-                onClick={() => setFilter(f.value)}
+                key={f}
+                onClick={() => setFilter(f)}
                 className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  filter === f.value
+                  filter === f
                     ? "bg-obsidian-primary/20 text-obsidian-primary"
                     : "text-obsidian-on-surface/50 hover:bg-obsidian-surface-raised hover:text-obsidian-on-surface/70"
                 }`}
               >
-                {f.label}
+                {t(`filters.${f}`)}
               </button>
             ))}
           </div>
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-obsidian-on-surface/40" />
             <Input
-              placeholder="Search sessions..."
+              placeholder={t("searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-8 border-obsidian-border/50 bg-obsidian-surface-deck pl-8 text-xs text-obsidian-on-surface placeholder:text-obsidian-on-surface/30"
@@ -277,8 +281,8 @@ export function HistoryDialog() {
               <FileText className="mb-2 h-8 w-8" />
               <p className="text-sm">
                 {sessions.length === 0
-                  ? "No research sessions yet."
-                  : "No sessions match your filter."}
+                  ? t("emptyNoSessions")
+                  : t("emptyNoMatch")}
               </p>
             </div>
           ) : (

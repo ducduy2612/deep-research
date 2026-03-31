@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/utils/style";
 import { useUIStore } from "@/stores/ui-store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -9,24 +10,21 @@ import { GeneralTab } from "@/components/settings/GeneralTab";
 import { AdvancedTab } from "@/components/settings/AdvancedTab";
 
 // ---------------------------------------------------------------------------
-// Tab definitions
-// ---------------------------------------------------------------------------
-
-const TABS = [
-  { value: "ai-models", label: "AI Models" },
-  { value: "search", label: "Search" },
-  { value: "general", label: "General" },
-  { value: "advanced", label: "Advanced" },
-] as const;
-
-// ---------------------------------------------------------------------------
 // Dialog overlay + panel
 // ---------------------------------------------------------------------------
 
 export function SettingsDialog() {
+  const t = useTranslations("Settings");
   const activeDialog = useUIStore((s) => s.activeDialog);
   const closeDialog = useUIStore((s) => s.closeDialog);
   const open = activeDialog === "settings";
+
+  const TABS = [
+    { value: "ai-models", label: t("tabs.ai") },
+    { value: "search", label: t("tabs.search") },
+    { value: "general", label: t("tabs.general") },
+    { value: "advanced", label: t("tabs.advanced") },
+  ] as const;
 
   if (!open) return null;
 
@@ -50,7 +48,7 @@ export function SettingsDialog() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-obsidian-surface-raised px-5 py-3">
           <h2 className="text-sm font-semibold text-obsidian-on-surface">
-            Settings
+            {t("title")}
           </h2>
           <button
             type="button"

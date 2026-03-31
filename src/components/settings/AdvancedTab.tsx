@@ -1,21 +1,22 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useSettingsStore } from "@/stores/settings-store";
 import type { PromptOverrideKey } from "@/engine/research/types";
 
 // ---------------------------------------------------------------------------
-// Prompt override keys and labels
+// Prompt override keys
 // ---------------------------------------------------------------------------
 
-const PROMPT_KEYS: { key: PromptOverrideKey; label: string }[] = [
-  { key: "system", label: "System" },
-  { key: "clarify", label: "Clarify" },
-  { key: "plan", label: "Plan" },
-  { key: "serpQueries", label: "SERP Queries" },
-  { key: "analyze", label: "Analyze" },
-  { key: "review", label: "Review" },
-  { key: "report", label: "Report" },
-  { key: "outputGuidelines", label: "Output Guidelines" },
+const PROMPT_KEYS: PromptOverrideKey[] = [
+  "system",
+  "clarify",
+  "plan",
+  "serpQueries",
+  "analyze",
+  "review",
+  "report",
+  "outputGuidelines",
 ];
 
 // ---------------------------------------------------------------------------
@@ -23,6 +24,7 @@ const PROMPT_KEYS: { key: PromptOverrideKey; label: string }[] = [
 // ---------------------------------------------------------------------------
 
 export function AdvancedTab() {
+  const t = useTranslations("Advanced");
   const promptOverrides = useSettingsStore((s) => s.promptOverrides);
   const setPromptOverride = useSettingsStore((s) => s.setPromptOverride);
   const reset = useSettingsStore((s) => s.reset);
@@ -30,20 +32,20 @@ export function AdvancedTab() {
   return (
     <div className="space-y-5">
       <p className="font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-        Override default prompt templates. Leave empty to use defaults.
+        {t("description")}
       </p>
 
       {/* Prompt override textareas */}
       <div className="space-y-4">
-        {PROMPT_KEYS.map(({ key, label }) => (
+        {PROMPT_KEYS.map((key) => (
           <div key={key}>
             <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-              {label}
+              {t(`prompts.${key}`)}
             </label>
             <textarea
               defaultValue={promptOverrides[key] ?? ""}
               onBlur={(e) => setPromptOverride(key, e.target.value || undefined)}
-              placeholder={`Custom ${label.toLowerCase()} prompt...`}
+              placeholder={`Custom ${t(`prompts.${key}`).toLowerCase()} prompt...`}
               rows={3}
               className="w-full rounded-md border border-obsidian-surface-raised bg-obsidian-surface-well px-3 py-1.5 font-mono text-[11px] text-obsidian-on-surface placeholder:text-obsidian-on-surface-var/40 focus:border-obsidian-primary focus:outline-none"
             />
@@ -58,10 +60,10 @@ export function AdvancedTab() {
           onClick={() => reset()}
           className="rounded-md bg-red-500/10 px-4 py-2 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-colors"
         >
-          Reset All Settings
+          {t("resetAll")}
         </button>
         <p className="mt-1 font-mono text-[10px] text-obsidian-on-surface-var/50">
-          Restores all settings and overrides to factory defaults
+          {t("resetDesc")}
         </p>
       </div>
     </div>

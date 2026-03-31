@@ -1,0 +1,239 @@
+{
+  "Header": {
+    "appName": "Deep Research",
+    "hub": "Hub",
+    "report": "Report",
+    "knowledge": "Knowledge",
+    "history": "History",
+    "settings": "Settings",
+    "github": "GitHub"
+  },
+  "Research": {
+    "steps": {
+      "clarify": "Clarifying topic",
+      "plan": "Planning research",
+      "search": "Searching sources",
+      "analyze": "Analyzing findings",
+      "review": "Reviewing report",
+      "report": "Generating report"
+    },
+    "idleText": "Enter a topic to begin research.",
+    "streaming": "streaming"
+  },
+  "TopicInput": {
+    "title": "What would you like to research?",
+    "subtitle": "Define your objective to initialize analysis.",
+    "placeholder": "e.g., Deep dive into solid-state battery manufacturing trends for 2025...",
+    "frameworksLabel": "Suggested Frameworks",
+    "marketMap": "Market Map",
+    "techDive": "Technical Deep Dive",
+    "compare": "Compare Options",
+    "attachSources": "Attach Sources",
+    "startResearch": "Start Research",
+    "helpPrefix": "Enter a topic above and press",
+    "helpSuffix": "to start your research journey."
+  },
+  "ReportConfig": {
+    "style": "Style",
+    "length": "Length",
+    "knowledgeMode": "Knowledge Mode",
+    "localOnly": "Local Only",
+    "noWebSearch": "No Web Search",
+    "localOnlyDesc": "Research using only your knowledge base documents",
+    "styles": {
+      "balanced": "Balanced",
+      "balancedDesc": "Equal depth and readability",
+      "executive": "Executive",
+      "executiveDesc": "High-level strategic insights",
+      "technical": "Technical",
+      "technicalDesc": "Detailed technical analysis",
+      "concise": "Concise",
+      "conciseDesc": "Brief summary of key findings"
+    },
+    "lengths": {
+      "brief": "Brief",
+      "briefDesc": "Quick overview (~500 words)",
+      "standard": "Standard",
+      "standardDesc": "Balanced depth (~1,500 words)",
+      "comprehensive": "Comprehensive",
+      "comprehensiveDesc": "Deep analysis (~3,000+ words)"
+    }
+  },
+  "Report": {
+    "contents": "Contents",
+    "sources": "Sources",
+    "date": "Date",
+    "verified": "Verified",
+    "processTime": "Process Time",
+    "reportComplete": "Report Complete",
+    "basedOn": "Based on {count} verified sources.",
+    "newResearch": "New Research",
+    "share": "Share",
+    "export": "Export",
+    "noReport": "No report available.",
+    "verified": "Verified",
+    "processTime": "Process Time"
+  },
+  "Settings": {
+    "title": "Settings",
+    "tabs": {
+      "ai": "AI Models",
+      "search": "Search",
+      "general": "General",
+      "advanced": "Advanced"
+    }
+  },
+  "General": {
+    "connection": "Connection",
+    "proxyMode": "Proxy Mode",
+    "proxy": "Proxy",
+    "local": "Local",
+    "accessPassword": "Access Password",
+    "accessPasswordPlaceholder": "Enter access password",
+    "accessPasswordHint": "Required when connecting through a CORS proxy server.",
+    "reportLanguage": "Report Language",
+    "uiLanguage": "UI Language",
+    "uiLanguageEn": "English",
+    "uiLanguageVi": "Tiếng Việt",
+    "style": "Style",
+    "length": "Length",
+    "autoReview": "Auto-Review Rounds",
+    "maxSearch": "Max Search Queries",
+    "balanced": "Balanced",
+    "balancedDesc": "Equal depth and readability",
+    "executive": "Executive",
+    "executiveDesc": "High-level strategic insights",
+    "technical": "Technical",
+    "technicalDesc": "Detailed technical analysis",
+    "concise": "Concise",
+    "conciseDesc": "Brief summary of key findings",
+    "brief": "Brief",
+    "briefDesc": "Quick overview (~500 words)",
+    "standard": "Standard",
+    "standardDesc": "Balanced depth (~1,500 words)",
+    "comprehensive": "Comprehensive",
+    "comprehensiveDesc": "Deep analysis (~3,000+ words)"
+  },
+  "AIModels": {
+    "title": "AI Models",
+    "subtitle": "Configure AI model providers and API keys",
+    "apiKey": "API Key",
+    "baseUrl": "Base URL",
+    "baseUrlOptional": "(optional)",
+    "save": "Save",
+    "remove": "Remove",
+    "hide": "Hide",
+    "show": "Show",
+    "active": "active",
+    "keySet": "key set",
+    "providers": {
+      "google": "Google Gemini",
+      "openai": "OpenAI",
+      "deepseek": "DeepSeek",
+      "openrouter": "OpenRouter",
+      "groq": "Groq",
+      "xai": "xAI (Grok)"
+    }
+  },
+  "SearchTab": {
+    "title": "Search",
+    "subtitle": "Web search provider configuration",
+    "provider": "Provider",
+    "apiKey": "API Key",
+    "baseUrl": "Base URL",
+    "scope": "Scope",
+    "maxResults": "Max Results",
+    "includeDomains": "Include Domains",
+    "excludeDomains": "Exclude Domains",
+    "citationImages": "Citation Images",
+    "citationImagesDesc": "Include images from sources in the report",
+    "providers": {
+      "tavily": "Tavily",
+      "firecrawl": "Firecrawl",
+      "exa": "Exa",
+      "brave": "Brave Search",
+      "searxng": "SearXNG",
+      "model-native": "Model Native"
+    }
+  },
+  "Advanced": {
+    "description": "Override default prompt templates. Leave empty to use defaults.",
+    "prompts": {
+      "system": "System",
+      "clarify": "Clarify",
+      "plan": "Plan",
+      "serpQueries": "SERP Queries",
+      "analyze": "Analyze",
+      "review": "Review",
+      "report": "Report",
+      "outputGuidelines": "Output Guidelines"
+    },
+    "resetAll": "Reset All Settings",
+    "resetDesc": "Restores all settings and overrides to factory defaults"
+  },
+  "History": {
+    "title": "Research History",
+    "description": "Browse, search, and manage your past research sessions.",
+    "filters": {
+      "all": "All",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "searchPlaceholder": "Search sessions...",
+    "emptyNoSessions": "No research sessions yet.",
+    "emptyNoMatch": "No sessions match your filter.",
+    "sessionsCount": "{count} sessions",
+    "thisWeek": "{count} this week",
+    "sourcesCount": "{count} sources",
+    "view": "View",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "Knowledge": {
+    "title": "Knowledge Base",
+    "description": "Upload files and URLs to build your research knowledge base.",
+    "tabs": {
+      "files": "Files",
+      "urls": "URLs",
+      "library": "Library"
+    }
+  },
+  "KnowledgeList": {
+    "emptyTitle": "No documents yet",
+    "emptyDesc": "Upload files or add URLs to build your knowledge base.",
+    "emptySearch": "No items match your search.",
+    "justNow": "just now",
+    "minutesAgo": "{count}m ago",
+    "hoursAgo": "{count}h ago",
+    "daysAgo": "{count}d ago",
+    "searchPlaceholder": "Search knowledge base..."
+  },
+  "FileUpload": {
+    "dragDrop": "Drop files here or click to browse",
+    "supportedFormats": "PDF, Office documents, text files"
+  },
+  "UrlCrawler": {
+    "urlLabel": "URL",
+    "urlPlaceholder": "https://example.com/article",
+    "crawlerLabel": "Crawler",
+    "crawl": "Crawl URL",
+    "enterUrl": "Please enter a URL",
+    "invalidUrl": "Please enter a valid HTTP or HTTPS URL",
+    "jina": "Jina Reader",
+    "localCrawler": "Local Crawler",
+    "jinaDesc": "Jina Reader extracts clean article content. Local crawler fetches raw HTML.",
+    "crawling": "Crawling...",
+    "urlRequired": "Please enter a URL",
+    "invalidFormat": "Please enter a valid HTTP or HTTPS URL"
+  },
+  "Workflow": {
+    "steps": {
+      "topic": "TOPIC",
+      "questions": "QUESTIONS",
+      "research": "RESEARCH",
+      "analyze": "ANALYZE",
+      "review": "REVIEW",
+      "report": "REPORT"
+    }
+  }
+}

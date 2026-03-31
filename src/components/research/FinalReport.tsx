@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { ExternalLink, Share2, Plus, Download } from "lucide-react";
 
 import { cn } from "@/utils/style";
@@ -23,6 +24,7 @@ interface FinalReportProps {
 // ---------------------------------------------------------------------------
 
 export function FinalReport({ className }: FinalReportProps) {
+  const t = useTranslations("Report");
   const result = useResearchStore((s) => s.result);
   const startedAt = useResearchStore((s) => s.startedAt);
   const completedAt = useResearchStore((s) => s.completedAt);
@@ -50,7 +52,7 @@ export function FinalReport({ className }: FinalReportProps) {
   if (!result) {
     return (
       <div className={cn("flex flex-1 items-center justify-center", className)}>
-        <p className="text-obsidian-on-surface-var/40">No report available.</p>
+        <p className="text-obsidian-on-surface-var/40">{t("noReport")}</p>
       </div>
     );
   }
@@ -80,7 +82,7 @@ export function FinalReport({ className }: FinalReportProps) {
         {tocEntries.length > 0 && (
           <section className="rounded-xl bg-obsidian-surface-well p-6">
             <h3 className="mb-6 font-sans text-xs font-bold uppercase tracking-[0.2em] text-obsidian-on-surface-var">
-              Contents
+              {t("contents")}
             </h3>
             <nav className="space-y-4">
               {tocEntries.map((entry) => (
@@ -108,7 +110,7 @@ export function FinalReport({ className }: FinalReportProps) {
         {result.sources.length > 0 && (
           <section className="rounded-xl bg-obsidian-surface-well p-6">
             <h3 className="mb-6 font-sans text-xs font-bold uppercase tracking-[0.2em] text-obsidian-on-surface-var">
-              Sources
+              {t("sources")}
             </h3>
             <div className="space-y-4">
               {result.sources.map((src, idx) => (
@@ -123,21 +125,21 @@ export function FinalReport({ className }: FinalReportProps) {
           <div className="grid grid-cols-2 gap-4 font-mono text-[10px] uppercase tracking-wider text-obsidian-on-surface-var">
             {startedAt && (
               <div>
-                <span className="block opacity-40">Date</span>
+                <span className="block opacity-40">{t("date")}</span>
                 <span className="text-obsidian-on-surface">
                   {new Date(startedAt).toLocaleDateString()}
                 </span>
               </div>
             )}
             <div>
-              <span className="block opacity-40">Sources</span>
+              <span className="block opacity-40">{t("sources")}</span>
               <span className="text-obsidian-on-surface">
-                {result.sources.length} Verified
+                {result.sources.length} {t("verified")}
               </span>
             </div>
             {durationSec != null && (
               <div>
-                <span className="block opacity-40">Process Time</span>
+                <span className="block opacity-40">{t("processTime")}</span>
                 <span className="text-obsidian-on-surface">
                   {Math.floor(durationSec / 60)}m {durationSec % 60}s
                 </span>
@@ -152,10 +154,10 @@ export function FinalReport({ className }: FinalReportProps) {
         <div className="mx-auto flex max-w-[800px] items-center justify-between xl:ml-[calc(50%-400px-160px)]">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-obsidian-primary">
-              Report Complete
+              {t("reportComplete")}
             </span>
             <p className="mt-1 text-[10px] text-obsidian-on-surface-var">
-              Based on {result.sources.length} verified sources.
+              {t("basedOn", { count: result.sources.length })}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -166,7 +168,7 @@ export function FinalReport({ className }: FinalReportProps) {
               onClick={() => navigate("hub")}
             >
               <Plus className="mr-1 h-4 w-4" />
-              New Research
+              {t("newResearch")}
             </Button>
             <Button
               variant="ghost"
@@ -174,11 +176,11 @@ export function FinalReport({ className }: FinalReportProps) {
               className="text-obsidian-on-surface-var"
             >
               <Share2 className="mr-1 h-4 w-4" />
-              Share
+              {t("share")}
             </Button>
             <Button size="sm" className="bg-obsidian-primary font-bold text-[#1000a9]">
               <Download className="mr-1 h-4 w-4" />
-              Export
+              {t("export")}
             </Button>
           </div>
         </div>

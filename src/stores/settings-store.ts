@@ -70,6 +70,9 @@ export interface SettingsStoreState {
   readonly proxyMode: boolean;
   readonly accessPassword: string;
 
+  // UI locale (separate from report language)
+  readonly uiLocale: string;
+
   // Hydration state
   readonly loaded: boolean;
 }
@@ -113,6 +116,9 @@ export interface SettingsStoreActions {
   // Proxy mode
   setProxyMode: (enabled: boolean) => void;
   setAccessPassword: (password: string) => void;
+
+  // UI locale
+  setUiLocale: (locale: string) => void;
 
   /** Reset all settings to defaults. */
   reset: () => Promise<void>;
@@ -162,6 +168,7 @@ const settingsSchema = z.object({
   selectedKnowledgeIds: z.array(z.string()).optional().default([]),
   proxyMode: z.boolean().optional().default(false),
   accessPassword: z.string().optional().default(""),
+  uiLocale: z.enum(["en", "vi"]).optional().default("en"),
 });
 
 // ---------------------------------------------------------------------------
@@ -186,6 +193,7 @@ const DEFAULT_STATE: SettingsStoreState = {
   selectedKnowledgeIds: [],
   proxyMode: false,
   accessPassword: "",
+  uiLocale: "en",
   loaded: false,
 };
 
@@ -308,6 +316,13 @@ export const useSettingsStore = create<SettingsStore>()((set, get) => ({
     persistSettings(get());
   },
 
+  setUiLocale: (locale: string) => {
+    set({ uiLocale: locale });
+    // Sync to cookie so server-side getRequestConfig can read it
+    document.cookie = `NEXT_LOCALE=${locale};path=/;max-age=31536000`;
+    persistSettings(get());
+  },
+
   reset: async () => {
     await storage.remove(STORAGE_KEY);
     set({ ...DEFAULT_STATE, loaded: true });
@@ -336,6 +351,7 @@ function persistSettings(state: SettingsStoreState): void {
     selectedKnowledgeIds: state.selectedKnowledgeIds,
     proxyMode: state.proxyMode,
     accessPassword: state.accessPassword,
+    uiLocale: state.uiLocale,
   };
   storage.set(STORAGE_KEY, toSave, settingsSchema).catch(() => {
     // Silently ignore persistence failures — settings still work in-memory

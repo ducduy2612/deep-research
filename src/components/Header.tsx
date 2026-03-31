@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   Settings,
   History,
@@ -37,6 +38,7 @@ function formatElapsed(ms: number): string {
 // ---------------------------------------------------------------------------
 
 export function Header({ className }: HeaderProps) {
+  const t = useTranslations("Header");
   const isActive = useResearchStore(selectIsActive);
   const topic = useResearchStore((s) => s.topic);
   const elapsedMs = useResearchStore((s) => {
@@ -64,7 +66,7 @@ export function Header({ className }: HeaderProps) {
           className="flex items-center gap-2 text-lg font-bold tracking-tight text-obsidian-on-surface"
         >
           <span className="inline-block h-2 w-2 rounded-full bg-indigo-500" />
-          Deep Research
+          {t("appName")}
         </button>
 
         {/* Active research focus indicator */}
@@ -90,34 +92,34 @@ export function Header({ className }: HeaderProps) {
       <div className="flex items-center gap-1">
         <NavButton
           icon={<Sparkles className="h-[18px] w-[18px]" />}
-          label="Hub"
+          label={t("hub")}
           active={activeView === "hub"}
           onClick={() => navigate("hub")}
         />
         <NavButton
           icon={<BookOpen className="h-[18px] w-[18px]" />}
-          label="Report"
+          label={t("report")}
           active={activeView === "report"}
           onClick={() => navigate("report")}
         />
         <NavButton
           icon={<Database className="h-[18px] w-[18px]" />}
-          label="Knowledge"
+          label={t("knowledge")}
           onClick={() => openDialog("knowledge")}
         />
         <NavButton
           icon={<History className="h-[18px] w-[18px]" />}
-          label="History"
+          label={t("history")}
           onClick={() => openDialog("history")}
         />
         <NavButton
           icon={<Settings className="h-[18px] w-[18px]" />}
-          label="Settings"
+          label={t("settings")}
           onClick={() => openDialog("settings")}
         />
         <NavButton
           icon={<Github className="h-[18px] w-[18px]" />}
-          label="GitHub"
+          label={t("github")}
           onClick={() => window.open("https://github.com", "_blank", "noopener")}
         />
       </div>

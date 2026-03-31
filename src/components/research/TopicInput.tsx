@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import {
   Rocket,
   Map,
@@ -15,16 +16,6 @@ import { useResearch } from "@/hooks/use-research";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
 
 // ---------------------------------------------------------------------------
-// Suggested frameworks
-// ---------------------------------------------------------------------------
-
-const FRAMEWORKS = [
-  { icon: Map, label: "Market Map", topic: "Comprehensive market analysis of " },
-  { icon: FileText, label: "Technical Deep Dive", topic: "Technical deep dive into " },
-  { icon: ArrowLeftRight, label: "Compare Options", topic: "Detailed comparison of " },
-] as const;
-
-// ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
@@ -37,6 +28,7 @@ interface TopicInputProps {
 // ---------------------------------------------------------------------------
 
 export function TopicInput({ className }: TopicInputProps) {
+  const t = useTranslations("TopicInput");
   const [topic, setTopic] = useState("");
   const isActive = useResearchStore((s) => s.state !== "idle" && s.state !== "completed" && s.state !== "failed" && s.state !== "aborted");
 
@@ -45,6 +37,12 @@ export function TopicInput({ className }: TopicInputProps) {
   const language = useSettingsStore((s) => s.language);
 
   const { start } = useResearch();
+
+  const FRAMEWORKS = [
+    { icon: Map, label: t("marketMap"), topic: "Comprehensive market analysis of " },
+    { icon: FileText, label: t("techDive"), topic: "Technical deep dive into " },
+    { icon: ArrowLeftRight, label: t("compare"), topic: "Detailed comparison of " },
+  ];
 
   const handleStart = useCallback(() => {
     const trimmed = topic.trim();
@@ -74,10 +72,10 @@ export function TopicInput({ className }: TopicInputProps) {
         {/* Header */}
         <div className="space-y-1">
           <h1 className="text-xl font-semibold tracking-tight text-obsidian-on-surface">
-            What would you like to research?
+            {t("title")}
           </h1>
           <p className="font-mono text-[11px] text-obsidian-on-surface-var">
-            Define your objective to initialize analysis.
+            {t("subtitle")}
           </p>
         </div>
 
@@ -90,7 +88,7 @@ export function TopicInput({ className }: TopicInputProps) {
               "focus:ring-1 focus:ring-obsidian-primary/40 focus:outline-none transition-all",
               "border-none",
             )}
-            placeholder="e.g., Deep dive into solid-state battery manufacturing trends for 2025..."
+            placeholder={t("placeholder")}
             rows={3}
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
@@ -102,7 +100,7 @@ export function TopicInput({ className }: TopicInputProps) {
         {/* Suggested frameworks */}
         <div className="space-y-2">
           <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-            Suggested Frameworks
+            {t("frameworksLabel")}
           </span>
           <div className="flex flex-wrap gap-2">
             {FRAMEWORKS.map((fw) => (
@@ -129,7 +127,7 @@ export function TopicInput({ className }: TopicInputProps) {
         <div className="flex items-center justify-between gap-4 pt-4">
           <div className="flex items-center gap-1 rounded-lg bg-obsidian-surface-well p-1">
             <span className="px-2 py-1 font-mono text-[10px] text-zinc-600">
-              Attach Sources
+              {t("attachSources")}
             </span>
           </div>
 
@@ -146,7 +144,7 @@ export function TopicInput({ className }: TopicInputProps) {
               "disabled:pointer-events-none disabled:opacity-50",
             )}
           >
-            <span>Start Research</span>
+            <span>{t("startResearch")}</span>
             <Rocket className="h-4 w-4" />
           </button>
         </div>
@@ -154,11 +152,11 @@ export function TopicInput({ className }: TopicInputProps) {
 
       {/* Help text */}
       <p className="mt-6 text-center text-xs font-medium tracking-tight text-zinc-700">
-        Enter a topic above and press{" "}
+        {t("helpPrefix")}{" "}
         <kbd className="rounded bg-obsidian-surface-sheet px-1.5 py-0.5 font-mono text-[10px] text-zinc-500">
           Ctrl+Enter
         </kbd>{" "}
-        to start your research journey.
+        {t("helpSuffix")}
       </p>
     </section>
   );

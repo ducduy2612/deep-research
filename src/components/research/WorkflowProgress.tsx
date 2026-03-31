@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   Check,
   Loader2,
@@ -14,13 +15,13 @@ import type { ResearchState } from "@/engine/research/types";
 // Step definitions
 // ---------------------------------------------------------------------------
 
-const STEPS: { step: ResearchStep; label: string; state: ResearchState }[] = [
-  { step: "clarify", label: "TOPIC", state: "clarifying" },
-  { step: "plan", label: "QUESTIONS", state: "planning" },
-  { step: "search", label: "RESEARCH", state: "searching" },
-  { step: "analyze", label: "ANALYZE", state: "analyzing" },
-  { step: "review", label: "REVIEW", state: "reviewing" },
-  { step: "report", label: "REPORT", state: "reporting" },
+const STEPS: { step: ResearchStep; labelKey: string; state: ResearchState }[] = [
+  { step: "clarify", labelKey: "topic", state: "clarifying" },
+  { step: "plan", labelKey: "questions", state: "planning" },
+  { step: "search", labelKey: "research", state: "searching" },
+  { step: "analyze", labelKey: "analyze", state: "analyzing" },
+  { step: "review", labelKey: "review", state: "reviewing" },
+  { step: "report", labelKey: "report", state: "reporting" },
 ];
 
 const STATE_ORDER: ResearchState[] = [
@@ -41,6 +42,8 @@ interface WorkflowProgressProps {
 // ---------------------------------------------------------------------------
 
 export function WorkflowProgress({ state, className }: WorkflowProgressProps) {
+  const t = useTranslations("Workflow");
+
   // Determine the progress index
   let progressIdx = -1;
   if (state === "completed" || state === "failed" || state === "aborted" || state === "idle") {
@@ -76,7 +79,7 @@ export function WorkflowProgress({ state, className }: WorkflowProgressProps) {
                     !isCompleted && !isActive && "text-obsidian-on-surface opacity-30",
                   )}
                 >
-                  {s.label}
+                  {t(`steps.${s.labelKey}`)}
                 </span>
               </div>
               {isActive && (

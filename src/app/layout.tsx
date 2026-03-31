@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { getLocale, getMessages } from "next-intl/server";
+import { setRequestLocale } from "next-intl/server";
+
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -45,17 +48,25 @@ export const viewport: Viewport = {
   themeColor: "#c0c1ff",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
+  // Enable static rendering with the detected locale
+  setRequestLocale(locale);
+
   return (
-    <html lang="en" className="dark">
+    <html lang={locale} className="dark">
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
       >
-        <Providers>{children}</Providers>
+        <Providers messages={messages} locale={locale}>
+          {children}
+        </Providers>
       </body>
     </html>
   );
