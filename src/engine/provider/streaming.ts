@@ -1,5 +1,5 @@
-import { streamText, generateObject } from "ai";
-import type { LanguageModel, CoreMessage } from "ai";
+import { streamText, generateObject, generateText } from "ai";
+import type { LanguageModel, CoreMessage, ToolSet } from "ai";
 
 import { AppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
@@ -89,6 +89,75 @@ export async function streamWithAbort(options: StreamOptions) {
   });
 
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// generateTextWithAbort
+// ---------------------------------------------------------------------------
+
+/** Options for {@link generateTextWithAbort}. */
+export interface GenerateTextWithAbortOptions {
+  model: LanguageModel;
+  /** Simple text prompt. */
+  prompt: string;
+  abortSignal?: AbortSignal;
+  /** AI SDK tools (e.g. OpenAI web_search_preview). */
+  tools?: ToolSet;
+  /** Provider-specific options (e.g. OpenRouter plugins, xAI search). */
+  providerOptions?: Record<string, unknown>;
+}
+
+/**
+ * Wraps AI SDK `generateText` with abort signal handling and error recovery.
+ *
+ * - **Abort** → throws `AppError('AI_STREAM_ABORTED')`
+ * - **Other errors** → throws `AppError('AI_INVALID_RESPONSE')`
+ *
+ * Returns the full `GenerateTextResult` so callers can access `sources`,
+ * `providerMetadata`, etc.
+ */
+export async function generateTextWithAbort(
+  options: GenerateTextWithAbortOptions,
+) {
+  const { model, prompt, abortSignal, tools, providerOptions } = options;
+
+  try {
+    const result = await generateText({
+      model,
+      prompt,
+      abortSignal,
+      ...(tools && { tools }),
+      ...(providerOptions && {
+        providerOptions: providerOptions as Parameters<typeof generateText>[0]["providerOptions"],
+      }),
+    });
+
+    logger.info("Text generated", {
+      sourceCount: result.sources.length,
+      textLength: result.text.length,
+    });
+
+    return result;
+  } catch (cause) {
+    const isAbort =
+      cause instanceof DOMException && cause.name === "AbortError";
+
+    if (isAbort) {
+      throw new AppError("AI_STREAM_ABORTED", "Text generation aborted", {
+        category: "ai",
+        cause: cause instanceof Error ? cause : new Error(String(cause)),
+      });
+    }
+
+    throw new AppError(
+      "AI_INVALID_RESPONSE",
+      `Text generation failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+      {
+        category: "ai",
+        cause: cause instanceof Error ? cause : new Error(String(cause)),
+      },
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
