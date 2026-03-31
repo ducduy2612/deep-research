@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Deep Research - Premium AI Analysis</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#c0c1ff",
+              "error": "#ffb4ab",
+              "on-tertiary-fixed": "#23005c",
+              "error-container": "#93000a",
+              "on-tertiary-fixed-variant": "#5516be",
+              "on-primary-fixed": "#07006c",
+              "on-surface": "#e5e1e4",
+              "surface": "#131315",
+              "on-background": "#e5e1e4",
+              "inverse-surface": "#e5e1e4",
+              "on-tertiary": "#3c0091",
+              "on-secondary-fixed-variant": "#004395",
+              "on-surface-variant": "#c7c4d7",
+              "surface-variant": "#353437",
+              "on-error": "#690005",
+              "on-error-container": "#ffdad6",
+              "surface-container-low": "#1c1b1d",
+              "on-secondary-container": "#e6ecff",
+              "inverse-on-surface": "#313032",
+              "on-primary": "#1000a9",
+              "tertiary-fixed-dim": "#d0bcff",
+              "surface-bright": "#39393b",
+              "surface-container": "#201f22",
+              "primary-container": "#8083ff",
+              "on-tertiary-container": "#340080",
+              "primary-fixed": "#e1e0ff",
+              "surface-container-lowest": "#0e0e10",
+              "outline": "#908fa0",
+              "tertiary": "#d0bcff",
+              "tertiary-container": "#a078ff",
+              "primary-fixed-dim": "#c0c1ff",
+              "surface-tint": "#c0c1ff",
+              "on-primary-fixed-variant": "#2f2ebe",
+              "secondary-fixed": "#d8e2ff",
+              "secondary-container": "#0566d9",
+              "inverse-primary": "#494bd6",
+              "tertiary-fixed": "#e9ddff",
+              "background": "#131315",
+              "secondary": "#adc6ff",
+              "on-secondary-fixed": "#001a42",
+              "outline-variant": "#464554",
+              "on-primary-container": "#0d0096",
+              "on-secondary": "#002e6a",
+              "surface-container-highest": "#353437",
+              "surface-dim": "#131315",
+              "surface-container-high": "#2a2a2c",
+              "secondary-fixed-dim": "#adc6ff"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["JetBrains Mono"],
+              "mono": ["JetBrains Mono"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #131315;
+            color: #e5e1e4;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(32, 31, 34, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .primary-gradient {
+            background: linear-gradient(135deg, #c0c1ff 0%, #8083ff 100%);
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="sticky top-0 w-full z-50 bg-[#131315]/60 backdrop-blur-xl shadow-2xl shadow-black/40">
+<nav class="flex justify-between items-center px-6 py-3 w-full">
+<div class="flex items-center gap-4">
+<div class="text-lg font-bold tracking-tighter text-[#e5e1e4] flex items-center gap-1 before:content-[''] before:w-2 before:h-2 before:bg-indigo-500 before:rounded-full">
+                    Deep Research
+                </div>
+<span class="font-mono text-[10px] px-2 py-0.5 rounded bg-surface-container-highest text-on-surface-variant tracking-wider uppercase">v0.11</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="p-2 hover:bg-[#353437] transition-colors duration-200 rounded-lg text-[#c7c4d7] active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">hub</span>
+</button>
+<button class="p-2 hover:bg-[#353437] transition-colors duration-200 rounded-lg text-[#c7c4d7] active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">keyboard</span>
+</button>
+<button class="p-2 hover:bg-[#353437] transition-colors duration-200 rounded-lg text-[#c7c4d7] active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">history</span>
+</button>
+<button class="p-2 hover:bg-[#353437] transition-colors duration-200 rounded-lg text-[#c7c4d7] active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">menu_book</span>
+</button>
+<button class="p-2 hover:bg-[#353437] transition-colors duration-200 rounded-lg text-[#c7c4d7] active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+</div>
+</nav>
+</header>
+<!-- Main Content Stage -->
+<main class="flex-grow flex flex-col items-center justify-center px-4 py-20 bg-surface-container-lowest">
+<!-- Hero Input Section -->
+<section class="w-full max-w-2xl">
+<div class="glass-panel p-6 rounded-xl shadow-2xl space-y-6">
+<header class="space-y-1">
+<h1 class="text-xl font-semibold tracking-tight text-on-surface">What would you like to research?</h1>
+<p class="text-sm text-on-surface-variant font-mono text-[11px]">Define your objective to initialize analysis.</p>
+</header>
+<!-- Input Area -->
+<div class="relative">
+<textarea class="w-full bg-[#1c1b1d] border-none rounded-lg p-4 text-on-surface text-sm placeholder:text-zinc-600 focus:ring-1 focus:ring-primary/40 transition-all resize-none font-body" placeholder="e.g., Deep dive into solid-state battery manufacturing trends for 2025..." rows="3"></textarea>
+</div>
+<!-- Presets -->
+<div class="space-y-2">
+<span class="font-mono text-[10px] uppercase tracking-widest text-zinc-500">Suggested Frameworks</span>
+<div class="flex flex-wrap gap-2">
+<button class="px-3 py-1.5 rounded-full bg-surface-container text-xs font-medium text-on-surface-variant hover:bg-surface-container-highest hover:text-primary transition-colors duration-200 flex items-center gap-1.5 group">
+<span class="material-symbols-outlined text-[14px] group-hover:scale-110 transition-transform">map</span>
+                            Market Map
+                        </button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container text-xs font-medium text-on-surface-variant hover:bg-surface-container-highest hover:text-primary transition-colors duration-200 flex items-center gap-1.5 group">
+<span class="material-symbols-outlined text-[14px] group-hover:scale-110 transition-transform">description</span>
+                            Technical Deep Dive
+                        </button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container text-xs font-medium text-on-surface-variant hover:bg-surface-container-highest hover:text-primary transition-colors duration-200 flex items-center gap-1.5 group">
+<span class="material-symbols-outlined text-[14px] group-hover:scale-110 transition-transform">compare_arrows</span>
+                            Compare Options
+                        </button>
+</div>
+</div>
+<!-- Local Resources & Actions -->
+<div class="pt-4 flex items-center justify-between gap-4">
+<div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg">
+<button class="p-2 hover:bg-surface-container-highest rounded text-on-surface-variant transition-colors" title="Add File">
+<span class="material-symbols-outlined text-[18px]">upload_file</span>
+</button>
+<button class="p-2 hover:bg-surface-container-highest rounded text-on-surface-variant transition-colors" title="Add Knowledge Base">
+<span class="material-symbols-outlined text-[18px]">database</span>
+</button>
+<button class="p-2 hover:bg-surface-container-highest rounded text-on-surface-variant transition-colors" title="Add URL">
+<span class="material-symbols-outlined text-[18px]">link</span>
+</button>
+<div class="w-px h-4 bg-outline-variant/30 mx-1"></div>
+<span class="text-[10px] font-mono text-zinc-600 px-2">Attach Sources</span>
+</div>
+<button class="primary-gradient text-on-primary-container px-5 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 shadow-lg shadow-primary/10 active:scale-[0.98] transition-all">
+<span>Start Research</span>
+<span class="material-symbols-outlined text-[18px]">rocket_launch</span>
+</button>
+</div>
+</div>
+<!-- Empty State Guidance -->
+<div class="mt-6 text-center space-y-4">
+<p class="text-zinc-700 text-xs font-medium tracking-tight">
+                    Enter a topic above and press <kbd class="px-1.5 py-0.5 rounded bg-surface-container font-mono text-[10px] text-zinc-500">Ctrl+Enter</kbd> to start your research journey.
+                </p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-12 opacity-40 hover:opacity-100 transition-opacity duration-500">
+<div class="bg-surface-container-lowest p-4 rounded-lg space-y-2 text-left">
+<span class="material-symbols-outlined text-primary text-[20px]">auto_awesome</span>
+<h3 class="text-xs font-bold uppercase tracking-widest text-zinc-400">Context Aware</h3>
+<p class="text-[11px] text-zinc-600 leading-relaxed">AI synthesizes data from multi-modal sources for high-fidelity insights.</p>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-lg space-y-2 text-left border-x border-outline-variant/5">
+<span class="material-symbols-outlined text-primary text-[20px]">verified_user</span>
+<h3 class="text-xs font-bold uppercase tracking-widest text-zinc-400">Source Verification</h3>
+<p class="text-[11px] text-zinc-600 leading-relaxed">Every claim is cross-referenced with academic and technical literature.</p>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-lg space-y-2 text-left">
+<span class="material-symbols-outlined text-primary text-[20px]">architecture</span>
+<h3 class="text-xs font-bold uppercase tracking-widest text-zinc-400">Structured Output</h3>
+<p class="text-[11px] text-zinc-600 leading-relaxed">Exports to Markdown, LaTeX, or detailed PDF reports automatically.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-8 bg-[#131315] flex flex-col items-center justify-center space-y-4">
+<div class="flex items-center gap-6">
+<a class="text-zinc-600 font-['Inter'] text-xs tracking-wide uppercase hover:text-zinc-400 transition-colors opacity-80 hover:opacity-100" href="#">Privacy</a>
+<a class="text-zinc-600 font-['Inter'] text-xs tracking-wide uppercase hover:text-zinc-400 transition-colors opacity-80 hover:opacity-100" href="#">API Docs</a>
+<a class="text-zinc-600 font-['Inter'] text-xs tracking-wide uppercase hover:text-zinc-400 transition-colors opacity-80 hover:opacity-100" href="#">Enterprise</a>
+</div>
+<div class="text-zinc-600 font-['Inter'] text-xs tracking-wide uppercase opacity-80">
+            Built by ducduy2612
+        </div>
+</footer>
+</body></html>

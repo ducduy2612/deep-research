@@ -1,8 +1,8 @@
 <div align="center">
 <h1>Deep Research</h1>
 
-![GitHub deployments](https://img.shields.io/github/deployments/u14app/gemini-next-chat/Production)
-![GitHub Release](https://img.shields.io/github/v/release/u14app/deep-research)
+![GitHub deployments](https://img.shields.io/github/deployments/ducduy2612/gemini-next-chat/Production)
+![GitHub Release](https://img.shields.io/github/v/release/ducduy2612/deep-research)
 ![Docker Image Size](https://img.shields.io/docker/image-size/xiangfa/deep-research/latest)
 ![Docker Pulls](https://img.shields.io/docker/pulls/xiangfa/deep-research)
 [![License: MIT](https://img.shields.io/badge/License-MIT-default.svg)](https://opensource.org/licenses/MIT)
@@ -12,11 +12,11 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![shadcn/ui](https://img.shields.io/badge/shadcn/ui-111111?style=flat&logo=shadcnui&logoColor=white)](https://ui.shadcn.com/)
 
-[![Vercel](https://img.shields.io/badge/Vercel-111111?style=flat&logo=vercel&logoColor=white)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fu14app%2Fdeep-research&project-name=deep-research&repository-name=deep-research)
+[![Vercel](https://img.shields.io/badge/Vercel-111111?style=flat&logo=vercel&logoColor=white)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fducduy2612%2Fdeep-research&project-name=deep-research&repository-name=deep-research)
 [![Cloudflare](https://img.shields.io/badge/Cloudflare-F69652?style=flat&logo=cloudflare&logoColor=white)](./docs/How-to-deploy-to-Cloudflare-Pages.md)
 [![PWA](https://img.shields.io/badge/PWA-blue?style=flat&logo=pwa&logoColor=white)](https://research.u14.app/)
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/u14app/deep-research)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/ducduy2612/deep-research)
 
 </div>
 
@@ -61,7 +61,7 @@ Deep Research uses a variety of powerful AI models to generate in-depth research
 1. Get [Gemini API Key](https://aistudio.google.com/app/apikey)
 2. One-click deployment of the project, you can choose to deploy to Vercel or Cloudflare
 
-   [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fu14app%2Fdeep-research&project-name=deep-research&repository-name=deep-research)
+   [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fducduy2612%2Fdeep-research&project-name=deep-research&repository-name=deep-research)
 
    Currently the project supports deployment to Cloudflare, but you need to follow [How to deploy to Cloudflare Pages](./docs/How-to-deploy-to-Cloudflare-Pages.md) to do it.
 
@@ -88,7 +88,7 @@ Follow these steps to get Deep Research up and running on your local browser.
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/u14app/deep-research.git
+   git clone https://github.com/ducduy2612/deep-research.git
    cd deep-research
    ```
 
@@ -127,7 +127,7 @@ Custom model lists use `,` to separate multiple models. If you want to disable a
 
 ### Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fu14app%2Fdeep-research&project-name=deep-research&repository-name=deep-research)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fducduy2612%2Fdeep-research&project-name=deep-research&repository-name=deep-research)
 
 ### Cloudflare
 
@@ -446,7 +446,7 @@ For major changes, please open an issue first to discuss your proposed changes.
 
 ## ✉️ Contact
 
-If you have any questions, suggestions, or feedback, please create a new [issue](https://github.com/u14app/deep-research/issues).
+If you have any questions, suggestions, or feedback, please create a new [issue](https://github.com/ducduy2612/deep-research/issues).
 
 ## 📝 License
 

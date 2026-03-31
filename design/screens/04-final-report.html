@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Deep Research - Healthcare AI Analysis</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@700;800&amp;family=Manrope:wght@400;500;600&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface": "#131315",
+                        "on-tertiary-container": "#847c7b",
+                        "on-tertiary": "#342f2e",
+                        "on-secondary": "#19129a",
+                        "secondary-fixed": "#e1e0ff",
+                        "on-secondary-fixed-variant": "#3333b0",
+                        "surface-bright": "#39393b",
+                        "surface-container": "#1f1f21",
+                        "error": "#ffb4ab",
+                        "secondary-fixed-dim": "#c1c1ff",
+                        "on-background": "#e5e1e4",
+                        "inverse-on-surface": "#303032",
+                        "surface-container-low": "#1b1b1d",
+                        "primary-container": "#0a0a40",
+                        "outline": "#919095",
+                        "inverse-surface": "#e5e1e4",
+                        "on-surface": "#e5e1e4",
+                        "on-primary-fixed": "#131449",
+                        "surface-container-highest": "#353437",
+                        "primary-fixed": "#e1e0ff",
+                        "surface-dim": "#131315",
+                        "error-container": "#93000a",
+                        "tertiary-fixed-dim": "#cec4c2",
+                        "secondary-container": "#3333b0",
+                        "on-error": "#690005",
+                        "tertiary-container": "#161211",
+                        "on-error-container": "#ffdad6",
+                        "inverse-primary": "#585990",
+                        "surface-container-lowest": "#0e0e10",
+                        "on-surface-variant": "#c8c6ca",
+                        "on-primary-fixed-variant": "#404176",
+                        "surface-tint": "#c0c1ff",
+                        "primary": "#c0c1ff",
+                        "on-secondary-container": "#acaeff",
+                        "tertiary": "#cec4c2",
+                        "tertiary-fixed": "#eae0de",
+                        "secondary": "#c1c1ff",
+                        "on-tertiary-fixed": "#1f1b1a",
+                        "background": "#131315",
+                        "on-primary": "#292b5e",
+                        "outline-variant": "#47464a",
+                        "on-primary-container": "#7779b2",
+                        "on-secondary-fixed": "#07006c",
+                        "on-tertiary-fixed-variant": "#4b4544",
+                        "surface-container-high": "#2a2a2c",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "surface-variant": "#353437"
+                    },
+                    fontFamily: {
+                        "headline": ["Epilogue"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"],
+                        "mono": ["JetBrains Mono"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #131315;
+            color: #e5e1e4;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="font-body selection:bg-primary selection:text-on-primary">
+<!-- Shared TopNavBar Execution -->
+<nav class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-zinc-950/80 backdrop-blur-xl flex justify-between items-center px-8 h-16 w-full tonal-shift bg-surface_container_low">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-[#c0c1ff] font-['Epilogue']">Deep Research</span>
+<div class="hidden md:block">
+<span class="text-sm font-headline tracking-[-0.04em] text-on-surface-variant uppercase opacity-60">Report View</span>
+</div>
+</div>
+<div class="absolute left-1/2 -translate-x-1/2 hidden lg:block">
+<h1 class="text-sm font-headline tracking-[-0.04em] font-bold text-on-surface">The Impact of AI on Modern Healthcare</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-white transition-all duration-300 px-2 py-1" data-icon="share">share</button>
+<button class="text-zinc-400 font-medium px-4 py-2 hover:text-white hover:bg-zinc-800/50 transition-all duration-300 text-sm">New Research</button>
+<button class="bg-primary text-on-primary font-bold px-6 py-2 rounded-lg text-sm hover:opacity-90 transition-all duration-200">Export</button>
+</div>
+</nav>
+<main class="pt-24 pb-32 px-6 flex justify-center gap-16 max-w-[1400px] mx-auto">
+<!-- Main Editorial Content -->
+<article class="max-w-[800px] w-full">
+<header class="mb-16">
+<h1 class="text-[3.5rem] font-headline font-bold leading-[1.1] tracking-[-0.04em] text-on-surface mb-8">
+                    Comprehensive Analysis: AI in Modern Healthcare
+                </h1>
+<div class="space-y-6 text-on-surface-variant leading-[1.8] text-lg">
+<p>
+                        The integration of Artificial Intelligence within the healthcare sector represents the most significant shift in medical practice since the advent of germ theory. This report synthesizes data from across global clinical trials and technological implementation phases to assess the current trajectory of machine-assisted diagnostics and drug discovery<sup class="text-primary font-bold ml-0.5 text-xs">1</sup>.
+                    </p>
+<p>
+                        As we navigate the 2024 landscape, we observe a transition from "experimental pilots" to "core infrastructure," where large language models and computer vision systems are no longer peripheral tools but essential components of the diagnostic pipeline<sup class="text-primary font-bold ml-0.5 text-xs">2</sup>.
+                    </p>
+</div>
+</header>
+<!-- Key Insight Callout -->
+<div class="relative mb-16 p-8 bg-surface-container-high/40 backdrop-blur-xl border-l-4 border-primary overflow-hidden">
+<div class="relative z-10">
+<span class="text-primary font-headline text-xs uppercase tracking-widest mb-2 block">Primary Finding</span>
+<p class="text-xl font-headline italic tracking-tight text-on-surface">
+                        "Clinical environments utilizing AI-augmented radiology reported a 34% reduction in misdiagnosis for early-stage pulmonary nodules compared to human-only review."
+                    </p>
+</div>
+<div class="absolute -right-12 -bottom-12 opacity-5 pointer-events-none">
+<span class="material-symbols-outlined text-[120px]" data-icon="clinical_notes">clinical_notes</span>
+</div>
+</div>
+<!-- Sections -->
+<section class="space-y-16">
+<div id="section-1">
+<h2 class="text-[1.75rem] font-headline font-bold tracking-[-0.04em] text-on-surface mb-6">1. Current State of Implementation</h2>
+<div class="space-y-6 text-on-surface-variant leading-[1.8] text-lg">
+<p>
+                            Infrastructure readiness varies significantly by region. In Tier 1 medical facilities, AI is predominantly utilized for administrative task automation and initial patient triaging. The data suggests that over 65% of hospitals in developed economies have integrated at least one AI-driven workflow into their daily operations<sup class="text-primary font-bold ml-0.5 text-xs">3</sup>.
+                        </p>
+<p>
+                            The primary hurdle remains data interoperability. Diverse EHR (Electronic Health Record) standards create silos that prevent the seamless training of cross-institutional models, leading to localized "expertise" that fails to generalize across different demographic populations.
+                        </p>
+</div>
+</div>
+<div id="section-2">
+<h2 class="text-[1.75rem] font-headline font-bold tracking-[-0.04em] text-on-surface mb-6">2. Diagnostic AI &amp; Precision Imaging</h2>
+<div class="space-y-6 text-on-surface-variant leading-[1.8] text-lg">
+<p>
+                            Computer vision has reached parity with specialists in specific dermatological and radiological domains. Recent studies indicate that convolutional neural networks (CNNs) trained on millions of labeled images are identifying subtle pathologies that escape even senior clinical oversight<sup class="text-primary font-bold ml-0.5 text-xs">4</sup>.
+                        </p>
+<!-- Table Section -->
+<div class="my-10 overflow-hidden">
+<div class="grid grid-cols-3 p-4 text-xs font-headline uppercase tracking-widest text-on-surface-variant opacity-60">
+<div>Diagnostic Category</div>
+<div>Human Accuracy</div>
+<div>AI-Augmented</div>
+</div>
+<div class="grid grid-cols-3 p-5 bg-surface-container-low">
+<div class="font-bold">Retinal Screening</div>
+<div class="text-on-surface-variant">88.4%</div>
+<div class="text-primary font-bold">96.1%</div>
+</div>
+<div class="grid grid-cols-3 p-5 bg-surface">
+<div class="font-bold">Skin Lesion ID</div>
+<div class="text-on-surface-variant">91.2%</div>
+<div class="text-primary font-bold">94.8%</div>
+</div>
+<div class="grid grid-cols-3 p-5 bg-surface-container-low">
+<div class="font-bold">Chest X-Ray</div>
+<div class="text-on-surface-variant">82.5%</div>
+<div class="text-primary font-bold">89.9%</div>
+</div>
+</div>
+</div>
+</div>
+<div id="section-3">
+<h2 class="text-[1.75rem] font-headline font-bold tracking-[-0.04em] text-on-surface mb-6">3. Treatment &amp; Drug Discovery</h2>
+<div class="space-y-6 text-on-surface-variant leading-[1.8] text-lg">
+<p>
+                            The timeline for bringing a new drug to market is being aggressively compressed by generative models. By simulating protein folding and molecular binding affinity in silico, researchers are skipping years of trial-and-error in the laboratory<sup class="text-primary font-bold ml-0.5 text-xs">5</sup>.
+                        </p>
+<p>
+                            Major pharmaceutical entities are now reporting that their "AI-first" candidate molecules are entering Phase I trials at twice the speed of historically derived compounds.
+                        </p>
+</div>
+</div>
+<div id="section-4">
+<h2 class="text-[1.75rem] font-headline font-bold tracking-[-0.04em] text-on-surface mb-6">4. Ethical Considerations</h2>
+<div class="space-y-6 text-on-surface-variant leading-[1.8] text-lg">
+<p>
+                            Algorithmic bias remains the most critical ethical vulnerability. If training datasets are predominantly Caucasian or reflect historical socio-economic biases, the resulting AI "recommendations" may exacerbate existing healthcare disparities rather than solving them<sup class="text-primary font-bold ml-0.5 text-xs">6</sup>.
+                        </p>
+</div>
+</div>
+<div id="section-5">
+<h2 class="text-[1.75rem] font-headline font-bold tracking-[-0.04em] text-on-surface mb-10">5. Future Outlook</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="p-8 bg-surface-container-low rounded-xl">
+<h4 class="font-headline font-bold text-on-surface mb-4">Short Term (1-3 yrs)</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Integration of multimodal AI for real-time surgical assistance and automated physician note-taking.</p>
+</div>
+<div class="p-8 bg-surface-container-low rounded-xl">
+<h4 class="font-headline font-bold text-on-surface mb-4">Long Term (5-10 yrs)</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Personalized "digital twin" simulations for prophylactic health modeling and aging mitigation.</p>
+</div>
+</div>
+</div>
+</section>
+</article>
+<!-- Right Sidebar -->
+<aside class="w-[320px] shrink-0 space-y-10 sticky top-24 h-fit hidden xl:block">
+<!-- Contents -->
+<section class="p-6 bg-surface-container-low rounded-xl">
+<h3 class="font-headline text-xs uppercase tracking-widest text-on-surface-variant mb-6">Contents</h3>
+<nav class="space-y-4">
+<a class="flex items-center gap-3 text-primary font-bold group" href="#section-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="text-sm">Current State</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-white transition-colors text-sm" href="#section-2">
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
+<span>Diagnostic AI</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-white transition-colors text-sm" href="#section-3">
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
+<span>Treatment &amp; Drugs</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-white transition-colors text-sm" href="#section-4">
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
+<span>Ethical Issues</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-white transition-colors text-sm" href="#section-5">
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant"></span>
+<span>Future Outlook</span>
+</a>
+</nav>
+</section>
+<!-- Knowledge Graph Mockup -->
+<section class="p-6 bg-surface-container-low rounded-xl">
+<h3 class="font-headline text-xs uppercase tracking-widest text-on-surface-variant mb-6">Knowledge Graph</h3>
+<div class="relative h-48 flex items-center justify-center">
+<!-- Central Node -->
+<div class="absolute z-20 bg-primary/20 border border-primary/40 px-3 py-1 rounded-full text-[10px] font-bold text-primary">Healthcare AI</div>
+<!-- Orbiting Nodes -->
+<div class="absolute top-4 left-10 z-10 bg-surface-container-highest px-2 py-1 rounded-lg text-[9px] text-on-surface-variant">Diagnostics</div>
+<div class="absolute bottom-6 right-8 z-10 bg-surface-container-highest px-2 py-1 rounded-lg text-[9px] text-on-surface-variant">Ethics</div>
+<div class="absolute top-12 right-4 z-10 bg-surface-container-highest px-2 py-1 rounded-lg text-[9px] text-on-surface-variant">Genomics</div>
+<div class="absolute bottom-4 left-6 z-10 bg-surface-container-highest px-2 py-1 rounded-lg text-[9px] text-on-surface-variant">Pharma</div>
+<!-- SVG Lines -->
+<svg class="absolute inset-0 w-full h-full opacity-20 pointer-events-none">
+<line stroke="currentColor" stroke-width="1" x1="50%" x2="20%" y1="50%" y2="20%"></line>
+<line stroke="currentColor" stroke-width="1" x1="50%" x2="80%" y1="50%" y2="80%"></line>
+<line stroke="currentColor" stroke-width="1" x1="50%" x2="85%" y1="50%" y2="30%"></line>
+<line stroke="currentColor" stroke-width="1" x1="50%" x2="25%" y1="50%" y2="75%"></line>
+</svg>
+</div>
+</section>
+<!-- Sources -->
+<section class="p-6 bg-surface-container-low rounded-xl">
+<h3 class="font-headline text-xs uppercase tracking-widest text-on-surface-variant mb-6">Sources</h3>
+<div class="space-y-4">
+<div class="space-y-1">
+<div class="flex justify-between items-center">
+<span class="text-[10px] text-primary font-bold">SOURCE 01</span>
+<div class="flex gap-0.5">
+<div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+</div>
+</div>
+<p class="text-xs font-bold leading-tight">Nature Medicine: Clinical AI Benchmarks 2024</p>
+<p class="text-[10px] text-on-surface-variant truncate">nature.com/articles/nm-ai-2024</p>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between items-center">
+<span class="text-[10px] text-primary font-bold">SOURCE 02</span>
+<div class="flex gap-0.5">
+<div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+</div>
+</div>
+<p class="text-xs font-bold leading-tight">WHO: AI Governance Framework</p>
+<p class="text-[10px] text-on-surface-variant truncate">who.int/publications/ai-health</p>
+</div>
+</div>
+</section>
+<!-- Metadata -->
+<section class="p-6 pt-0 border-t border-outline-variant/10">
+<div class="grid grid-cols-2 gap-4 mt-8 font-mono text-[10px] text-on-surface-variant uppercase tracking-wider">
+<div>
+<span class="block opacity-40">Date</span>
+<span class="text-on-surface">Oct 24, 2024</span>
+</div>
+<div>
+<span class="block opacity-40">Sources</span>
+<span class="text-on-surface">47 Verified</span>
+</div>
+<div>
+<span class="block opacity-40">Models</span>
+<span class="text-on-surface">C3.5 / G4</span>
+</div>
+<div>
+<span class="block opacity-40">Process Time</span>
+<span class="text-on-surface">12m 44s</span>
+</div>
+</div>
+</section>
+</aside>
+</main>
+<!-- Bottom Indicator -->
+<footer class="fixed bottom-0 left-0 w-full p-6 bg-surface/90 backdrop-blur-md z-40 border-t border-outline-variant/5">
+<div class="max-w-[800px] mx-auto xl:ml-[calc(50%-400px-160px)]">
+<div class="flex justify-between items-end mb-3">
+<div>
+<span class="text-xs font-headline uppercase tracking-widest text-primary font-bold">AI Confidence Score</span>
+<p class="text-[10px] text-on-surface-variant mt-1">Validated against 47 high-impact medical journals.</p>
+</div>
+<span class="text-3xl font-headline font-bold text-on-surface">94<span class="text-lg opacity-50">%</span></span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest overflow-hidden rounded-full">
+<div class="h-full bg-gradient-to-r from-secondary to-primary w-[94%]"></div>
+</div>
+</div>
+</footer>
+</body></html>

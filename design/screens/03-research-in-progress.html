@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-bright": "#39393b",
+            "tertiary-container": "#e0c470",
+            "secondary": "#c5c4df",
+            "surface-container-highest": "#353437",
+            "secondary-fixed-dim": "#c5c4df",
+            "on-surface-variant": "#c7c5d0",
+            "inverse-primary": "#585990",
+            "on-secondary-fixed-variant": "#45455b",
+            "surface": "#131315",
+            "on-primary-container": "#4b4d83",
+            "secondary-container": "#47475d",
+            "tertiary-fixed-dim": "#e0c470",
+            "inverse-on-surface": "#303032",
+            "surface-container-lowest": "#0e0e10",
+            "surface-tint": "#c0c1ff",
+            "secondary-fixed": "#e1e0fc",
+            "error-container": "#93000a",
+            "on-error": "#690005",
+            "on-background": "#e5e1e4",
+            "on-primary": "#292b5e",
+            "tertiary": "#fee089",
+            "surface-container-high": "#2a2a2c",
+            "inverse-surface": "#e5e1e4",
+            "on-secondary": "#2e2f44",
+            "primary": "#e1dfff",
+            "surface-dim": "#131315",
+            "on-tertiary": "#3c2f00",
+            "on-tertiary-container": "#645003",
+            "on-secondary-fixed": "#191a2e",
+            "on-tertiary-fixed-variant": "#574500",
+            "surface-variant": "#353437",
+            "surface-container": "#1f1f21",
+            "on-surface": "#e5e1e4",
+            "on-primary-fixed-variant": "#404176",
+            "surface-container-low": "#1b1b1d",
+            "on-error-container": "#ffdad6",
+            "on-primary-fixed": "#131449",
+            "tertiary-fixed": "#fee089",
+            "background": "#131315",
+            "on-secondary-container": "#b7b6d1",
+            "error": "#ffb4ab",
+            "outline": "#918f9a",
+            "primary-fixed-dim": "#c0c1ff",
+            "outline-variant": "#46464f",
+            "on-tertiary-fixed": "#231b00",
+            "primary-container": "#c0c1ff",
+            "primary-fixed": "#e1e0ff"
+          },
+          fontFamily: {
+            "headline": ["Space Grotesk"],
+            "body": ["Inter"],
+            "label": ["Space Grotesk"]
+          },
+          borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    body {
+      background-color: #131315;
+      color: #e5e1e4;
+      font-family: 'Inter', sans-serif;
+    }
+    /* Hide scrollbars for focused editorial feel */
+    ::-webkit-scrollbar { width: 0px; background: transparent; }
+  </style>
+</head>
+<body class="overflow-hidden flex flex-col h-screen">
+<!-- TopNavBar (Shared Component Execution) -->
+<header class="bg-[#1f1f21]/60 backdrop-blur-xl shadow-[0_48px_48px_0_rgba(229,225,228,0.06)] fixed top-0 z-50 flex justify-between items-center w-full px-6 py-3">
+<div class="flex items-center gap-8">
+<div class="text-xl font-bold text-[#e5e1e4] tracking-tight font-headline">Deep Research</div>
+<!-- Central Focus Indicator -->
+<div class="hidden lg:flex items-center gap-4 px-4 py-1.5 bg-surface-container-lowest rounded-full">
+<div class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-container opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary-container"></span>
+</div>
+<span class="text-xs font-label text-on-surface-variant max-w-[400px] truncate">The impact of artificial intelligence on modern healthcare systems</span>
+<span class="text-xs font-label text-primary-container tabular-nums">4:32</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<nav class="hidden md:flex gap-6 items-center">
+<a class="font-space-grotesk text-sm uppercase tracking-wider text-[#e5e1e4]/60 hover:bg-[#2a2a2c] hover:text-[#e5e1e4] transition-colors px-2 py-1" href="#">Settings</a>
+<a class="font-space-grotesk text-sm uppercase tracking-wider text-[#e5e1e4]/60 hover:bg-[#2a2a2c] hover:text-[#e5e1e4] transition-colors px-2 py-1" href="#">History</a>
+<a class="font-space-grotesk text-sm uppercase tracking-wider text-[#e5e1e4]/60 hover:bg-[#2a2a2c] hover:text-[#e5e1e4] transition-colors px-2 py-1" href="#">Knowledge Base</a>
+<a class="font-space-grotesk text-sm uppercase tracking-wider text-[#e5e1e4]/60 hover:bg-[#2a2a2c] hover:text-[#e5e1e4] transition-colors px-2 py-1" href="#">GitHub</a>
+</nav>
+<div class="flex gap-2 border-l border-outline-variant/20 pl-4">
+<span class="material-symbols-outlined text-[#e5e1e4]/60 cursor-pointer p-1.5 rounded hover:bg-surface-container-high transition-colors" data-icon="settings">settings</span>
+<span class="material-symbols-outlined text-[#e5e1e4]/60 cursor-pointer p-1.5 rounded hover:bg-surface-container-high transition-colors" data-icon="history">history</span>
+</div>
+</div>
+</header>
+<!-- Workflow Progress Bar (Sub-header) -->
+<div class="mt-14 w-full bg-surface-container-low px-8 py-4 flex items-center justify-center gap-12">
+<div class="flex items-center gap-3 opacity-60">
+<span class="material-symbols-outlined text-primary-container text-lg" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-xs font-label font-bold tracking-widest text-on-surface">TOPIC</span>
+</div>
+<div class="h-px w-8 bg-outline-variant/30"></div>
+<div class="flex items-center gap-3 opacity-60">
+<span class="material-symbols-outlined text-primary-container text-lg" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-xs font-label font-bold tracking-widest text-on-surface">QUESTIONS</span>
+</div>
+<div class="h-px w-8 bg-outline-variant/30"></div>
+<div class="flex items-center gap-3 opacity-60">
+<span class="material-symbols-outlined text-primary-container text-lg" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-xs font-label font-bold tracking-widest text-on-surface">PLAN</span>
+</div>
+<div class="h-px w-8 bg-outline-variant/30"></div>
+<div class="flex flex-col items-center gap-1 relative">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-container text-lg drop-shadow-[0_0_8px_rgba(192,193,255,0.4)]" data-icon="radio_button_checked">radio_button_checked</span>
+<span class="text-xs font-label font-bold tracking-widest text-primary-container">RESEARCH</span>
+</div>
+<div class="absolute -bottom-4 w-4 h-1 bg-primary-container rounded-full"></div>
+</div>
+<div class="h-px w-8 bg-outline-variant/30"></div>
+<div class="flex items-center gap-3 opacity-30">
+<span class="material-symbols-outlined text-on-surface text-lg" data-icon="circle">circle</span>
+<span class="text-xs font-label font-bold tracking-widest text-on-surface">REPORT</span>
+</div>
+</div>
+<main class="flex-1 flex overflow-hidden">
+<!-- SideNavBar / Left Sidebar (Shared Component Execution) -->
+<aside class="bg-[#1b1b1d] w-[280px] h-full flex flex-col py-6 px-4 gap-y-6 overflow-y-auto">
+<div class="px-2">
+<h3 class="font-headline font-bold text-xs uppercase tracking-[0.2em] text-on-surface-variant mb-4">Research Questions</h3>
+<div class="space-y-2">
+<!-- Question Card Completed -->
+<div class="p-3 bg-surface-container rounded-lg flex gap-3 group transition-all">
+<span class="material-symbols-outlined text-primary-container text-sm mt-0.5" data-icon="check" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check</span>
+<p class="text-xs leading-relaxed text-on-surface-variant">What are the primary hurdles to AI adoption in diagnostic radiology?</p>
+</div>
+<!-- Question Card Active -->
+<div class="p-3 bg-surface-container-high rounded-lg flex gap-3 ring-1 ring-primary-container/20">
+<span class="material-symbols-outlined text-primary-container text-sm mt-0.5 animate-pulse" data-icon="data_exploration">data_exploration</span>
+<p class="text-xs leading-relaxed text-on-surface font-medium">How does real-time AI processing affect clinical decision-making speed?</p>
+</div>
+<!-- Question Card Pending -->
+<div class="p-3 bg-surface-container/40 rounded-lg flex gap-3">
+<span class="material-symbols-outlined text-on-surface-variant/30 text-sm mt-0.5" data-icon="circle">circle</span>
+<p class="text-xs leading-relaxed text-on-surface-variant/60">Evaluating cost-benefit ratios of AI vs. traditional EHR systems.</p>
+</div>
+<div class="p-3 bg-surface-container/40 rounded-lg flex gap-3">
+<span class="material-symbols-outlined text-on-surface-variant/30 text-sm mt-0.5" data-icon="circle">circle</span>
+<p class="text-xs leading-relaxed text-on-surface-variant/60">Future projections: AI's role in predictive patient outcomes by 2030.</p>
+</div>
+</div>
+</div>
+<div class="px-2 mt-4">
+<h3 class="font-headline font-bold text-xs uppercase tracking-[0.2em] text-on-surface-variant mb-4">Search Sources</h3>
+<div class="space-y-4">
+<div class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-5 h-5 bg-surface-bright rounded flex-shrink-0 flex items-center justify-center text-[10px] font-bold">P</div>
+<div class="flex flex-col overflow-hidden">
+<span class="text-[11px] font-label text-on-surface truncate">pubmed.ncbi.nlm.nih.gov</span>
+<span class="text-[9px] font-mono text-on-surface-variant/50">/health/ai-radiology...</span>
+</div>
+</div>
+<span class="text-[10px] font-mono text-primary-container bg-primary-container/10 px-1 rounded">0.98</span>
+</div>
+<div class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-5 h-5 bg-surface-bright rounded flex-shrink-0 flex items-center justify-center text-[10px] font-bold">L</div>
+<div class="flex flex-col overflow-hidden">
+<span class="text-[11px] font-label text-on-surface truncate">thelancet.com</span>
+<span class="text-[9px] font-mono text-on-surface-variant/50">/journals/digital-health...</span>
+</div>
+</div>
+<span class="text-[10px] font-mono text-primary-container bg-primary-container/10 px-1 rounded">0.94</span>
+</div>
+<div class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-3 overflow-hidden">
+<div class="w-5 h-5 bg-surface-bright rounded flex-shrink-0 flex items-center justify-center text-[10px] font-bold">M</div>
+<div class="flex flex-col overflow-hidden">
+<span class="text-[11px] font-label text-on-surface truncate">nature.com</span>
+<span class="text-[9px] font-mono text-on-surface-variant/50">/articles/s41746-023...</span>
+</div>
+</div>
+<span class="text-[10px] font-mono text-primary-container bg-primary-container/10 px-1 rounded">0.89</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<section class="flex-1 bg-surface-container-lowest overflow-y-auto p-12 relative">
+<div class="max-w-5xl mx-auto">
+<div class="flex items-center gap-3 mb-10">
+<h2 class="text-2xl font-headline font-bold text-on-surface">Analyzing sources</h2>
+<div class="flex gap-1 items-end pb-1">
+<div class="w-1 h-1 bg-primary-container rounded-full animate-bounce"></div>
+<div class="w-1 h-1 bg-primary-container rounded-full animate-bounce [animation-delay:0.2s]"></div>
+<div class="w-1 h-1 bg-primary-container rounded-full animate-bounce [animation-delay:0.4s]"></div>
+</div>
+</div>
+<!-- Result Grid (Bento/Card Layout) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Result Card 1 -->
+<div class="bg-surface-container p-6 rounded-lg transition-all hover:bg-surface-container-high border-l-2 border-primary-container">
+<div class="flex justify-between items-start mb-4">
+<span class="font-mono text-[10px] text-primary-container uppercase tracking-tighter">NIH / NCBI</span>
+<span class="bg-surface-container-highest text-on-surface-variant text-[10px] px-2 py-0.5 rounded font-mono">0.98 MATCH</span>
+</div>
+<h4 class="font-headline font-bold text-sm text-on-surface mb-3 leading-snug">Deep learning for digital pathology: Progress and challenges</h4>
+<p class="text-xs text-on-surface-variant leading-relaxed mb-4 line-clamp-2">This systematic review analyzes the integration of AI models in clinical diagnostics, highlighting accuracy gains in oncological assessments...</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant" data-icon="link">link</span>
+<span class="text-[10px] font-mono text-on-surface-variant/40 truncate">ncbi.nlm.nih.gov/pmc/articles...</span>
+</div>
+</div>
+<!-- Result Card 2 -->
+<div class="bg-surface-container p-6 rounded-lg transition-all hover:bg-surface-container-high">
+<div class="flex justify-between items-start mb-4">
+<span class="font-mono text-[10px] text-on-surface-variant uppercase tracking-tighter">Nature Medicine</span>
+<span class="bg-surface-container-highest text-on-surface-variant text-[10px] px-2 py-0.5 rounded font-mono">0.91 MATCH</span>
+</div>
+<h4 class="font-headline font-bold text-sm text-on-surface mb-3 leading-snug">High-performance medicine: the convergence of AI and human expertise</h4>
+<p class="text-xs text-on-surface-variant leading-relaxed mb-4 line-clamp-2">Exploring the symbiotic relationship between clinician intuition and algorithmic precision in critical care environments...</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant" data-icon="link">link</span>
+<span class="text-[10px] font-mono text-on-surface-variant/40 truncate">nature.com/articles/nm-2023-45...</span>
+</div>
+</div>
+<!-- Result Card 3 -->
+<div class="bg-surface-container p-6 rounded-lg transition-all hover:bg-surface-container-high border-l-2 border-primary-container">
+<div class="flex justify-between items-start mb-4">
+<span class="font-mono text-[10px] text-primary-container uppercase tracking-tighter">MIT Technology Review</span>
+<span class="bg-surface-container-highest text-on-surface-variant text-[10px] px-2 py-0.5 rounded font-mono">0.89 MATCH</span>
+</div>
+<h4 class="font-headline font-bold text-sm text-on-surface mb-3 leading-snug">The AI Doctor: How Automation is Solving the Rural Health Crisis</h4>
+<p class="text-xs text-on-surface-variant leading-relaxed mb-4 line-clamp-2">Case studies on deployment of edge-AI diagnostics in regions with limited specialist access, demonstrating significant reduction in wait times...</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant" data-icon="link">link</span>
+<span class="text-[10px] font-mono text-on-surface-variant/40 truncate">technologyreview.com/2024/01/12...</span>
+</div>
+</div>
+<!-- Result Card 4 (Large Asymmetric) -->
+<div class="bg-surface-container p-8 rounded-lg transition-all hover:bg-surface-container-high col-span-1 md:col-span-2 flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-start mb-6">
+<span class="font-mono text-[10px] text-on-surface-variant uppercase tracking-tighter">Academic Paper Archive</span>
+<div class="flex gap-2">
+<span class="bg-primary-container/10 text-primary-container text-[10px] px-2 py-0.5 rounded font-bold font-label">CRITICAL RELEVANCE</span>
+<span class="bg-surface-container-highest text-on-surface-variant text-[10px] px-2 py-0.5 rounded font-mono">0.96 MATCH</span>
+</div>
+</div>
+<h4 class="text-xl font-headline font-bold text-on-surface mb-4 leading-tight">Quantifying Trust: A Meta-Analysis of AI Implementation in Surgical Workflows (2020-2024)</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed mb-6">By analyzing longitudinal data from over 50 teaching hospitals, this research identifies a direct correlation between model interpretability and the successful adoption of AI-guided robotic surgery systems. It suggests that 'black box' models are the primary barrier to surgeon buy-in.</p>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-primary-container" data-icon="description">description</span>
+<span class="text-xs font-label text-on-surface">PDF Summary Available</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant" data-icon="share">share</span>
+<span class="text-[10px] font-mono text-on-surface-variant/40">arxiv.org/abs/2401.0882</span>
+</div>
+</div>
+</div>
+<!-- Decorative Image/Atmosphere Card -->
+<div class="bg-surface-container rounded-lg overflow-hidden relative group">
+<img alt="Abstract data visualization" class="w-full h-full object-cover opacity-30 grayscale group-hover:grayscale-0 transition-all duration-700" data-alt="Deep blue and purple cosmic dust cloud with shimmering crystalline structures representing complex data neuron connections in a dark void" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNQetTCt5MFPYGnOS5rBoMLkX28fJbwjUVkwL5GOkszO6FE_XRq9PZeOm29W45UU93LOkaEEMCY-9PdShuUz9SIgBSTkt8md76cx2xGx2UOs6zlPZGF4p7AYke4VzkgBglyhQHttyvFvXqn536RmQA6q522IyjiZJ4t-vMcIi-OOJXbziNFcdRjzoq3tHKerj4Cccl9XlzrC1ZzI9yiuRvRROKVMWtevYIfWIoG5p3TBoV6oN62mMBwdCg4yiQNqWyzqcegrZohMBP"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6 right-6">
+<span class="text-[10px] font-headline font-bold tracking-widest text-primary-container block mb-2">SYSTEM VISUALIZATION</span>
+<p class="text-xs text-on-surface italic">Synthesizing 4,200+ data nodes...</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Indicator -->
+<div class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50">
+<div class="bg-[#353437]/70 backdrop-blur-2xl px-6 py-4 rounded-full flex items-center gap-4 shadow-[0_48px_48px_0_rgba(0,0,0,0.4)] ring-1 ring-white/5">
+<div class="flex gap-1.5">
+<span class="w-1.5 h-1.5 bg-primary-container rounded-full animate-pulse"></span>
+<span class="w-1.5 h-1.5 bg-primary-container rounded-full animate-pulse [animation-delay:0.2s]"></span>
+<span class="w-1.5 h-1.5 bg-primary-container rounded-full animate-pulse [animation-delay:0.4s]"></span>
+</div>
+<span class="text-sm font-label font-medium text-on-surface tracking-wide">AI is synthesizing the first draft...</span>
+<div class="h-4 w-px bg-on-surface-variant/20 mx-2"></div>
+<span class="text-[11px] font-mono text-on-surface-variant">82% Complete</span>
+</div>
+</div>
+</section>
+<!-- Right Sidebar / Activity Log -->
+<aside class="bg-surface-container w-[300px] h-full flex flex-col py-6 px-6 overflow-hidden">
+<h3 class="font-headline font-bold text-xs uppercase tracking-[0.2em] text-on-surface-variant mb-6">Activity Log</h3>
+<div class="space-y-6 overflow-y-auto pr-2">
+<div class="flex gap-4">
+<div class="flex flex-col items-center">
+<div class="w-2 h-2 rounded-full bg-primary-container"></div>
+<div class="w-px h-full bg-outline-variant/30 mt-2"></div>
+</div>
+<div class="pb-2">
+<span class="font-mono text-[9px] text-on-surface-variant/50 block mb-1">04:32:15</span>
+<p class="text-[11px] font-mono text-primary-container">Searching PubMed...</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex flex-col items-center">
+<div class="w-2 h-2 rounded-full bg-primary-container/40"></div>
+<div class="w-px h-full bg-outline-variant/30 mt-2"></div>
+</div>
+<div class="pb-2">
+<span class="font-mono text-[9px] text-on-surface-variant/50 block mb-1">04:31:55</span>
+<p class="text-[11px] font-mono text-on-surface-variant">Analyzing paper: AI in radiology</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex flex-col items-center">
+<div class="w-2 h-2 rounded-full bg-primary-container/40"></div>
+<div class="w-px h-full bg-outline-variant/30 mt-2"></div>
+</div>
+<div class="pb-2">
+<span class="font-mono text-[9px] text-on-surface-variant/50 block mb-1">04:31:20</span>
+<p class="text-[11px] font-mono text-on-surface-variant">Cross-referencing 3 sources...</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex flex-col items-center">
+<div class="w-2 h-2 rounded-full bg-surface-bright"></div>
+<div class="w-px h-full bg-outline-variant/30 mt-2"></div>
+</div>
+<div class="pb-2">
+<span class="font-mono text-[9px] text-on-surface-variant/50 block mb-1">04:30:45</span>
+<p class="text-[11px] font-mono text-on-surface-variant/40 italic">Query reformulated for precision</p>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex flex-col items-center">
+<div class="w-2 h-2 rounded-full bg-primary-container/40"></div>
+<div class="w-px h-full bg-outline-variant/30 mt-2"></div>
+</div>
+<div class="pb-2">
+<span class="font-mono text-[9px] text-on-surface-variant/50 block mb-1">04:29:10</span>
+<p class="text-[11px] font-mono text-on-surface-variant">Initial scan of 124 databases complete</p>
+</div>
+</div>
+</div>
+<!-- Sidebar Bottom Stat -->
+<div class="mt-auto pt-6 border-t border-outline-variant/10">
+<div class="bg-surface-container-low p-4 rounded">
+<div class="flex justify-between items-end mb-2">
+<span class="text-[10px] font-label text-on-surface-variant uppercase">Token Efficiency</span>
+<span class="text-xs font-mono text-primary-container">94%</span>
+</div>
+<div class="w-full h-1 bg-surface-bright rounded-full overflow-hidden">
+<div class="w-[94%] h-full bg-primary-container"></div>
+</div>
+</div>
+</div>
+</aside>
+</main>
+</body></html>
