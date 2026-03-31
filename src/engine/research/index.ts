@@ -50,3 +50,21 @@ export {
 
 // Orchestrator
 export { ResearchOrchestrator } from "./orchestrator";
+
+// Search module convenience re-exports
+export type {
+  SearchProviderId,
+  SearchProviderConfig,
+  SearchProviderCallOptions,
+  SearchProviderResult,
+} from "@/engine/search/types";
+
+export { createSearchProvider } from "@/engine/search/factory";
+export {
+  normalizeDomain,
+  parseDomainList,
+  matchDomain,
+  isUrlAllowed,
+  applyDomainFilters,
+} from "@/engine/search/domain-filter";
+export { filterCitationImages } from "@/engine/search/citation-images";

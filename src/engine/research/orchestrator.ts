@@ -370,7 +370,9 @@ export class ResearchOrchestrator {
       let sources: Source[];
 
       try {
-        const searchResult = await this.searchProvider.search(task.query);
+        const searchResult = await this.searchProvider.search(task.query, {
+          abortSignal: this.abortController?.signal,
+        });
         sources = searchResult.sources;
 
         const searchDuration = Date.now() - searchStart;
@@ -527,7 +529,9 @@ export class ResearchOrchestrator {
           let sources: Source[];
 
           try {
-            const searchResult = await this.searchProvider.search(task.query);
+            const searchResult = await this.searchProvider.search(task.query, {
+              abortSignal: this.abortController?.signal,
+            });
             sources = searchResult.sources;
             const searchDuration = Date.now() - searchStart;
             this.emit("step-complete", {
