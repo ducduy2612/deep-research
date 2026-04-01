@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T02",
+  "unitId": "M001/S07/T02",
+  "timestamp": 1774991745170,
+  "passed": true,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "pnpm vitest run src/stores/__tests__/knowledge-store.test.ts",
+      "exitCode": 0,
+      "durationMs": 462,
+      "verdict": "pass"
+    },
+    {
+      "command": "pnpm build",
+      "exitCode": 0,
+      "durationMs": 12405,
+      "verdict": "pass"
+    }
+  ]
+}

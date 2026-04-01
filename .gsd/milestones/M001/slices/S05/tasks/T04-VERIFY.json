@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T04",
+  "unitId": "M001/S05/T04",
+  "timestamp": 1774988221694,
+  "passed": true,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "pnpm build",
+      "exitCode": 0,
+      "durationMs": 10867,
+      "verdict": "pass"
+    }
+  ]
+}

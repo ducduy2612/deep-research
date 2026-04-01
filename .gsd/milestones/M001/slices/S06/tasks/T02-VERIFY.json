@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T02",
+  "unitId": "M001/S06/T02",
+  "timestamp": 1774989846929,
+  "passed": true,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "pnpm vitest run src/stores/__tests__/settings-store.test.ts",
+      "exitCode": 0,
+      "durationMs": 442,
+      "verdict": "pass"
+    },
+    {
+      "command": "pnpm build",
+      "exitCode": 0,
+      "durationMs": 10828,
+      "verdict": "pass"
+    },
+    {
+      "command": "wc -l src/components/settings/*.tsx",
+      "exitCode": 0,
+      "durationMs": 3,
+      "verdict": "pass"
+    }
+  ]
+}

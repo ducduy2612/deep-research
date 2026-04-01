@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T01",
+  "unitId": "M001/S02/T01",
+  "timestamp": 1774977359023,
+  "passed": true,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "pnpm vitest run src/engine/provider/__tests__/types.test.ts",
+      "exitCode": 0,
+      "durationMs": 598,
+      "verdict": "pass"
+    }
+  ]
+}

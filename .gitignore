@@ -44,8 +44,16 @@ next-env.d.ts
 public/sw*
 public/swe-worker*
 
-# ── GSD baseline (auto-generated) ──
-.gsd
+# ── GSD: commit planning artifacts, ignore runtime ──
+.gsd/*
+!.gsd/DECISIONS.md
+!.gsd/KNOWLEDGE.md
+!.gsd/PROJECT.md
+!.gsd/REQUIREMENTS.md
+!.gsd/STATE.md
+!.gsd/gsd.db
+!.gsd/milestones/
+!.gsd/milestones/**
 Thumbs.db
 *.swp
 *.swo
