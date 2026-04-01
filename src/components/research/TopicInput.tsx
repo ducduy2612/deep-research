@@ -12,8 +12,8 @@ import {
 import { cn } from "@/utils/style";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useResearchStore } from "@/stores/research-store";
-import { useResearch } from "@/hooks/use-research";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
+import type { StartOptions } from "@/hooks/use-research";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -21,13 +21,14 @@ import type { ReportStyle, ReportLength } from "@/engine/research/types";
 
 interface TopicInputProps {
   className?: string;
+  onStart: (options: StartOptions) => void;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function TopicInput({ className }: TopicInputProps) {
+export function TopicInput({ className, onStart }: TopicInputProps) {
   const t = useTranslations("TopicInput");
   const [topic, setTopic] = useState("");
   const isActive = useResearchStore((s) => s.state !== "idle" && s.state !== "completed" && s.state !== "failed" && s.state !== "aborted");
@@ -35,8 +36,6 @@ export function TopicInput({ className }: TopicInputProps) {
   const reportStyle = useSettingsStore((s) => s.reportStyle);
   const reportLength = useSettingsStore((s) => s.reportLength);
   const language = useSettingsStore((s) => s.language);
-
-  const { start } = useResearch();
 
   const FRAMEWORKS = [
     { icon: Map, label: t("marketMap"), topic: "Comprehensive market analysis of " },
@@ -47,13 +46,13 @@ export function TopicInput({ className }: TopicInputProps) {
   const handleStart = useCallback(() => {
     const trimmed = topic.trim();
     if (!trimmed) return;
-    start({
+    onStart({
       topic: trimmed,
       reportStyle: reportStyle as ReportStyle,
       reportLength: reportLength as ReportLength,
       language,
     });
-  }, [topic, reportStyle, reportLength, language, start]);
+  }, [topic, reportStyle, reportLength, language, onStart]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

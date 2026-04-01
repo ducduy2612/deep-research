@@ -128,14 +128,14 @@ export function DataComponentsDemo() {
           <CardTitle className="text-obsidian-on-surface">Resizable Panels</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResizablePanelGroup orientation="horizontal" className="min-h-[120px] rounded-md">
-            <ResizablePanel defaultSize={50}>
+          <ResizablePanelGroup orientation="horizontal" className="min-h-[120px] rounded-md" defaultLayout={{ a: 50, b: 50 }}>
+            <ResizablePanel id="a">
               <div className="flex h-full items-center justify-center p-4 bg-obsidian-surface-deck rounded-l-md">
                 <span className="text-sm text-obsidian-on-surface-var">Panel A</span>
               </div>
             </ResizablePanel>
             <ResizableHandle />
-            <ResizablePanel defaultSize={50}>
+            <ResizablePanel id="b">
               <div className="flex h-full items-center justify-center p-4 bg-obsidian-surface-deck rounded-r-md">
                 <span className="text-sm text-obsidian-on-surface-var">Panel B</span>
               </div>

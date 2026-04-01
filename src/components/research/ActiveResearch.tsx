@@ -30,16 +30,20 @@ export function ActiveResearch({ className }: ActiveResearchProps) {
   return (
     <div className={cn("flex h-full flex-col overflow-hidden", className)}>
       <WorkflowProgress state={state} />
-      <ResizablePanelGroup orientation="horizontal" className="flex-1">
-        <ResizablePanel defaultSize={25} minSize={15} maxSize={35}>
+      <ResizablePanelGroup
+        orientation="horizontal"
+        className="flex-1"
+        defaultLayout={{ left: 22, center: 50, right: 28 }}
+      >
+        <ResizablePanel id="left" minSize="15%" maxSize="35%">
           <ActiveResearchLeft />
         </ResizablePanel>
         <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={45} minSize={30}>
+        <ResizablePanel id="center" minSize="30%">
           <ActiveResearchCenter />
         </ResizablePanel>
         <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={30} minSize={20} maxSize={40}>
+        <ResizablePanel id="right" minSize="18%" maxSize="40%">
           <ActiveResearchRight />
         </ResizablePanel>
       </ResizablePanelGroup>

@@ -22,7 +22,7 @@ export function ActiveResearchRight({ className }: ActiveResearchRightProps) {
   return (
     <aside
       className={cn(
-        "flex h-full w-[300px] flex-col overflow-hidden px-6 py-6",
+        "flex h-full flex-col overflow-hidden px-6 py-6",
         "bg-obsidian-surface-sheet",
         className,
       )}

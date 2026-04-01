@@ -59,7 +59,7 @@ export function ActiveResearchCenter({ className }: ActiveResearchCenterProps) {
   return (
     <section
       className={cn(
-        "flex-1 overflow-y-auto bg-obsidian-surface-well p-12",
+        "flex-1 overflow-y-auto bg-obsidian-surface-deck p-8",
         className,
       )}
     >

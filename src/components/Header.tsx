@@ -62,7 +62,13 @@ export function Header({ className }: HeaderProps) {
       <div className="flex items-center gap-8">
         <button
           type="button"
-          onClick={() => navigate("hub")}
+          onClick={() => {
+            if (isActive && activeView !== "hub") {
+              navigate("active");
+            } else {
+              navigate("hub");
+            }
+          }}
           className="flex items-center gap-2 text-lg font-bold tracking-tight text-obsidian-on-surface"
         >
           <span className="inline-block h-2 w-2 rounded-full bg-indigo-500" />
@@ -92,9 +98,9 @@ export function Header({ className }: HeaderProps) {
       <div className="flex items-center gap-1">
         <NavButton
           icon={<Sparkles className="h-[18px] w-[18px]" />}
-          label={t("hub")}
-          active={activeView === "hub"}
-          onClick={() => navigate("hub")}
+          label={isActive ? t("research") : t("hub")}
+          active={isActive ? activeView === "active" : activeView === "hub"}
+          onClick={() => navigate(isActive ? "active" : "hub")}
         />
         <NavButton
           icon={<BookOpen className="h-[18px] w-[18px]" />}

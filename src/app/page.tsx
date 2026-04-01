@@ -25,7 +25,7 @@ export default function Home() {
   const result = useResearchStore((s) => s.result);
   const state = useResearchStore((s) => s.state);
 
-  const { connectionError } = useResearch();
+  const { connectionError, start } = useResearch();
 
   // Show error toast when connection errors occur
   useEffect(() => {
@@ -55,7 +55,7 @@ export default function Home() {
       {/* Main content area */}
       <main className="flex flex-1 flex-col">
         {activeView === "hub" && (
-          <HubView />
+          <HubView onStart={start} />
         )}
 
         {activeView === "active" && (
@@ -79,10 +79,10 @@ export default function Home() {
 // Hub view — Topic input + report configuration
 // ---------------------------------------------------------------------------
 
-function HubView() {
+function HubView({ onStart }: { onStart: (options: import("@/hooks/use-research").StartOptions) => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-12">
-      <TopicInput />
+      <TopicInput onStart={onStart} />
       <ReportConfig className="w-full max-w-2xl rounded-xl bg-[rgba(32,31,34,0.6)] p-6 backdrop-blur-[20px]" />
     </div>
   );
