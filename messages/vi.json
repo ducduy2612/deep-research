@@ -231,6 +231,35 @@
     "urlRequired": "Vui lòng nhập URL",
     "invalidFormat": "Vui lòng nhập URL HTTP hoặc HTTPS hợp lệ"
   },
+  "ClarifyPanel": {
+    "title": "Câu hỏi làm rõ",
+    "subtitle": "Xem xét và chỉnh sửa các câu hỏi được tạo, sau đó cung cấp phản hồi của bạn.",
+    "questionsLabel": "CÂU HỎI",
+    "feedbackLabel": "PHẢN HỒI CỦA BẠN",
+    "feedbackPlaceholder": "Thêm bất kỳ ngữ cảnh, yêu cầu hoặc hướng dẫn bổ sung nào cho nghiên cứu...",
+    "submitPlan": "Lên kế hoạch báo cáo",
+    "loading": "Đang tạo câu hỏi...",
+    "editHint": "Nhấp để chỉnh sửa câu hỏi"
+  },
+  "PlanPanel": {
+    "title": "Kế hoạch nghiên cứu",
+    "subtitle": "Xem xét kế hoạch đã tạo. Bạn có thể chỉnh sửa trước khi tiếp tục.",
+    "planLabel": "KẾ HOẠCH",
+    "startResearch": "Bắt đầu nghiên cứu",
+    "rewritePlan": "Viết lại kế hoạch",
+    "loading": "Đang tạo kế hoạch...",
+    "editHint": "Nhấp để chỉnh sửa kế hoạch"
+  },
+  "ResearchActions": {
+    "title": "Kết quả nghiên cứu",
+    "learnings": "{count} phát hiện",
+    "sources": "{count} nguồn",
+    "suggestionLabel": "ĐỀ XUẤT",
+    "suggestionPlaceholder": "Đề xuất hướng nghiên cứu bổ sung hoặc phân tích sâu hơn...",
+    "continueResearch": "Tiếp tục nghiên cứu",
+    "generateReport": "Tạo báo cáo",
+    "loading": "Đang nghiên cứu..."
+  },
   "Workflow": {
     "steps": {
       "topic": "CHỦ ĐỀ",

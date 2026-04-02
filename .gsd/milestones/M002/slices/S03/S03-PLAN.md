@@ -30,7 +30,7 @@
   - Estimate: 2 hours
   - Files: src/hooks/use-research.ts, src/hooks/__tests__/use-research.test.ts
   - Verify: pnpm vitest run src/hooks/__tests__/use-research.test.ts
-- [ ] **T09: Create ClarifyPanel, PlanPanel, ResearchActions components** — Create three new UI components for the checkpoint panels:
+- [x] **T09: Created ClarifyPanel, PlanPanel, and ResearchActions checkpoint UI components with streaming display, editable markdown toggle, and phase-specific action buttons** — Create three new UI components for the checkpoint panels:
 
 1. **ClarifyPanel** (src/components/research/ClarifyPanel.tsx):
    - Shows streamed questions from store (step text for clarify step)

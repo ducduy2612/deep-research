@@ -231,6 +231,35 @@
     "urlRequired": "Please enter a URL",
     "invalidFormat": "Please enter a valid HTTP or HTTPS URL"
   },
+  "ClarifyPanel": {
+    "title": "Clarification Questions",
+    "subtitle": "Review and edit the generated questions, then provide your feedback.",
+    "questionsLabel": "QUESTIONS",
+    "feedbackLabel": "YOUR FEEDBACK",
+    "feedbackPlaceholder": "Add any additional context, requirements, or direction for the research...",
+    "submitPlan": "Write Report Plan",
+    "loading": "Generating questions...",
+    "editHint": "Click to edit questions"
+  },
+  "PlanPanel": {
+    "title": "Research Plan",
+    "subtitle": "Review the generated plan. You can edit it before proceeding.",
+    "planLabel": "PLAN",
+    "startResearch": "Start Research",
+    "rewritePlan": "Rewrite Plan",
+    "loading": "Generating plan...",
+    "editHint": "Click to edit plan"
+  },
+  "ResearchActions": {
+    "title": "Research Results",
+    "learnings": "{count} learnings",
+    "sources": "{count} sources",
+    "suggestionLabel": "SUGGESTION",
+    "suggestionPlaceholder": "Suggest additional research directions or deeper analysis...",
+    "continueResearch": "Continue Research",
+    "generateReport": "Generate Report",
+    "loading": "Researching..."
+  },
   "Workflow": {
     "steps": {
       "topic": "TOPIC",
