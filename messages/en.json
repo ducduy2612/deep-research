@@ -237,6 +237,7 @@
     "questionsLabel": "QUESTIONS",
     "feedbackLabel": "YOUR FEEDBACK",
     "feedbackPlaceholder": "Add any additional context, requirements, or direction for the research...",
+    "preview": "Preview",
     "submitPlan": "Write Report Plan",
     "loading": "Generating questions...",
     "editHint": "Click to edit questions"

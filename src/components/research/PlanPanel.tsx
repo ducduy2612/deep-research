@@ -102,7 +102,7 @@ export function PlanPanel({
               )}
             >
               <PenLine className="h-3 w-3" />
-              {isEditing ? "Preview" : t("editHint")}
+              {isEditing ? t("preview") : t("editHint")}
             </button>
           )}
         </div>

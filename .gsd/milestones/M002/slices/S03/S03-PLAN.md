@@ -81,7 +81,7 @@ The center panel switches content based on the current state.
   - Estimate: 2 hours
   - Files: src/components/research/ActiveResearch.tsx, src/components/research/ActiveResearchCenter.tsx, src/components/research/TopicInput.tsx, src/components/research/WorkflowProgress.tsx
   - Verify: pnpm lint && pnpm build
-- [ ] **T11: Add i18n strings and final lint/typecheck** — Add/update i18n messages for all new UI strings:
+- [x] **T11: Added preview i18n key to en/vi message files and replaced hardcoded "Preview" strings in ClarifyPanel and PlanPanel** — Add/update i18n messages for all new UI strings:
 
 - ClarifyPanel labels, buttons, placeholders
 - PlanPanel labels, buttons
