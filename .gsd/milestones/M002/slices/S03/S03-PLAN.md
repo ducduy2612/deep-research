@@ -4,7 +4,7 @@
 **Demo:** After this: After this: user can enter topic → see streamed questions → edit and submit → see streamed plan → approve → see search results → add suggestion → generate final report
 
 ## Tasks
-- [ ] **T08: Update useResearch hook for multi-phase flow** — Update useResearch hook to support multi-phase SSE flow:
+- [x] **T08: Added phase-specific SSE actions (clarify, submitFeedbackAndPlan, approvePlanAndResearch, requestMoreResearch, generateReport) to useResearch hook with backward-compatible start()** — Update useResearch hook to support multi-phase SSE flow:
 
 1. Replace single `start()` with phase-specific actions:
    - `clarify(options)` — POST with phase=clarify, streams questions

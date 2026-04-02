@@ -1,11 +1,13 @@
 /**
  * useResearch — thin adapter between SSE streaming API and research store.
  *
- * Connects to POST /api/research/stream, parses SSE events, dispatches
- * them to useResearchStore, manages AbortController lifecycle, and tracks
- * elapsed time via setInterval.
+ * Supports multi-phase streaming via phase-specific actions:
+ * - clarify() → submitFeedbackAndPlan() → approvePlanAndResearch() → generateReport()
+ * - requestMoreResearch() for iterative deepening
+ * - start() for backward-compatible full pipeline
  *
- * Returns start/abort/reset plus reactive store selectors.
+ * Each phase opens its own SSE connection, streams events to the store,
+ * and stops the timer only on final completion or abort.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -19,6 +21,7 @@ import { useUIStore } from "@/stores/ui-store";
 import { useHistoryStore } from "@/stores/history-store";
 import { createAuthHeaders } from "@/lib/client-signature";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
+import type { Source, ImageSource } from "@/engine/research/types";
 
 /** Lazy import — keeps fuse.js out of the hot module path. */
 let _ks: typeof import("@/stores/knowledge-store").useKnowledgeStore | null = null;
@@ -27,7 +30,9 @@ async function getKS() {
   return _ks;
 }
 
+// ---------------------------------------------------------------------------
 // Types
+// ---------------------------------------------------------------------------
 
 export interface StartOptions {
   topic: string;
@@ -37,16 +42,27 @@ export interface StartOptions {
 }
 
 export interface UseResearchReturn {
+  // Phase-specific actions
+  clarify: (options: StartOptions) => void;
+  submitFeedbackAndPlan: () => void;
+  approvePlanAndResearch: () => void;
+  requestMoreResearch: () => void;
+  generateReport: () => void;
+  // Backward-compatible full pipeline
   start: (options: StartOptions) => void;
+  // Lifecycle
   abort: () => void;
   reset: () => void;
+  // Reactive state
   isConnected: boolean;
   elapsedMs: number | null;
   isActive: boolean;
   connectionError: string | null;
 }
 
+// ---------------------------------------------------------------------------
 // SSE parser — splits on double-newlines, extracts event/data pairs.
+// ---------------------------------------------------------------------------
 
 export function parseSSEChunk(
   chunk: string,
@@ -76,7 +92,9 @@ export function parseSSEChunk(
   }
 }
 
+// ---------------------------------------------------------------------------
 // SSE buffer — handles events split across chunks.
+// ---------------------------------------------------------------------------
 
 export function createSSEBuffer(
   onEvent: (eventType: string, data: unknown) => void,
@@ -111,7 +129,57 @@ export function createSSEBuffer(
   };
 }
 
+// ---------------------------------------------------------------------------
+// Shared base body builder
+// ---------------------------------------------------------------------------
+
+/** Fields common to every phase request (providers, search, etc.). */
+function buildBaseBody() {
+  const settings = useSettingsStore.getState();
+  const { searchProvider, includeDomains, excludeDomains, citationImages,
+    promptOverrides, autoReviewRounds, maxSearchQueries, localOnlyMode,
+    proxyMode, accessPassword, providers } = settings;
+
+  return {
+    promptOverrides: Object.keys(promptOverrides).length > 0 ? promptOverrides : undefined,
+    autoReviewRounds,
+    maxSearchQueries,
+    localOnly: localOnlyMode,
+    providers: !proxyMode
+      ? providers.filter((p) => p.enabled && p.apiKey).map((p) => ({
+          id: p.id, apiKey: p.apiKey, baseURL: p.baseURL,
+          thinkingModelId: p.thinkingModelId, networkingModelId: p.networkingModelId,
+        }))
+      : undefined,
+    search: {
+      provider: searchProvider ?? undefined,
+      includeDomains,
+      excludeDomains,
+      citationImages,
+    },
+    _auth: proxyMode ? createAuthHeaders(accessPassword) : {},
+  };
+}
+
+/** Load knowledge content for selected items (defensive: skip deleted). */
+async function loadKnowledgeContent(): Promise<
+  { title: string; content: string }[]
+> {
+  const { selectedKnowledgeIds } = useSettingsStore.getState();
+  if (selectedKnowledgeIds.length === 0) return [];
+  const knowledgeStore = await getKS();
+  const allItems = knowledgeStore.getState().items;
+  return selectedKnowledgeIds
+    .map((id) => {
+      const it = allItems.find((k) => k.id === id);
+      return it ? { title: it.title, content: it.content } : null;
+    })
+    .filter((x): x is { title: string; content: string } => x !== null);
+}
+
+// ---------------------------------------------------------------------------
 // Hook
+// ---------------------------------------------------------------------------
 
 export function useResearch(): UseResearchReturn {
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -124,7 +192,7 @@ export function useResearch(): UseResearchReturn {
   const isActive = useResearchStore(selectIsActive);
   const storeStartedAt = useResearchStore((s) => s.startedAt);
 
-  // Settings selectors
+  // Settings selectors (used in connectSSE closure for request body)
   const searchProvider = useSettingsStore((s) => s.searchProvider);
   const includeDomains = useSettingsStore((s) => s.includeDomains);
   const excludeDomains = useSettingsStore((s) => s.excludeDomains);
@@ -133,7 +201,6 @@ export function useResearch(): UseResearchReturn {
   const autoReviewRounds = useSettingsStore((s) => s.autoReviewRounds);
   const maxSearchQueries = useSettingsStore((s) => s.maxSearchQueries);
   const localOnlyMode = useSettingsStore((s) => s.localOnlyMode);
-  const selectedKnowledgeIds = useSettingsStore((s) => s.selectedKnowledgeIds);
   const proxyMode = useSettingsStore((s) => s.proxyMode);
   const accessPassword = useSettingsStore((s) => s.accessPassword);
   const providers = useSettingsStore((s) => s.providers);
@@ -141,81 +208,68 @@ export function useResearch(): UseResearchReturn {
   // UI navigation
   const navigate = useUIStore((s) => s.navigate);
 
-  // Timer
+  // -----------------------------------------------------------------------
+  // Timer management
+  // -----------------------------------------------------------------------
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }, []);
 
   const startTimer = useCallback(() => {
-    stopTimer();
+    // Only start if not already running
+    if (timerRef.current) return;
     setElapsedMs(0);
     timerRef.current = setInterval(() => {
       const startedAt = useResearchStore.getState().startedAt;
       if (startedAt) setElapsedMs(Date.now() - startedAt);
     }, 1000);
-  }, [stopTimer]);
+  }, []);
 
-  // Cleanup
-
-  const cleanup = useCallback(() => {
-    setIsConnected(false);
+  /** Stop timer and finalize elapsed from store timestamps. */
+  const finalizeTimer = useCallback(() => {
     stopTimer();
     const { startedAt, completedAt } = useResearchStore.getState();
     if (startedAt && completedAt) setElapsedMs(completedAt - startedAt);
   }, [stopTimer]);
 
-  // SSE connection
+  // -----------------------------------------------------------------------
+  // Cleanup
+  // -----------------------------------------------------------------------
+
+  const cleanup = useCallback(() => {
+    setIsConnected(false);
+    // Don't stop timer between phases — only finalize on terminal states
+  }, []);
+
+  // -----------------------------------------------------------------------
+  // SSE connection — generic phase-aware connector
+  // -----------------------------------------------------------------------
 
   const connectSSE = useCallback(
-    async (options: StartOptions) => {
-      // Create abort controller
+    async (body: Record<string, unknown>, isReportPhase: boolean = false) => {
+      // Abort any existing connection
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
-      // Build request body — merge settings with per-run options
-      // Load knowledge content for selected items (defensive: skip deleted)
-      const knowledgeStore = await getKS();
-      const allItems = knowledgeStore.getState().items;
-      const knowledgeContent = selectedKnowledgeIds
-        .map((id) => { const it = allItems.find((k) => k.id === id); return it ? { title: it.title, content: it.content } : null; })
-        .filter((x): x is { title: string; content: string } => x !== null);
-
-      const body = {
-        topic: options.topic,
-        language: options.language,
-        reportStyle: options.reportStyle,
-        reportLength: options.reportLength,
-        promptOverrides: Object.keys(promptOverrides).length > 0 ? promptOverrides : undefined,
-        autoReviewRounds,
-        maxSearchQueries,
-        localOnly: localOnlyMode,
-        knowledgeContent,
-        // Local mode: send client-side provider keys for the server to use.
-        // Proxy mode: omit — server uses its own env vars.
-        providers: !proxyMode
-          ? providers.filter((p) => p.enabled && p.apiKey).map((p) => ({ id: p.id, apiKey: p.apiKey, baseURL: p.baseURL, thinkingModelId: p.thinkingModelId, networkingModelId: p.networkingModelId }))
-          : undefined,
-        search: {
-          provider: searchProvider ?? undefined,
-          includeDomains,
-          excludeDomains,
-          citationImages,
-        },
-      };
-
-      console.info("[useResearch] SSE connection opening", { topic: options.topic });
+      console.info("[useResearch] SSE connection opening", { phase: body.phase });
 
       try {
+        const { _auth, ...restBody } = body as Record<string, unknown> & { _auth: Record<string, string> };
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
-          ...(proxyMode ? createAuthHeaders(accessPassword) : {}),
+          ..._auth,
         };
 
         const response = await fetch("/api/research/stream", {
           method: "POST",
           headers,
-          body: JSON.stringify(body),
+          body: JSON.stringify(restBody),
           signal: controller.signal,
         });
 
@@ -244,14 +298,20 @@ export function useResearch(): UseResearchReturn {
         startTimer();
 
         const sseBuffer = createSSEBuffer((eventType, data) => {
-          console.info("[useResearch] SSE event received", { type: eventType, step: (data as Record<string, unknown>).step ?? "n/a" });
+          console.info("[useResearch] SSE event received", {
+            type: eventType,
+            step: (data as Record<string, unknown>).step ?? "n/a",
+          });
           useResearchStore.getState().handleEvent(eventType, data);
 
-          // Auto-stop on terminal events
-          if (eventType === "done" || eventType === "error") cleanup();
+          // On terminal events: finalize timer + cleanup connection
+          if (eventType === "done" || eventType === "error") {
+            cleanup();
+            finalizeTimer();
+          }
 
-          // Auto-save completed research to history
-          if (eventType === "done") {
+          // Auto-save completed research to history on report phase done
+          if (eventType === "done" && isReportPhase) {
             try {
               const rs = useResearchStore.getState();
               if (rs.result) {
@@ -266,8 +326,8 @@ export function useResearch(): UseResearchReturn {
                   learnings: rs.result.learnings,
                   sources: rs.result.sources,
                   images: rs.result.images,
-                  reportStyle: options.reportStyle ?? "balanced",
-                  reportLength: options.reportLength ?? "standard",
+                  reportStyle: restBody.reportStyle as ReportStyle ?? "balanced",
+                  reportLength: restBody.reportLength as ReportLength ?? "standard",
                 });
                 console.info("[useResearch] Auto-saved session to history");
               }
@@ -295,6 +355,7 @@ export function useResearch(): UseResearchReturn {
         if (err instanceof DOMException && err.name === "AbortError") {
           console.info("[useResearch] SSE connection aborted");
           useResearchStore.getState().abort();
+          finalizeTimer();
           cleanup();
           return;
         }
@@ -307,21 +368,134 @@ export function useResearch(): UseResearchReturn {
           code: "NETWORK_ERROR",
           message,
         });
+        finalizeTimer();
         cleanup();
       }
     },
-    [searchProvider, includeDomains, excludeDomains, citationImages, promptOverrides, autoReviewRounds, maxSearchQueries, localOnlyMode, selectedKnowledgeIds, proxyMode, accessPassword, providers, startTimer, cleanup],
+    // Dependencies: settings selectors that go into request bodies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      searchProvider, includeDomains, excludeDomains, citationImages,
+      promptOverrides, autoReviewRounds, maxSearchQueries, localOnlyMode,
+      proxyMode, accessPassword, providers,
+      startTimer, finalizeTimer, cleanup,
+    ],
   );
 
-  // Public actions
+  // -----------------------------------------------------------------------
+  // Phase-specific actions
+  // -----------------------------------------------------------------------
+
+  /** Phase 1: Clarify — generate clarification questions for the topic. */
+  const clarify = useCallback(
+    async (options: StartOptions) => {
+      // Reset store for new research session
+      useResearchStore.getState().reset();
+      useResearchStore.getState().setTopic(options.topic);
+
+      // Navigate to active research view
+      navigate("active");
+
+      const knowledgeContent = await loadKnowledgeContent();
+      const base = buildBaseBody();
+
+      await connectSSE({
+        phase: "clarify",
+        topic: options.topic,
+        language: options.language,
+        reportStyle: options.reportStyle,
+        reportLength: options.reportLength,
+        knowledgeContent,
+        promptOverrides: base.promptOverrides,
+        autoReviewRounds: base.autoReviewRounds,
+        maxSearchQueries: base.maxSearchQueries,
+        localOnly: base.localOnly,
+        providers: base.providers,
+        search: base.search,
+        _auth: base._auth,
+      });
+    },
+    [navigate, connectSSE],
+  );
+
+  /** Phase 2: Plan — submit Q&A feedback and generate research plan. */
+  const submitFeedbackAndPlan = useCallback(
+    async () => {
+      const { topic, questions, feedback } = useResearchStore.getState();
+
+      await connectSSE({
+        phase: "plan",
+        topic,
+        questions,
+        feedback,
+        ...buildBaseBody(),
+      });
+    },
+    [connectSSE],
+  );
+
+  /** Phase 3a: Research — execute search+analyze from the approved plan. */
+  const approvePlanAndResearch = useCallback(
+    async () => {
+      const { plan } = useResearchStore.getState();
+
+      await connectSSE({
+        phase: "research",
+        plan,
+        ...buildBaseBody(),
+      });
+    },
+    [connectSSE],
+  );
+
+  /** Phase 3b: More Research — iterative deepening with a suggestion. */
+  const requestMoreResearch = useCallback(
+    async () => {
+      const { plan, suggestion } = useResearchStore.getState();
+
+      await connectSSE({
+        phase: "research",
+        plan: suggestion
+          ? `${plan}\n\nAdditional direction from user:\n${suggestion}`
+          : plan,
+        ...buildBaseBody(),
+      });
+    },
+    [connectSSE],
+  );
+
+  /** Phase 4: Report — generate final report from learnings and sources. */
+  const generateReport = useCallback(
+    async () => {
+      const { plan, result } = useResearchStore.getState();
+      const learnings = result?.learnings ?? [];
+      const sources: Source[] = result?.sources ?? [];
+      const images: ImageSource[] = result?.images ?? [];
+
+      const base = buildBaseBody();
+
+      await connectSSE({
+        phase: "report",
+        plan,
+        learnings,
+        sources: sources.map((s) => ({ url: s.url, title: s.title })),
+        images: images.map((i) => ({ url: i.url, description: i.description })),
+        reportStyle: useSettingsStore.getState().reportStyle ?? undefined,
+        reportLength: useSettingsStore.getState().reportLength ?? undefined,
+        language: useSettingsStore.getState().language ?? undefined,
+        promptOverrides: base.promptOverrides,
+        _auth: base._auth,
+      }, true); // isReportPhase = true → auto-save on done
+    },
+    [connectSSE],
+  );
+
+  // -----------------------------------------------------------------------
+  // Backward-compatible full pipeline
+  // -----------------------------------------------------------------------
 
   const start = useCallback(
-    (options: StartOptions) => {
-      // Abort any existing run
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
+    async (options: StartOptions) => {
       // Reset store and start fresh
       useResearchStore.getState().reset();
       useResearchStore.getState().setTopic(options.topic);
@@ -329,11 +503,32 @@ export function useResearch(): UseResearchReturn {
       // Navigate to active research view
       navigate("active");
 
-      // Start SSE connection
-      connectSSE(options);
+      // Build full-pipeline body inline (no phase field → defaults to "full")
+      const base = buildBaseBody();
+      const knowledgeContent = await loadKnowledgeContent();
+
+      connectSSE({
+        topic: options.topic,
+        language: options.language,
+        reportStyle: options.reportStyle,
+        reportLength: options.reportLength,
+        knowledgeContent,
+        promptOverrides: base.promptOverrides,
+        autoReviewRounds: base.autoReviewRounds,
+        maxSearchQueries: base.maxSearchQueries,
+        localOnly: base.localOnly,
+        providers: base.providers,
+        search: base.search,
+        _auth: base._auth,
+        // Mark as report phase for auto-save since full pipeline produces a report
+      }, true);
     },
-    [connectSSE, navigate],
+    [navigate, connectSSE],
   );
+
+  // -----------------------------------------------------------------------
+  // Lifecycle actions
+  // -----------------------------------------------------------------------
 
   const abort = useCallback(() => {
     console.info("[useResearch] Abort triggered");
@@ -342,8 +537,9 @@ export function useResearch(): UseResearchReturn {
       abortControllerRef.current = null;
     }
     useResearchStore.getState().abort();
+    finalizeTimer();
     cleanup();
-  }, [cleanup]);
+  }, [finalizeTimer, cleanup]);
 
   const reset = useCallback(() => {
     if (abortControllerRef.current) {
@@ -351,11 +547,15 @@ export function useResearch(): UseResearchReturn {
       abortControllerRef.current = null;
     }
     useResearchStore.getState().reset();
-    cleanup();
+    stopTimer();
+    setElapsedMs(null);
+    setIsConnected(false);
     setConnectionError(null);
-  }, [cleanup]);
+  }, [stopTimer]);
 
+  // -----------------------------------------------------------------------
   // Cleanup on unmount
+  // -----------------------------------------------------------------------
 
   useEffect(() => {
     return () => {
@@ -371,7 +571,9 @@ export function useResearch(): UseResearchReturn {
     };
   }, []);
 
-  // Sync elapsed from store
+  // -----------------------------------------------------------------------
+  // Sync elapsed from store timestamps
+  // -----------------------------------------------------------------------
 
   const storeCompletedAt = useResearchStore((s) => s.completedAt);
 
@@ -382,9 +584,18 @@ export function useResearch(): UseResearchReturn {
   }, [storeStartedAt, storeCompletedAt]);
 
   return {
+    // Phase-specific
+    clarify,
+    submitFeedbackAndPlan,
+    approvePlanAndResearch,
+    requestMoreResearch,
+    generateReport,
+    // Full pipeline
     start,
+    // Lifecycle
     abort,
     reset,
+    // State
     isConnected,
     elapsedMs,
     isActive,

@@ -150,19 +150,27 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
   handleEvent: (eventType: string, data: unknown) => {
     switch (eventType) {
       case "start": {
-        const { topic } = data as { topic: string };
-        set({
-          topic,
-          state: "clarifying" as ResearchState,
-          startedAt: Date.now(),
-          completedAt: null,
-          steps: emptySteps(),
-          searchTasks: [],
-          searchResults: [],
-          result: null,
-          error: null,
-          activityLog: [makeActivity("info", `Starting research: ${topic}`)],
-        });
+        const d = data as { topic?: string; phase?: string };
+        // Full pipeline or initial clarify: full reset
+        if (!d.phase || d.phase === "full" || d.phase === "clarify") {
+          set({
+            topic: d.topic ?? "",
+            state: "clarifying" as ResearchState,
+            startedAt: Date.now(),
+            completedAt: null,
+            steps: emptySteps(),
+            searchTasks: [],
+            searchResults: [],
+            result: null,
+            error: null,
+            activityLog: [makeActivity("info", `Starting research: ${d.topic ?? ""}`)],
+          });
+        } else {
+          // Intermediate phase (plan/research/report): don't reset accumulated state
+          set((s) => ({
+            activityLog: [...s.activityLog, makeActivity("info", `Starting ${d.phase} phase`)],
+          }));
+        }
         break;
       }
       case "step-start": {
@@ -220,17 +228,32 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
       case "result": {
         const result = data as ResearchResult;
         set((s) => ({
+          state: "reporting" as ResearchState,
           result,
           activityLog: [...s.activityLog, makeActivity("success", `Report generated: ${result.title}`)],
         }));
         break;
       }
       case "done": {
-        set((s) => ({
-          state: s.state === "failed" ? "failed" : "completed" as ResearchState,
-          completedAt: Date.now(),
-          activityLog: [...s.activityLog, makeActivity("success", "Research complete")],
-        }));
+        set((s) => {
+          // Intermediate phases (clarify/plan/research) set awaiting_ states
+          // before done arrives — don't overwrite those.
+          const awaitingStates: ResearchState[] = [
+            "awaiting_feedback",
+            "awaiting_plan_review",
+            "awaiting_results_review",
+          ];
+          if (awaitingStates.includes(s.state)) {
+            return {
+              activityLog: [...s.activityLog, makeActivity("success", "Phase complete")],
+            };
+          }
+          return {
+            state: s.state === "failed" ? "failed" : "completed" as ResearchState,
+            completedAt: Date.now(),
+            activityLog: [...s.activityLog, makeActivity("success", "Research complete")],
+          };
+        });
         break;
       }
       case "error": {
