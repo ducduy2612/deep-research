@@ -129,13 +129,14 @@ The Obsidian Deep design system (in `/design/`) defines:
 - **Design**: Obsidian Deep design system direction — matching the vision, not pixel-perfect
 - **No Migration**: Fresh start — no need to carry data from old version
 
-## Current State (Post-M001)
+## Current State (Post-M001, M002 In Progress)
 
-Milestone M001 (v1.0 — Full Rewrite) is **complete**. The application is fully functional with:
+Milestone M001 (v1.0 — Full Rewrite) is **complete**. M002 (Interactive Multi-Phase Research) is in progress.
 
-- **125 source files, ~19K lines of code, 498 passing tests**
-- **9 slices delivered:** Foundation → Providers → Research Engine → Search → Core UI → Settings/History → Knowledge Base → CORS Proxy → PWA/i18n/Polish
-- **All 45 requirements validated** (44 fully, 1 partially — KB-06 AI rewriting deferred)
+- **125 source files, ~19K lines of code, 558 passing tests** (up from 498 after M002-S01)
+- **M001 delivered:** 9 slices — Foundation → Providers → Research Engine → Search → Core UI → Settings/History → Knowledge Base → CORS Proxy → PWA/i18n/Polish
+- **M002 S01 delivered:** Multi-phase orchestrator with 4 independent phase methods + SSE route supporting clarify/plan/research/report/full phases
+- **All 45 M001 requirements validated** (44 fully, 1 partially — KB-06 AI rewriting deferred)
 - **Production build passes cleanly** with 6 static routes, 5 dynamic API routes, and middleware
 
 The application is ready for user testing and deployment. See `.gsd/milestones/M001/M001-SUMMARY.md` for the full milestone record.
@@ -168,4 +169,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — M001 v1.0 rewrite complete: all 9 slices delivered (Foundation, Providers, Research Engine, Search, Core UI, Settings/History, Knowledge Base, CORS Proxy, PWA/i18n/Polish)*
+*Last updated: 2026-04-02 — M002 Interactive Research in progress: S01 (Engine + API: Multi-Phase Orchestrator & SSE Routes) complete. 558 tests passing.*

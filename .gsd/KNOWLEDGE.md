@@ -253,3 +253,22 @@ Lessons learned, patterns, and gotchas discovered during development.
 - Automated tests confirm tokens exist, but browser screenshots catch visual regressions (wrong surface levels, missing borders)
 - The /design showcase page was invaluable as a visual reference during development
 - Keep it in the codebase even though it's not a production route
+
+## M002 — Interactive Multi-Phase Research
+
+### S01 — Engine + API
+
+#### z.union over z.discriminatedUnion for multi-variant SSE request schemas
+- Zod v4's `z.discriminatedUnion()` requires a shared discriminator field but validates ALL variant schemas for non-matching values, which can cause unexpected field leakage
+- Use `z.union([schemaA, schemaB, ...]).or(schemaC)` instead — each variant validates independently and the fallback behavior is predictable
+- In the SSE route, this prevented phase-specific fields (like `questions`, `feedback`) from leaking through as valid `full`-phase requests
+
+#### Phase methods create their own AbortController
+- Each orchestrator phase method (`clarifyOnly`, `planWithContext`, `researchFromPlan`, `reportFromLearnings`) creates its own AbortController
+- This means phases execute independently — aborting one doesn't affect another
+- The `start()` convenience method still uses a single shared controller for backward compat
+
+#### SSE route shared helpers reduce phase handler duplication
+- Extract `resolveProviderConfigs`, `buildSearchProvider`, `createSSEStream`, `subscribeOrchestrator`, `cleanup` as shared helpers
+- Each phase handler is ~40 lines (down from duplicated 60+ line blocks)
+- The pattern: parse request → build config → create orchestrator → subscribe events → return stream

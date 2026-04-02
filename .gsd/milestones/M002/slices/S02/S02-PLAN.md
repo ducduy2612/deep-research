@@ -4,7 +4,7 @@
 **Demo:** After this: After this: research store correctly tracks idle→clarifying→awaiting_feedback→planning→awaiting_plan_review→researching→awaiting_results_review→reporting→completed
 
 ## Tasks
-- [ ] **T05: Add multi-phase states and fields to research store** — Extend ResearchState to include checkpoint pause states:
+- [x] **T05: Extended research store with multi-phase checkpoint fields, setters, and clarify-result/plan-result/research-result SSE handlers** — Extend ResearchState to include checkpoint pause states:
 
 ```typescript
 export type ResearchState =

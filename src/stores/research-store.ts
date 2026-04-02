@@ -69,6 +69,11 @@ export interface ResearchStoreState {
   readonly startedAt: number | null;
   readonly completedAt: number | null;
   readonly activityLog: readonly ActivityEntry[];
+  // Multi-phase checkpoint fields
+  readonly questions: string;
+  readonly feedback: string;
+  readonly plan: string;
+  readonly suggestion: string;
 }
 
 export interface ResearchStoreActions {
@@ -76,6 +81,11 @@ export interface ResearchStoreActions {
   handleEvent: (eventType: string, data: unknown) => void;
   reset: () => void;
   abort: () => void;
+  // Multi-phase checkpoint setters
+  setQuestions: (text: string) => void;
+  setFeedback: (text: string) => void;
+  setPlan: (text: string) => void;
+  setSuggestion: (text: string) => void;
 }
 
 export type ResearchStore = ResearchStoreState & ResearchStoreActions;
@@ -116,6 +126,11 @@ const INITIAL_STATE: ResearchStoreState = {
   startedAt: null,
   completedAt: null,
   activityLog: [],
+  // Multi-phase checkpoint fields
+  questions: "",
+  feedback: "",
+  plan: "",
+  suggestion: "",
 };
 
 // ---------------------------------------------------------------------------
@@ -126,6 +141,11 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
   ...INITIAL_STATE,
 
   setTopic: (topic: string) => set({ topic }),
+
+  setQuestions: (text: string) => set({ questions: text }),
+  setFeedback: (text: string) => set({ feedback: text }),
+  setPlan: (text: string) => set({ plan: text }),
+  setSuggestion: (text: string) => set({ suggestion: text }),
 
   handleEvent: (eventType: string, data: unknown) => {
     switch (eventType) {
@@ -220,6 +240,35 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
           error: { code: d.code, message: d.message },
           completedAt: Date.now(),
           activityLog: [...s.activityLog, makeActivity("error", `Error: ${d.message}`)],
+        }));
+        break;
+      }
+      case "clarify-result": {
+        const d = data as { questions: string };
+        set((s) => ({
+          questions: d.questions,
+          state: "awaiting_feedback" as ResearchState,
+          activityLog: [...s.activityLog, makeActivity("info", "Clarification questions received — awaiting feedback")],
+        }));
+        break;
+      }
+      case "plan-result": {
+        const d = data as { plan: string };
+        set((s) => ({
+          plan: d.plan,
+          state: "awaiting_plan_review" as ResearchState,
+          activityLog: [...s.activityLog, makeActivity("info", "Research plan generated — awaiting review")],
+        }));
+        break;
+      }
+      case "research-result": {
+        const d = data as { learnings: string[]; sources: Source[]; images: ImageSource[] };
+        set((s) => ({
+          state: "awaiting_results_review" as ResearchState,
+          result: s.result
+            ? s.result
+            : { title: "", report: "", learnings: d.learnings, sources: d.sources, images: d.images },
+          activityLog: [...s.activityLog, makeActivity("info", "Research phase complete — awaiting review")],
         }));
         break;
       }
