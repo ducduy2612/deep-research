@@ -44,7 +44,7 @@ Existing events still work for the full-pipeline flow.
   - Estimate: 1.5 hours
   - Files: src/stores/research-store.ts, src/engine/research/types.ts
   - Verify: pnpm vitest run src/stores/__tests__/research-store.test.ts
-- [ ] **T06: Write tests for multi-phase research store** — Write comprehensive tests for the multi-phase research store:
+- [x] **T06: Added 26 multi-phase research store tests covering state transitions, data persistence, abort/reset from checkpoint states, backward compatibility, and edge cases** — Write comprehensive tests for the multi-phase research store:
 
 1. State transition tests:
    - idle → clarifying → awaiting_feedback (via clarify-result event)

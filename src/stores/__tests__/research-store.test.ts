@@ -561,3 +561,489 @@ describe("useResearchStore — reset clears multi-phase fields", () => {
     expect(s.suggestion).toBe("");
   });
 });
+
+// ---------------------------------------------------------------------------
+// State transitions — explicit multi-phase paths
+// ---------------------------------------------------------------------------
+
+describe("useResearchStore — multi-phase state transitions", () => {
+  it("idle → clarifying → awaiting_feedback (via clarify-result)", () => {
+    expect(useResearchStore.getState().state).toBe("idle");
+
+    dispatch("start", { topic: "test" });
+    expect(useResearchStore.getState().state).toBe("clarifying");
+
+    dispatch("clarify-result", { questions: "Q1?" });
+    expect(useResearchStore.getState().state).toBe("awaiting_feedback");
+  });
+
+  it("awaiting_feedback → planning → awaiting_plan_review (via plan-result)", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("clarify-result", { questions: "Q1?" });
+    expect(useResearchStore.getState().state).toBe("awaiting_feedback");
+
+    // Server starts planning after user feedback
+    dispatch("step-start", { step: "plan", state: "planning" });
+    expect(useResearchStore.getState().state).toBe("planning");
+
+    dispatch("plan-result", { plan: "Plan A" });
+    expect(useResearchStore.getState().state).toBe("awaiting_plan_review");
+  });
+
+  it("awaiting_plan_review → searching → analyzing → reviewing → awaiting_results_review", () => {
+    // Reach awaiting_plan_review
+    dispatch("start", { topic: "test" });
+    dispatch("plan-result", { plan: "Plan A" });
+    expect(useResearchStore.getState().state).toBe("awaiting_plan_review");
+
+    // Server begins research
+    dispatch("step-start", { step: "search", state: "searching" });
+    expect(useResearchStore.getState().state).toBe("searching");
+
+    dispatch("step-start", { step: "analyze", state: "analyzing" });
+    expect(useResearchStore.getState().state).toBe("analyzing");
+
+    dispatch("step-start", { step: "review", state: "reviewing" });
+    expect(useResearchStore.getState().state).toBe("reviewing");
+
+    dispatch("research-result", { learnings: ["L1"], sources: [], images: [] });
+    expect(useResearchStore.getState().state).toBe("awaiting_results_review");
+  });
+
+  it("awaiting_results_review → reporting → completed", () => {
+    // Reach awaiting_results_review
+    dispatch("start", { topic: "test" });
+    dispatch("research-result", { learnings: [], sources: [], images: [] });
+    expect(useResearchStore.getState().state).toBe("awaiting_results_review");
+
+    // Server begins report
+    dispatch("step-start", { step: "report", state: "reporting" });
+    expect(useResearchStore.getState().state).toBe("reporting");
+
+    dispatch("result", {
+      title: "Report",
+      report: "Content",
+      learnings: [],
+      sources: [],
+      images: [],
+    });
+    dispatch("done", {});
+    expect(useResearchStore.getState().state).toBe("completed");
+    expect(useResearchStore.getState().completedAt).not.toBeNull();
+  });
+
+  it("events dispatched out of order do not corrupt state", () => {
+    // Sending clarify-result without start should still work — store doesn't enforce guards
+    dispatch("clarify-result", { questions: "Q?" });
+    expect(useResearchStore.getState().state).toBe("awaiting_feedback");
+    expect(useResearchStore.getState().questions).toBe("Q?");
+
+    // plan-result transitions from awaiting_feedback (not the usual path but valid)
+    dispatch("plan-result", { plan: "Plan" });
+    expect(useResearchStore.getState().state).toBe("awaiting_plan_review");
+    expect(useResearchStore.getState().plan).toBe("Plan");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Data persistence across phases
+// ---------------------------------------------------------------------------
+
+describe("useResearchStore — data persistence across phases", () => {
+  it("questions persist from clarify-result through all subsequent phases", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("clarify-result", { questions: "1. Scope?\n2. Depth?" });
+
+    // Progress through plan and research phases
+    dispatch("plan-result", { plan: "Plan" });
+    expect(useResearchStore.getState().questions).toBe("1. Scope?\n2. Depth?");
+
+    dispatch("research-result", { learnings: ["L1"], sources: [], images: [] });
+    expect(useResearchStore.getState().questions).toBe("1. Scope?\n2. Depth?");
+
+    dispatch("result", {
+      title: "Report",
+      report: "Content",
+      learnings: ["L1"],
+      sources: [],
+      images: [],
+    });
+    dispatch("done", {});
+    expect(useResearchStore.getState().questions).toBe("1. Scope?\n2. Depth?");
+  });
+
+  it("plan persists from plan-result through research and report phases", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("plan-result", { plan: "# Plan\n1. Step one" });
+
+    dispatch("research-result", { learnings: [], sources: [], images: [] });
+    expect(useResearchStore.getState().plan).toBe("# Plan\n1. Step one");
+
+    dispatch("result", {
+      title: "Report",
+      report: "Content",
+      learnings: [],
+      sources: [],
+      images: [],
+    });
+    dispatch("done", {});
+    expect(useResearchStore.getState().plan).toBe("# Plan\n1. Step one");
+  });
+
+  it("feedback and suggestion persist through state transitions", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("clarify-result", { questions: "Q?" });
+    useResearchStore.getState().setFeedback("Focus on X");
+
+    dispatch("plan-result", { plan: "Plan" });
+    expect(useResearchStore.getState().feedback).toBe("Focus on X");
+
+    useResearchStore.getState().setSuggestion("Add Y");
+    dispatch("research-result", { learnings: [], sources: [], images: [] });
+    expect(useResearchStore.getState().feedback).toBe("Focus on X");
+    expect(useResearchStore.getState().suggestion).toBe("Add Y");
+  });
+
+  it("user-edited plan overrides plan-result value", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("plan-result", { plan: "Original plan" });
+
+    // User edits the plan
+    useResearchStore.getState().setPlan("User-modified plan");
+    expect(useResearchStore.getState().plan).toBe("User-modified plan");
+
+    // Plan survives through research phase
+    dispatch("research-result", { learnings: [], sources: [], images: [] });
+    expect(useResearchStore.getState().plan).toBe("User-modified plan");
+  });
+
+  it("research-result preserves existing result title and report", () => {
+    dispatch("start", { topic: "test" });
+    // First, a result event sets the report
+    dispatch("result", {
+      title: "My Report",
+      report: "# Full report content",
+      learnings: ["L1"],
+      sources: [{ url: "https://a.com" }],
+      images: [],
+    });
+
+    // Then a research-result event (from a subsequent phase) should not overwrite
+    dispatch("research-result", {
+      learnings: ["L2", "L3"],
+      sources: [{ url: "https://b.com" }],
+      images: [],
+    });
+
+    const r = useResearchStore.getState().result;
+    expect(r!.title).toBe("My Report");
+    expect(r!.report).toBe("# Full report content");
+    // The existing result's learnings/sources are preserved, not merged
+    expect(r!.learnings).toEqual(["L1"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Abort from checkpoint states
+// ---------------------------------------------------------------------------
+
+describe("useResearchStore — abort from checkpoint states", () => {
+  it("abort from awaiting_feedback → aborted", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("clarify-result", { questions: "Q?" });
+    expect(useResearchStore.getState().state).toBe("awaiting_feedback");
+
+    useResearchStore.getState().abort();
+    const s = useResearchStore.getState();
+    expect(s.state).toBe("aborted");
+    expect(s.completedAt).not.toBeNull();
+    expect(s.activityLog.at(-1)!.message).toContain("aborted");
+  });
+
+  it("abort from awaiting_plan_review → aborted", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("plan-result", { plan: "Plan" });
+    expect(useResearchStore.getState().state).toBe("awaiting_plan_review");
+
+    useResearchStore.getState().abort();
+    const s = useResearchStore.getState();
+    expect(s.state).toBe("aborted");
+    expect(s.completedAt).not.toBeNull();
+  });
+
+  it("abort from awaiting_results_review → aborted", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("research-result", { learnings: [], sources: [], images: [] });
+    expect(useResearchStore.getState().state).toBe("awaiting_results_review");
+
+    useResearchStore.getState().abort();
+    const s = useResearchStore.getState();
+    expect(s.state).toBe("aborted");
+    expect(s.completedAt).not.toBeNull();
+  });
+
+  it("abort preserves checkpoint data (questions, plan, feedback)", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("clarify-result", { questions: "Q?" });
+    useResearchStore.getState().setFeedback("My feedback");
+    dispatch("plan-result", { plan: "Plan text" });
+    useResearchStore.getState().setSuggestion("Suggestion text");
+
+    useResearchStore.getState().abort();
+
+    const s = useResearchStore.getState();
+    expect(s.state).toBe("aborted");
+    // Checkpoint data is preserved after abort — useful for debugging/resuming
+    expect(s.questions).toBe("Q?");
+    expect(s.feedback).toBe("My feedback");
+    expect(s.plan).toBe("Plan text");
+    expect(s.suggestion).toBe("Suggestion text");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Reset from mid-lifecycle states
+// ---------------------------------------------------------------------------
+
+describe("useResearchStore — reset from mid-lifecycle", () => {
+  it("reset from awaiting_feedback clears all state", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("clarify-result", { questions: "Q?" });
+    useResearchStore.getState().setFeedback("FB");
+
+    useResearchStore.getState().reset();
+
+    const s = useResearchStore.getState();
+    expect(s.state).toBe("idle");
+    expect(s.topic).toBe("");
+    expect(s.questions).toBe("");
+    expect(s.feedback).toBe("");
+    expect(s.startedAt).toBeNull();
+    expect(s.activityLog).toEqual([]);
+  });
+
+  it("reset from awaiting_plan_review clears all state", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("plan-result", { plan: "Plan" });
+    useResearchStore.getState().setSuggestion("Sug");
+
+    useResearchStore.getState().reset();
+
+    const s = useResearchStore.getState();
+    expect(s.state).toBe("idle");
+    expect(s.plan).toBe("");
+    expect(s.suggestion).toBe("");
+    expect(s.steps.plan.text).toBe("");
+  });
+
+  it("reset from awaiting_results_review clears all state", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("research-result", { learnings: ["L1"], sources: [], images: [] });
+
+    useResearchStore.getState().reset();
+
+    const s = useResearchStore.getState();
+    expect(s.state).toBe("idle");
+    expect(s.result).toBeNull();
+    expect(s.steps.search.text).toBe("");
+  });
+
+  it("reset after abort restores clean idle state", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("clarify-result", { questions: "Q?" });
+    useResearchStore.getState().abort();
+    expect(useResearchStore.getState().state).toBe("aborted");
+
+    useResearchStore.getState().reset();
+
+    const s = useResearchStore.getState();
+    expect(s.state).toBe("idle");
+    expect(s.completedAt).toBeNull();
+    expect(s.questions).toBe("");
+    expect(s.activityLog).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Backward compatibility — old pipeline events still work
+// ---------------------------------------------------------------------------
+
+describe("useResearchStore — backward compatibility", () => {
+  it("old full pipeline (no checkpoint events) completes correctly", () => {
+    dispatch("start", { topic: "Legacy topic" });
+    expect(useResearchStore.getState().state).toBe("clarifying");
+
+    // Old pipeline: step-start drives state transitions
+    dispatch("step-start", { step: "plan", state: "planning" });
+    dispatch("step-delta", { step: "plan", text: "Planning text" });
+    dispatch("step-complete", { step: "plan", duration: 1000 });
+
+    dispatch("step-start", { step: "search", state: "searching" });
+    dispatch("step-delta", { step: "search", text: "Searching..." });
+    dispatch("step-complete", { step: "search", duration: 2000 });
+
+    dispatch("step-start", { step: "analyze", state: "analyzing" });
+    dispatch("step-delta", { step: "analyze", text: "Analyzing..." });
+    dispatch("step-complete", { step: "analyze", duration: 1500 });
+
+    dispatch("step-start", { step: "review", state: "reviewing" });
+    dispatch("step-delta", { step: "review", text: "Reviewing..." });
+    dispatch("step-complete", { step: "review", duration: 800 });
+
+    dispatch("step-start", { step: "report", state: "reporting" });
+    dispatch("step-delta", { step: "report", text: "# Final Report" });
+    dispatch("step-complete", { step: "report", duration: 3000 });
+
+    dispatch("result", {
+      title: "Legacy Report",
+      report: "# Legacy Report\n\nContent.",
+      learnings: ["L1", "L2"],
+      sources: [{ url: "https://example.com", title: "Example" }],
+      images: [],
+    });
+
+    dispatch("done", {});
+
+    const s = useResearchStore.getState();
+    expect(s.state).toBe("completed");
+    expect(s.result!.title).toBe("Legacy Report");
+    expect(s.steps.plan.text).toBe("Planning text");
+    expect(s.steps.search.text).toBe("Searching...");
+    expect(s.steps.analyze.text).toBe("Analyzing...");
+    expect(s.steps.review.text).toBe("Reviewing...");
+    expect(s.steps.report.text).toBe("# Final Report");
+    expect(s.completedAt).not.toBeNull();
+    // No checkpoint data was set in old pipeline
+    expect(s.questions).toBe("");
+    expect(s.plan).toBe("");
+    expect(s.feedback).toBe("");
+    expect(s.suggestion).toBe("");
+  });
+
+  it("mixed pipeline — old events + checkpoint events interleave", () => {
+    dispatch("start", { topic: "Mixed" });
+
+    // Clarify step via old-style step events
+    dispatch("step-start", { step: "clarify", state: "clarifying" });
+    dispatch("step-delta", { step: "clarify", text: "Thinking..." });
+    dispatch("step-complete", { step: "clarify", duration: 500 });
+
+    // Then checkpoint event
+    dispatch("clarify-result", { questions: "Q?" });
+    expect(useResearchStore.getState().state).toBe("awaiting_feedback");
+    expect(useResearchStore.getState().steps.clarify.text).toBe("Thinking...");
+
+    // User provides feedback
+    useResearchStore.getState().setFeedback("Focus on X");
+
+    // Old-style plan step
+    dispatch("step-start", { step: "plan", state: "planning" });
+    dispatch("step-delta", { step: "plan", text: "Plan text" });
+    dispatch("step-complete", { step: "plan", duration: 1000 });
+
+    // Checkpoint event
+    dispatch("plan-result", { plan: "Final plan" });
+    expect(useResearchStore.getState().state).toBe("awaiting_plan_review");
+    expect(useResearchStore.getState().steps.plan.text).toBe("Plan text");
+
+    const s = useResearchStore.getState();
+    expect(s.feedback).toBe("Focus on X");
+    expect(s.questions).toBe("Q?");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Edge cases
+// ---------------------------------------------------------------------------
+
+describe("useResearchStore — multi-phase edge cases", () => {
+  it("done event from failed state stays failed", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("error", { code: "FAIL", message: "Something broke" });
+    expect(useResearchStore.getState().state).toBe("failed");
+
+    dispatch("done", {});
+    expect(useResearchStore.getState().state).toBe("failed");
+  });
+
+  it("multiple clarify-result events update questions", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("clarify-result", { questions: "First questions" });
+    expect(useResearchStore.getState().questions).toBe("First questions");
+
+    dispatch("clarify-result", { questions: "Updated questions" });
+    expect(useResearchStore.getState().questions).toBe("Updated questions");
+    expect(useResearchStore.getState().state).toBe("awaiting_feedback");
+  });
+
+  it("multiple plan-result events update plan", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("plan-result", { plan: "Plan v1" });
+    expect(useResearchStore.getState().plan).toBe("Plan v1");
+
+    dispatch("plan-result", { plan: "Plan v2" });
+    expect(useResearchStore.getState().plan).toBe("Plan v2");
+    expect(useResearchStore.getState().state).toBe("awaiting_plan_review");
+  });
+
+  it("multiple research-result events preserve first result when set", () => {
+    dispatch("start", { topic: "test" });
+    dispatch("result", {
+      title: "Initial",
+      report: "Content",
+      learnings: ["L0"],
+      sources: [],
+      images: [],
+    });
+
+    dispatch("research-result", { learnings: ["L1"], sources: [], images: [] });
+    dispatch("research-result", { learnings: ["L2"], sources: [], images: [] });
+
+    // Original result preserved through multiple research-result events
+    const r = useResearchStore.getState().result;
+    expect(r!.title).toBe("Initial");
+    expect(r!.learnings).toEqual(["L0"]);
+    expect(useResearchStore.getState().state).toBe("awaiting_results_review");
+  });
+
+  it("consecutive research-result events without prior result create minimal results", () => {
+    dispatch("start", { topic: "test" });
+    // First research-result with no prior result creates a minimal one
+    dispatch("research-result", { learnings: ["L1"], sources: [], images: [] });
+    let r = useResearchStore.getState().result;
+    expect(r).not.toBeNull();
+    expect(r!.title).toBe("");
+    expect(r!.learnings).toEqual(["L1"]);
+
+    // Second research-result preserves the first minimal result
+    dispatch("research-result", { learnings: ["L2"], sources: [], images: [] });
+    r = useResearchStore.getState().result;
+    expect(r!.learnings).toEqual(["L1"]); // preserved from first
+  });
+
+  it("step streaming data persists across checkpoint transitions", () => {
+    dispatch("start", { topic: "test" });
+
+    // Clarify step streams text
+    dispatch("step-start", { step: "clarify", state: "clarifying" });
+    dispatch("step-delta", { step: "clarify", text: "Thinking..." });
+    dispatch("step-complete", { step: "clarify", duration: 500 });
+
+    // Checkpoint event
+    dispatch("clarify-result", { questions: "Q?" });
+
+    // Plan step streams text
+    dispatch("step-start", { step: "plan", state: "planning" });
+    dispatch("step-delta", { step: "plan", text: "Plan..." });
+    dispatch("step-complete", { step: "plan", duration: 800 });
+
+    // Checkpoint event
+    dispatch("plan-result", { plan: "Plan text" });
+
+    const s = useResearchStore.getState();
+    expect(s.steps.clarify.text).toBe("Thinking...");
+    expect(s.steps.clarify.progress).toBe(100);
+    expect(s.steps.plan.text).toBe("Plan...");
+    expect(s.steps.plan.progress).toBe(100);
+  });
+});
