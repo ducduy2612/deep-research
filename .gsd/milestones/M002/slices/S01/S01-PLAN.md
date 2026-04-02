@@ -87,7 +87,7 @@ Move shared code (buildClientProviderConfigs, buildSearchProvider, etc.) into he
   - Estimate: 1.5 hours
   - Files: src/engine/research/__tests__/orchestrator.test.ts, src/engine/research/__tests__/sse-route.test.ts, src/engine/research/__tests__/types.test.ts
   - Verify: pnpm vitest run src/engine/research/__tests__/
-- [ ] **T04: Verify all existing tests pass after refactor** — Run the full test suite to ensure the orchestrator refactor doesn't break downstream consumers:
+- [x] **T04: Verified full test suite (558 tests, 24 files) passes green after multi-phase orchestrator and SSE route refactor** — Run the full test suite to ensure the orchestrator refactor doesn't break downstream consumers:
 
 1. `pnpm vitest run` — full test suite
 2. Check that research store tests still pass (they consume SSE events)
