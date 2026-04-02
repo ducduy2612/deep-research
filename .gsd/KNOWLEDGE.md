@@ -9,9 +9,9 @@ Lessons learned, patterns, and gotchas discovered during development.
 - v4 uses `Group`, `Panel`, `Separator` with `orientation` prop instead of `direction`
 - Always check the installed package version after shadcn CLI scaffolding — generated code may lag behind the actual package API
 
-### 300-line ESLint rule forces component splits
-- The design showcase page originally exceeded 300 lines in a single component-demo file
-- Split into `components-demo.tsx` (interaction: Button, Card, Accordion, Dialog, Dropdown, Input, Textarea, Label) and `data-components-demo.tsx` (data: Select, Tabs, Slider, Separator, ScrollArea, Resizable, Tooltip, Popover)
+### 500-line ESLint max-lines rule encourages component splits
+- `eslint.config.mjs` sets `max-lines: ["error", { max: 500, skipBlankLines: true, skipComments: true }]`
+- The design showcase page originally exceeded 500 lines and was split into `components-demo.tsx` and `data-components-demo.tsx`
 - This is a pattern that will recur in settings and other complex UIs — plan component boundaries early
 
 ### Tailwind CSS variable strategy with Obsidian Deep
@@ -116,7 +116,7 @@ Lessons learned, patterns, and gotchas discovered during development.
 ### Component line-count discipline with complex layouts
 - 3-panel resizable ActiveResearch is split into 4 files: container (48 lines) + Left (185) + Center (208) + Right (108)
 - The container only handles panel layout; each panel owns its data subscriptions and rendering
-- This pattern prevents any single file from exceeding the 300-line ESLint limit
+- The 500-line ESLint max-lines rule encourages splits for complex UIs
 
 ## S06 — Settings and History
 
@@ -126,8 +126,8 @@ Lessons learned, patterns, and gotchas discovered during development.
 - Pattern: `mockStorage.get = vi.fn((key, schema) => schema.safeParse(storedData))`
 
 ### Inline sub-components for line-count control
-- HistoryDialog (300 lines) uses inline sub-component functions (StatsRow, SessionCard, StatusBadge) defined in the same file
-- This avoids creating separate files for small presentational pieces while staying under the 300-line limit
+- HistoryDialog uses inline sub-component functions (StatsRow, SessionCard, StatusBadge) defined in the same file
+- This avoids creating separate files for small presentational pieces while staying under the 500-line ESLint limit
 - Trade-off: these are not exported/reusable, but they keep related UI logic co-located
 
 ### Blur-save pattern for prompt overrides
@@ -239,8 +239,8 @@ Lessons learned, patterns, and gotchas discovered during development.
 - This pattern made cross-module imports clean: `import { createProvider } from '@/engine/provider'`
 - Internal implementation files are never imported directly by consumers
 
-### 300-line limit forced better architecture
-- The ESLint rule against files over 300 lines prevented monolithic components from forming
+### 500-line ESLint max-lines encourages good architecture
+- The ESLint rule against files over 500 lines (skipBlankLines, skipComments) prevents monolithic components from forming
 - ActiveResearch split into 4 files (container + 3 panels) naturally; same with settings (6 focused components)
 - The limit is a forcing function for single-responsibility — embrace it rather than fight it
 

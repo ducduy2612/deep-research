@@ -1,13 +1,16 @@
 /**
  * SSE API route for research streaming — POST /api/research/stream
  *
- * Instantiates ResearchOrchestrator server-side with real SearchProvider
- * from env, subscribes to all orchestrator events, and streams them as
- * Server-Sent Events (SSE) to the client.
+ * Supports multi-phase streaming via a `phase` parameter:
+ * - `clarify`: Generate clarification questions
+ * - `plan`: Generate research plan with Q&A context
+ * - `research`: Execute search+analyze from a plan
+ * - `report`: Generate report from learnings
+ * - `full` (default): Full pipeline (backward compat)
  *
- * - Handles abort via `request.signal`
- * - Builds provider configs + registry from env vars at request time
- * - Applies domain filters + citation images post-search
+ * Each phase creates a ResearchOrchestrator, calls the appropriate method,
+ * subscribes to events, and streams them as SSE with a phase-specific
+ * result event before closing.
  */
 
 import { z } from "zod";
@@ -23,6 +26,8 @@ import { ResearchOrchestrator } from "@/engine/research/orchestrator";
 import type {
   ResearchConfig,
   ResearchEventType,
+  Source,
+  ImageSource,
 } from "@/engine/research/types";
 import type { SearchProvider } from "@/engine/research/search-provider";
 import type {
@@ -38,11 +43,34 @@ import type { ProviderConfig, ProviderId } from "@/engine/provider/types";
 import { DEFAULT_GOOGLE_MODELS, DEFAULT_OPENAI_MODELS } from "@/lib/api-config";
 
 // ---------------------------------------------------------------------------
-// Request schema
+// Phase type
 // ---------------------------------------------------------------------------
 
-const streamRequestSchema = z.object({
-  topic: z.string().min(1),
+type Phase = "clarify" | "plan" | "research" | "report" | "full";
+
+// ---------------------------------------------------------------------------
+// Shared schemas
+// ---------------------------------------------------------------------------
+
+const providerEntrySchema = z.object({
+  id: z.string(),
+  apiKey: z.string().min(1),
+  baseURL: z.string().optional(),
+  thinkingModelId: z.string().optional(),
+  networkingModelId: z.string().optional(),
+});
+
+const searchSchema = z.object({
+  provider: searchProviderConfigSchema.optional(),
+  includeDomains: z.array(z.string()).optional(),
+  excludeDomains: z.array(z.string()).optional(),
+  citationImages: z.boolean().optional(),
+});
+
+/** Base fields shared across all phases. */
+const baseFieldsSchema = z.object({
+  providers: z.array(providerEntrySchema).optional(),
+  search: searchSchema.optional(),
   language: z.string().min(1).optional(),
   reportStyle: z
     .enum(["balanced", "executive", "technical", "concise"])
@@ -52,26 +80,52 @@ const streamRequestSchema = z.object({
   maxSearchQueries: z.number().int().min(1).optional(),
   stepModelMap: z.record(z.string(), z.unknown()).optional(),
   promptOverrides: z.record(z.string(), z.string()).optional(),
-  // Local mode: client sends provider keys from browser settings.
-  // Proxy mode: omitted — server uses env vars instead.
-  providers: z.array(z.object({
-    id: z.string(),
-    apiKey: z.string().min(1),
-    baseURL: z.string().optional(),
-    thinkingModelId: z.string().optional(),
-    networkingModelId: z.string().optional(),
-  })).optional(),
-  search: z
-    .object({
-      provider: searchProviderConfigSchema.optional(),
-      includeDomains: z.array(z.string()).optional(),
-      excludeDomains: z.array(z.string()).optional(),
-      citationImages: z.boolean().optional(),
-    })
-    .optional(),
 });
 
-type StreamRequest = z.infer<typeof streamRequestSchema>;
+/** Full schema: when `phase` is absent or "full". */
+const fullSchema = baseFieldsSchema.extend({
+  phase: z.enum(["full"]).optional(),
+  topic: z.string().min(1),
+});
+
+/** Clarify phase schema. */
+const clarifySchema = baseFieldsSchema.extend({
+  phase: z.literal("clarify"),
+  topic: z.string().min(1),
+});
+
+/** Plan phase schema. */
+const planSchema = baseFieldsSchema.extend({
+  phase: z.literal("plan"),
+  topic: z.string().min(1),
+  questions: z.string().min(1),
+  feedback: z.string().min(1),
+});
+
+/** Research phase schema. */
+const researchSchema = baseFieldsSchema.extend({
+  phase: z.literal("research"),
+  plan: z.string().min(1),
+});
+
+/** Report phase schema. */
+const reportSchema = baseFieldsSchema.extend({
+  phase: z.literal("report"),
+  plan: z.string().min(1),
+  learnings: z.array(z.string()),
+  sources: z.array(z.object({ url: z.string(), title: z.string().optional() })),
+  images: z.array(z.object({ url: z.string(), description: z.string().optional() })),
+});
+
+const requestSchema = z.union([
+  fullSchema,
+  clarifySchema,
+  planSchema,
+  researchSchema,
+  reportSchema,
+]);
+
+type PhaseRequest = z.infer<typeof requestSchema> & { phase: Phase };
 
 // ---------------------------------------------------------------------------
 // Decorating search provider
@@ -123,50 +177,13 @@ function sseErrorResponse(
 }
 
 // ---------------------------------------------------------------------------
-// Build search provider
-// ---------------------------------------------------------------------------
-
-function buildSearchProvider(
-  req: StreamRequest,
-  providerConfigs: ResearchConfig["providerConfigs"],
-  registry: ReturnType<typeof createRegistry>,
-): SearchProvider {
-  const includeDomains = req.search?.includeDomains ?? [];
-  const excludeDomains = req.search?.excludeDomains ?? [];
-  const citationImages = req.search?.citationImages ?? true;
-  const searchConfig = req.search?.provider ?? detectSearchProviderConfig();
-
-  const base = searchConfig
-    ? createSearchProvider(searchConfig, providerConfigs[0], registry)
-    : { search: async () => ({ sources: [], images: [] }) };
-
-  if (searchConfig) {
-    logger.info("Search provider created", {
-      providerId: searchConfig.id,
-      includeDomains,
-      excludeDomains,
-    });
-  } else {
-    logger.info("No search provider configured — using no-op fallback");
-  }
-
-  return new FilteringSearchProvider(
-    base,
-    includeDomains,
-    excludeDomains,
-    citationImages,
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Build provider configs from client-sent keys (local mode)
+// Build helpers
 // ---------------------------------------------------------------------------
 
 /** Default models for provider IDs sent by the client. */
 const CLIENT_PROVIDER_MODELS: Record<string, ProviderConfig["models"]> = {
   google: DEFAULT_GOOGLE_MODELS,
   openai: DEFAULT_OPENAI_MODELS,
-  // OpenAI-compatible providers share the same model list
   deepseek: DEFAULT_OPENAI_MODELS,
   openrouter: DEFAULT_OPENAI_MODELS,
   groq: DEFAULT_OPENAI_MODELS,
@@ -181,7 +198,6 @@ function buildClientProviderConfigs(
     .map((p) => {
       const defaultModels = CLIENT_PROVIDER_MODELS[p.id]!;
       const models = defaultModels.map((m) => {
-        // Override model IDs if the client specified custom ones
         if (m.role === "thinking" && p.thinkingModelId) {
           return { ...m, id: p.thinkingModelId, name: p.thinkingModelId };
         }
@@ -199,91 +215,73 @@ function buildClientProviderConfigs(
     });
 }
 
+/** Resolve provider configs from client-sent keys or server env. */
+function resolveProviderConfigs(
+  req: PhaseRequest,
+): ProviderConfig[] {
+  if (req.providers && req.providers.length > 0) {
+    return buildClientProviderConfigs(req.providers);
+  }
+  return buildProviderConfigs();
+}
+
+/** Create the FilteringSearchProvider from request config. */
+function buildSearchProvider(
+  req: PhaseRequest,
+  providerConfigs: ProviderConfig[],
+  registry: ReturnType<typeof createRegistry>,
+): SearchProvider {
+  const searchConfig = "search" in req ? req.search : undefined;
+  const includeDomains = searchConfig?.includeDomains ?? [];
+  const excludeDomains = searchConfig?.excludeDomains ?? [];
+  const citationImages = searchConfig?.citationImages ?? true;
+
+  const detectedConfig = searchConfig?.provider ?? detectSearchProviderConfig();
+
+  const base = detectedConfig
+    ? createSearchProvider(detectedConfig, providerConfigs[0], registry)
+    : { search: async () => ({ sources: [], images: [] }) };
+
+  if (detectedConfig) {
+    logger.info("Search provider created", {
+      providerId: detectedConfig.id,
+      includeDomains,
+      excludeDomains,
+    });
+  } else {
+    logger.info("No search provider configured — using no-op fallback");
+  }
+
+  return new FilteringSearchProvider(
+    base,
+    includeDomains,
+    excludeDomains,
+    citationImages,
+  );
+}
+
 // ---------------------------------------------------------------------------
-// POST handler
+// SSE stream setup helpers
 // ---------------------------------------------------------------------------
 
-export async function POST(request: Request): Promise<Response> {
-  logger.info("SSE research stream request received");
-
-  // 1. Parse request body
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return sseErrorResponse(
-      "VALIDATION_FAILED", "Invalid JSON in request body", 400,
-    );
-  }
-
-  const parsed = streamRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    const msg = parsed.error.issues
-      .map((i) => `${i.path.join(".")}: ${i.message}`)
-      .join("; ");
-    return sseErrorResponse("VALIDATION_FAILED", `Invalid request: ${msg}`, 400);
-  }
-
-  const req = parsed.data;
-
-  // 2. Provider configs — local mode uses client keys, proxy mode uses env
-  const providerConfigs = req.providers && req.providers.length > 0
-    ? buildClientProviderConfigs(req.providers)
-    : buildProviderConfigs();
-  if (providerConfigs.length === 0) {
-    return sseErrorResponse(
-      "CONFIG_MISSING_KEY",
-      "No AI providers configured. Add an API key in Settings (local mode) or set GOOGLE_GENERATIVE_AI_API_KEY / OPENAI_API_KEY on the server (proxy mode).",
-      500,
-    );
-  }
-
-  // 3. Registry
-  let registry: ReturnType<typeof createRegistry>;
-  try {
-    registry = createRegistry(providerConfigs);
-  } catch (error) {
-    return sseErrorResponse(
-      "AI_REQUEST_FAILED",
-      error instanceof Error ? error.message : "Registry creation failed",
-      500,
-    );
-  }
-
-  // 4. Search provider
-  let searchProvider: SearchProvider;
-  try {
-    searchProvider = buildSearchProvider(req, providerConfigs, registry);
-  } catch (error) {
-    return sseErrorResponse(
-      "AI_REQUEST_FAILED",
-      error instanceof Error ? error.message : "Search provider creation failed",
-      500,
-    );
-  }
-
-  // 5. Research config
-  const researchConfig: ResearchConfig = {
-    topic: req.topic,
-    providerConfigs,
-    stepModelMap: (req.stepModelMap as ResearchConfig["stepModelMap"]) ?? {},
-    language: req.language,
-    reportStyle: req.reportStyle,
-    reportLength: req.reportLength,
-    autoReviewRounds: req.autoReviewRounds,
-    maxSearchQueries: req.maxSearchQueries,
-    promptOverrides: req.promptOverrides as ResearchConfig["promptOverrides"],
-  };
-
-  // 6. SSE stream
+function createSSEStream(): {
+  stream: ReadableStream<Uint8Array>;
+  controller: ReadableStreamDefaultController<Uint8Array>;
+  encoder: TextEncoder;
+} {
   const encoder = new TextEncoder();
   let controller!: ReadableStreamDefaultController<Uint8Array>;
   const stream = new ReadableStream<Uint8Array>({
     start(ctrl) { controller = ctrl; },
   });
+  return { stream, controller, encoder };
+}
 
-  // 7. Orchestrator + subscriptions
-  const orchestrator = new ResearchOrchestrator(researchConfig, searchProvider);
+function subscribeOrchestrator(
+  orchestrator: ResearchOrchestrator,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder,
+): () => (() => void)[] {
   const eventTypes: ResearchEventType[] = [
     "step-start", "step-delta", "step-reasoning",
     "step-complete", "step-error", "progress",
@@ -297,14 +295,248 @@ export async function POST(request: Request): Promise<Response> {
     }),
   );
 
-  // 8. Abort from client
+  return () => unsubs;
+}
+
+function cleanup(
+  unsubsGetter: () => (() => void)[],
+  orchestrator: ResearchOrchestrator,
+  onAbort: () => void,
+  request: Request,
+) {
+  request.signal.removeEventListener("abort", onAbort);
+  for (const u of unsubsGetter()) u();
+  orchestrator.destroy();
+}
+
+// ---------------------------------------------------------------------------
+// Phase handlers
+// ---------------------------------------------------------------------------
+
+async function handleClarifyPhase(
+  req: z.infer<typeof clarifySchema>,
+  request: Request,
+  providerConfigs: ProviderConfig[],
+): Promise<Response> {
+  const registry = createRegistry(providerConfigs);
+  const searchProvider = buildSearchProvider(req, providerConfigs, registry);
+
+  const researchConfig: ResearchConfig = {
+    topic: req.topic,
+    providerConfigs,
+    stepModelMap: {},
+  };
+
+  const { stream, controller, encoder } = createSSEStream();
+  const orchestrator = new ResearchOrchestrator(researchConfig, searchProvider);
+  const unsubsGetter = subscribeOrchestrator(orchestrator, controller, encoder);
+
+  const onAbort = () => { orchestrator.abort(); };
+  request.signal.addEventListener("abort", onAbort);
+
+  (async () => {
+    try {
+      controller.enqueue(encoder.encode(sseEvent("start", { topic: req.topic, phase: "clarify" })));
+      const result = await orchestrator.clarifyOnly();
+      if (result) {
+        controller.enqueue(encoder.encode(sseEvent("clarify-result", result)));
+      }
+      controller.enqueue(encoder.encode(sseEvent("done", {})));
+      controller.close();
+    } catch (error) {
+      const err = toAppError(error, "RESEARCH_STEP_FAILED");
+      logger.error("Clarify stream error", { code: err.code, message: err.message });
+      try {
+        controller.enqueue(encoder.encode(sseError(err.code, err.message)));
+        controller.close();
+      } catch { /* already closed */ }
+    } finally {
+      cleanup(unsubsGetter, orchestrator, onAbort, request);
+    }
+  })();
+
+  return new Response(stream, {
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+  });
+}
+
+async function handlePlanPhase(
+  req: z.infer<typeof planSchema>,
+  request: Request,
+  providerConfigs: ProviderConfig[],
+): Promise<Response> {
+  const researchConfig: ResearchConfig = {
+    topic: req.topic,
+    providerConfigs,
+    stepModelMap: {},
+    promptOverrides: req.promptOverrides as ResearchConfig["promptOverrides"],
+  };
+
+  const { stream, controller, encoder } = createSSEStream();
+  const orchestrator = new ResearchOrchestrator(researchConfig);
+  const unsubsGetter = subscribeOrchestrator(orchestrator, controller, encoder);
+
+  const onAbort = () => { orchestrator.abort(); };
+  request.signal.addEventListener("abort", onAbort);
+
+  (async () => {
+    try {
+      controller.enqueue(encoder.encode(sseEvent("start", { topic: req.topic, phase: "plan" })));
+      const result = await orchestrator.planWithContext(req.topic, req.questions, req.feedback);
+      if (result) {
+        controller.enqueue(encoder.encode(sseEvent("plan-result", result)));
+      }
+      controller.enqueue(encoder.encode(sseEvent("done", {})));
+      controller.close();
+    } catch (error) {
+      const err = toAppError(error, "RESEARCH_STEP_FAILED");
+      logger.error("Plan stream error", { code: err.code, message: err.message });
+      try {
+        controller.enqueue(encoder.encode(sseError(err.code, err.message)));
+        controller.close();
+      } catch { /* already closed */ }
+    } finally {
+      cleanup(unsubsGetter, orchestrator, onAbort, request);
+    }
+  })();
+
+  return new Response(stream, {
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+  });
+}
+
+async function handleResearchPhase(
+  req: z.infer<typeof researchSchema>,
+  request: Request,
+  providerConfigs: ProviderConfig[],
+): Promise<Response> {
+  const registry = createRegistry(providerConfigs);
+  const searchProvider = buildSearchProvider(req, providerConfigs, registry);
+
+  const researchConfig: ResearchConfig = {
+    topic: "", // not needed for research-only phase
+    providerConfigs,
+    stepModelMap: {},
+    maxSearchQueries: req.maxSearchQueries,
+    promptOverrides: req.promptOverrides as ResearchConfig["promptOverrides"],
+  };
+
+  const { stream, controller, encoder } = createSSEStream();
+  const orchestrator = new ResearchOrchestrator(researchConfig, searchProvider);
+  const unsubsGetter = subscribeOrchestrator(orchestrator, controller, encoder);
+
+  const onAbort = () => { orchestrator.abort(); };
+  request.signal.addEventListener("abort", onAbort);
+
+  (async () => {
+    try {
+      controller.enqueue(encoder.encode(sseEvent("start", { phase: "research" })));
+      const result = await orchestrator.researchFromPlan(req.plan);
+      if (result) {
+        controller.enqueue(encoder.encode(sseEvent("research-result", result)));
+      }
+      controller.enqueue(encoder.encode(sseEvent("done", {})));
+      controller.close();
+    } catch (error) {
+      const err = toAppError(error, "RESEARCH_STEP_FAILED");
+      logger.error("Research stream error", { code: err.code, message: err.message });
+      try {
+        controller.enqueue(encoder.encode(sseError(err.code, err.message)));
+        controller.close();
+      } catch { /* already closed */ }
+    } finally {
+      cleanup(unsubsGetter, orchestrator, onAbort, request);
+    }
+  })();
+
+  return new Response(stream, {
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+  });
+}
+
+async function handleReportPhase(
+  req: z.infer<typeof reportSchema>,
+  request: Request,
+  providerConfigs: ProviderConfig[],
+): Promise<Response> {
+  const researchConfig: ResearchConfig = {
+    topic: "", // not needed for report-only phase
+    providerConfigs,
+    stepModelMap: {},
+    reportStyle: req.reportStyle,
+    reportLength: req.reportLength,
+    language: req.language,
+    promptOverrides: req.promptOverrides as ResearchConfig["promptOverrides"],
+  };
+
+  const { stream, controller, encoder } = createSSEStream();
+  const orchestrator = new ResearchOrchestrator(researchConfig);
+  const unsubsGetter = subscribeOrchestrator(orchestrator, controller, encoder);
+
+  const onAbort = () => { orchestrator.abort(); };
+  request.signal.addEventListener("abort", onAbort);
+
+  (async () => {
+    try {
+      controller.enqueue(encoder.encode(sseEvent("start", { phase: "report" })));
+      const result = await orchestrator.reportFromLearnings(
+        req.plan,
+        req.learnings,
+        req.sources as Source[],
+        req.images as ImageSource[],
+      );
+      if (result) {
+        controller.enqueue(encoder.encode(sseEvent("result", result)));
+      }
+      controller.enqueue(encoder.encode(sseEvent("done", {})));
+      controller.close();
+    } catch (error) {
+      const err = toAppError(error, "RESEARCH_STEP_FAILED");
+      logger.error("Report stream error", { code: err.code, message: err.message });
+      try {
+        controller.enqueue(encoder.encode(sseError(err.code, err.message)));
+        controller.close();
+      } catch { /* already closed */ }
+    } finally {
+      cleanup(unsubsGetter, orchestrator, onAbort, request);
+    }
+  })();
+
+  return new Response(stream, {
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+  });
+}
+
+async function handleFullPhase(
+  req: z.infer<typeof fullSchema> & { phase: "full" },
+  request: Request,
+  providerConfigs: ProviderConfig[],
+): Promise<Response> {
+  const registry = createRegistry(providerConfigs);
+  const searchProvider = buildSearchProvider(req, providerConfigs, registry);
+
+  const researchConfig: ResearchConfig = {
+    topic: req.topic,
+    providerConfigs,
+    stepModelMap: (req.stepModelMap as ResearchConfig["stepModelMap"]) ?? {},
+    language: req.language,
+    reportStyle: req.reportStyle,
+    reportLength: req.reportLength,
+    autoReviewRounds: req.autoReviewRounds,
+    maxSearchQueries: req.maxSearchQueries,
+    promptOverrides: req.promptOverrides as ResearchConfig["promptOverrides"],
+  };
+
+  const { stream, controller, encoder } = createSSEStream();
+  const orchestrator = new ResearchOrchestrator(researchConfig, searchProvider);
+  const unsubsGetter = subscribeOrchestrator(orchestrator, controller, encoder);
+
   const onAbort = () => {
     logger.info("Abort signal received from client");
     orchestrator.abort();
   };
   request.signal.addEventListener("abort", onAbort);
 
-  // 9. Run pipeline
   (async () => {
     try {
       logger.info("Starting research orchestrator", { topic: req.topic });
@@ -324,17 +556,64 @@ export async function POST(request: Request): Promise<Response> {
         controller.close();
       } catch { /* already closed */ }
     } finally {
-      request.signal.removeEventListener("abort", onAbort);
-      for (const u of unsubs) u();
-      orchestrator.destroy();
+      cleanup(unsubsGetter, orchestrator, onAbort, request);
     }
   })();
 
   return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
+    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
   });
+}
+
+// ---------------------------------------------------------------------------
+// POST handler
+// ---------------------------------------------------------------------------
+
+export async function POST(request: Request): Promise<Response> {
+  logger.info("SSE research stream request received");
+
+  // 1. Parse request body
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return sseErrorResponse(
+      "VALIDATION_FAILED", "Invalid JSON in request body", 400,
+    );
+  }
+
+  const parsed = requestSchema.safeParse(body);
+  if (!parsed.success) {
+    const msg = parsed.error.issues
+      .map((i) => `${i.path.join(".")}: ${i.message}`)
+      .join("; ");
+    return sseErrorResponse("VALIDATION_FAILED", `Invalid request: ${msg}`, 400);
+  }
+
+  const req = parsed.data as PhaseRequest;
+
+  // 2. Provider configs
+  const providerConfigs = resolveProviderConfigs(req);
+  if (providerConfigs.length === 0) {
+    return sseErrorResponse(
+      "CONFIG_MISSING_KEY",
+      "No AI providers configured. Add an API key in Settings (local mode) or set GOOGLE_GENERATIVE_AI_API_KEY / OPENAI_API_KEY on the server (proxy mode).",
+      500,
+    );
+  }
+
+  // 3. Route to phase handler
+  switch (req.phase) {
+    case "clarify":
+      return handleClarifyPhase(req, request, providerConfigs);
+    case "plan":
+      return handlePlanPhase(req, request, providerConfigs);
+    case "research":
+      return handleResearchPhase(req, request, providerConfigs);
+    case "report":
+      return handleReportPhase(req, request, providerConfigs);
+    case "full":
+    default:
+      return handleFullPhase(req, request, providerConfigs);
+  }
 }

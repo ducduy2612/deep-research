@@ -29,7 +29,7 @@ Update ResearchState to add: awaiting_feedback, awaiting_plan_review, awaiting_r
   - Estimate: 2 hours
   - Files: src/engine/research/orchestrator.ts, src/engine/research/types.ts
   - Verify: pnpm vitest run src/engine/research/__tests__/orchestrator.test.ts
-- [ ] **T02: Update SSE route for multi-phase streaming** — Refactor /api/research/stream to accept a `phase` parameter:
+- [x] **T02: Refactor SSE route to support multi-phase streaming with clarify/plan/research/report/full phases** — Refactor /api/research/stream to accept a `phase` parameter:
 
 ```
 phase: 'clarify' | 'plan' | 'research' | 'report' | 'full'
