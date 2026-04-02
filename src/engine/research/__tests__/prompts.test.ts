@@ -3,6 +3,7 @@ import {
   getSystemPrompt,
   getClarifyPrompt,
   getPlanPrompt,
+  getPlanWithContextPrompt,
   getSerpQueriesPrompt,
   getAnalyzePrompt,
   getSearchResultPrompt,
@@ -82,6 +83,41 @@ describe("getPlanPrompt", () => {
 
   it("requires sections to be directly relevant to the main topic", () => {
     expect(getPlanPrompt("test")).toContain(
+      "Every section MUST be directly relevant to the main topic",
+    );
+  });
+});
+
+describe("getPlanWithContextPrompt", () => {
+  it("returns a non-empty string", () => {
+    expectNonEmptyString(
+      getPlanWithContextPrompt("quantum computing", "Q1?", "Focus on hardware"),
+    );
+  });
+
+  it("includes the topic", () => {
+    const result = getPlanWithContextPrompt("quantum computing", "Q?", "F");
+    expect(result).toContain("quantum computing");
+  });
+
+  it("includes the questions", () => {
+    const result = getPlanWithContextPrompt("topic", "What are the risks?", "F");
+    expect(result).toContain("What are the risks?");
+  });
+
+  it("includes the feedback", () => {
+    const result = getPlanWithContextPrompt("topic", "Q?", "Focus on practical applications");
+    expect(result).toContain("Focus on practical applications");
+  });
+
+  it("includes integration guidelines", () => {
+    const result = getPlanWithContextPrompt("topic", "Q?", "F");
+    expect(result).toContain("GUIDELINES");
+  });
+
+  it("requires sections to be directly relevant to the main topic", () => {
+    const result = getPlanWithContextPrompt("topic", "Q?", "F");
+    expect(result).toContain(
       "Every section MUST be directly relevant to the main topic",
     );
   });

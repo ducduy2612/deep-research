@@ -61,7 +61,7 @@ Move shared code (buildClientProviderConfigs, buildSearchProvider, etc.) into he
   - Estimate: 2 hours
   - Files: src/app/api/research/stream/route.ts
   - Verify: pnpm vitest run src/engine/research/__tests__/sse-route.test.ts
-- [ ] **T03: Update existing tests for new orchestrator API** — Update all existing orchestrator and SSE route tests:
+- [x] **T03: Updated types.test.ts and prompts.test.ts to cover new multi-phase ResearchState values and getPlanWithContextPrompt function** — Update all existing orchestrator and SSE route tests:
 
 1. orchestrator.test.ts:
    - Keep `start()` tests as backward-compat verification

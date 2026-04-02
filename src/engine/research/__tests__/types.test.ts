@@ -183,23 +183,41 @@ describe("researchConfigSchema", () => {
 // ---------------------------------------------------------------------------
 
 describe("ResearchState", () => {
-  it("has exactly 10 expected states", () => {
+  it("has exactly 13 expected states including multi-phase intermediates", () => {
     const expectedStates: ResearchState[] = [
       "idle",
       "clarifying",
+      "awaiting_feedback",
       "planning",
+      "awaiting_plan_review",
       "searching",
       "analyzing",
       "reviewing",
+      "awaiting_results_review",
       "reporting",
       "completed",
       "failed",
       "aborted",
     ];
-    expect(expectedStates).toHaveLength(10);
+    expect(expectedStates).toHaveLength(13);
     // Verify type-level correctness by assigning each string
     const _typeCheck: ResearchState[] = expectedStates;
     expect(_typeCheck).toBeDefined();
+  });
+
+  it("includes awaiting_feedback state for multi-phase clarify pause", () => {
+    const state: ResearchState = "awaiting_feedback";
+    expect(state).toBe("awaiting_feedback");
+  });
+
+  it("includes awaiting_plan_review state for multi-phase plan pause", () => {
+    const state: ResearchState = "awaiting_plan_review";
+    expect(state).toBe("awaiting_plan_review");
+  });
+
+  it("includes awaiting_results_review state for multi-phase research pause", () => {
+    const state: ResearchState = "awaiting_results_review";
+    expect(state).toBe("awaiting_results_review");
   });
 });
 
