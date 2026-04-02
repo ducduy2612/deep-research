@@ -84,6 +84,44 @@ Integration guidelines:
 Before submitting, review your structure to ensure it has no redundant sections and follows a logical flow.`;
 }
 
+/**
+ * Generate a report section plan enriched with clarification questions
+ * and user feedback. Used by the planWithContext phase method.
+ */
+export function getPlanWithContextPrompt(
+  topic: string,
+  questions: string,
+  feedback: string,
+): string {
+  return `Given the following query from the user:
+<QUERY>
+${topic}
+</QUERY>
+
+The user was asked these clarification questions:
+<QUESTIONS>
+${questions}
+</QUESTIONS>
+
+The user provided this feedback:
+<FEEDBACK>
+${feedback}
+</FEEDBACK>
+
+Generate a list of sections for the report based on the topic and feedback.
+Your plan should be tight and focused with NO overlapping sections or unnecessary filler. Each section needs a sentence summarizing its content.
+
+Integration guidelines:
+<GUIDELINES>
+- Ensure each section has a distinct purpose with no content overlap.
+- Combine related concepts rather than separating them.
+- CRITICAL: Every section MUST be directly relevant to the main topic.
+- Avoid tangential or loosely related sections that don't directly address the core topic.
+</GUIDELINES>
+
+Before submitting, review your structure to ensure it has no redundant sections and follows a logical flow.`;
+}
+
 // ---------------------------------------------------------------------------
 // SERP queries prompt
 // ---------------------------------------------------------------------------

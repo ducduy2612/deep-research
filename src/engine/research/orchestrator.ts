@@ -25,10 +25,14 @@ import type {
   SearchResult,
   Source,
   ImageSource,
+  ClarifyResult,
+  PlanResult,
+  ResearchPhaseResult,
+  ReportResult,
 } from "./types";
 import type { SearchProvider } from "./search-provider";
 import { NoOpSearchProvider } from "./search-provider";
-import { resolvePrompt } from "./prompts";
+import { resolvePrompt, getPlanWithContextPrompt } from "./prompts";
 import type { ProviderRegistry } from "@/engine/provider/registry";
 import {
   createRegistry,
@@ -160,6 +164,164 @@ export class ResearchOrchestrator {
     }
   }
 
+  // -------------------------------------------------------------------------
+  // Phase methods — each runs one checkpoint independently
+  // -------------------------------------------------------------------------
+
+  /**
+   * Run only the clarify phase. Returns generated questions or null on
+   * failure/abort. State transitions to awaiting_feedback on success.
+   */
+  async clarifyOnly(): Promise<ClarifyResult | null> {
+    this.abortController = new AbortController();
+
+    try {
+      const questions = await this.runClarify();
+      if (this.isAborted()) return null;
+
+      this.transitionTo("awaiting_feedback");
+      logger.info("ClarifyOnly completed, awaiting feedback");
+      return { questions };
+    } catch (error) {
+      if (this.state !== "aborted") {
+        this.transitionTo("failed");
+        logger.error("ClarifyOnly failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Run only the plan phase with enriched context (clarification questions
+   * and user feedback). Returns the generated plan or null on failure/abort.
+   * State transitions to awaiting_plan_review on success.
+   */
+  async planWithContext(
+    topic: string,
+    questions: string,
+    feedback: string,
+  ): Promise<PlanResult | null> {
+    this.abortController = new AbortController();
+    const step: ResearchStep = "plan";
+    this.transitionTo("planning");
+    const start = Date.now();
+
+    this.emit("step-start", { step, state: this.state });
+
+    try {
+      const model = this.resolveModelForStep(step);
+      const prompt = getPlanWithContextPrompt(topic, questions, feedback);
+      const result = await streamWithAbort({
+        model,
+        messages: this.buildMessages(prompt),
+        abortSignal: this.abortController?.signal,
+      });
+
+      let planText = "";
+      for await (const part of result.fullStream) {
+        if (this.isAborted()) return null;
+
+        if (part.type === "text-delta") {
+          this.emit("step-delta", { step, text: part.textDelta });
+          planText += part.textDelta;
+        } else if (part.type === "reasoning") {
+          this.emit("step-reasoning", { step, text: part.textDelta });
+        }
+      }
+
+      const duration = Date.now() - start;
+      this.emit("step-complete", { step, duration });
+      logger.info("PlanWithContext completed", { step, duration });
+
+      this.transitionTo("awaiting_plan_review");
+      return { plan: planText };
+    } catch (error) {
+      this.handleStepError(step, error);
+      return null; // unreachable — handleStepError throws
+    }
+  }
+
+  /**
+   * Run the research phase (search + analyze + review loop) from an
+   * existing plan. Returns collected learnings, sources, and images, or
+   * null on failure/abort. State transitions to awaiting_results_review.
+   */
+  async researchFromPlan(plan: string): Promise<ResearchPhaseResult | null> {
+    this.abortController = new AbortController();
+
+    try {
+      const { allLearnings, allSources, allImages } =
+        await this.runSearchPhase(plan);
+      if (this.isAborted()) return null;
+
+      await this.runReviewLoop(plan, allLearnings, allSources, allImages);
+      if (this.isAborted()) return null;
+
+      this.transitionTo("awaiting_results_review");
+      logger.info("ResearchFromPlan completed, awaiting results review", {
+        learnings: allLearnings.length,
+        sources: allSources.length,
+        images: allImages.length,
+      });
+
+      return {
+        learnings: allLearnings,
+        sources: allSources,
+        images: allImages,
+      };
+    } catch (error) {
+      if (this.state !== "aborted") {
+        this.transitionTo("failed");
+        logger.error("ResearchFromPlan failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Generate the final report from accumulated learnings and sources.
+   * Returns the full ResearchResult or null on failure/abort. State
+   * transitions to completed on success.
+   */
+  async reportFromLearnings(
+    plan: string,
+    learnings: string[],
+    sources: Source[],
+    images: ImageSource[],
+  ): Promise<ReportResult | null> {
+    this.abortController = new AbortController();
+
+    try {
+      const report = await this.runReport(plan, learnings, sources, images);
+      if (this.isAborted()) return null;
+
+      const title = this.extractTitle(report);
+      this.result = { title, report, learnings, sources, images };
+
+      this.transitionTo("completed");
+      logger.info("ReportFromLearnings completed", {
+        title,
+        learnings: learnings.length,
+        sources: sources.length,
+        images: images.length,
+      });
+
+      return this.result;
+    } catch (error) {
+      if (this.state !== "aborted") {
+        this.transitionTo("failed");
+        logger.error("ReportFromLearnings failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return null;
+    }
+  }
+
   /** Abort the running research pipeline. */
   abort(): void {
     if (this.state !== "aborted") {
@@ -249,7 +411,7 @@ export class ResearchOrchestrator {
   // Step: Clarify
   // -------------------------------------------------------------------------
 
-  private async runClarify(): Promise<void> {
+  private async runClarify(): Promise<string> {
     const step: ResearchStep = "clarify";
     this.transitionTo("clarifying");
     const start = Date.now();
@@ -270,11 +432,13 @@ export class ResearchOrchestrator {
         abortSignal: this.abortController?.signal,
       });
 
+      let questionsText = "";
       for await (const part of result.fullStream) {
-        if (this.isAborted()) return;
+        if (this.isAborted()) return "";
 
         if (part.type === "text-delta") {
           this.emit("step-delta", { step, text: part.textDelta });
+          questionsText += part.textDelta;
         } else if (part.type === "reasoning") {
           this.emit("step-reasoning", { step, text: part.textDelta });
         }
@@ -283,6 +447,8 @@ export class ResearchOrchestrator {
       const duration = Date.now() - start;
       this.emit("step-complete", { step, duration });
       logger.info("Clarify step completed", { step, duration });
+
+      return questionsText;
     } catch (error) {
       this.handleStepError(step, error);
     }

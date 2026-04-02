@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Settings,
@@ -33,6 +34,27 @@ function formatElapsed(ms: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+/**
+ * Live elapsed-time ticker for active research.
+ * Reads startedAt/completedAt from the store once, then ticks locally
+ * to avoid calling Date.now() inside a Zustand selector (which causes
+ * useSyncExternalStore infinite loops).
+ */
+function useElapsedMs(): number | null {
+  const startedAt = useResearchStore((s) => s.startedAt);
+  const completedAt = useResearchStore((s) => s.completedAt);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!startedAt || completedAt) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [startedAt, completedAt]);
+
+  if (!startedAt) return null;
+  return (completedAt ?? now) - startedAt;
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -41,10 +63,7 @@ export function Header({ className }: HeaderProps) {
   const t = useTranslations("Header");
   const isActive = useResearchStore(selectIsActive);
   const topic = useResearchStore((s) => s.topic);
-  const elapsedMs = useResearchStore((s) => {
-    if (!s.startedAt) return null;
-    return (s.completedAt ?? Date.now()) - s.startedAt;
-  });
+  const elapsedMs = useElapsedMs();
   const navigate = useUIStore((s) => s.navigate);
   const openDialog = useUIStore((s) => s.openDialog);
   const activeView = useUIStore((s) => s.activeView);

@@ -607,4 +607,372 @@ describe("ResearchOrchestrator", () => {
     expect(orchestrator.getState()).toBe("completed");
     expect(result!.learnings).toEqual([]);
   });
+
+  // =========================================================================
+  // Phase methods
+  // =========================================================================
+
+  describe("clarifyOnly()", () => {
+    it("returns ClarifyResult with questions text", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      mockContainer.streamFn.mockResolvedValueOnce(
+        fakeStreamResponse([
+          "1. What is the scope?\n",
+          "2. Any constraints?\n",
+        ]),
+      );
+
+      const result = await orchestrator.clarifyOnly();
+
+      expect(result).not.toBeNull();
+      expect(result!.questions).toContain("What is the scope");
+      expect(result!.questions).toContain("Any constraints");
+    });
+
+    it("transitions to awaiting_feedback on success", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      await orchestrator.clarifyOnly();
+
+      expect(orchestrator.getState()).toBe("awaiting_feedback");
+    });
+
+    it("emits step-start and step-complete for clarify step", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      const events: Array<{ type: string; step?: string }> = [];
+      orchestrator.on("step-start", (p) => events.push({ type: "step-start", step: p.step }));
+      orchestrator.on("step-complete", (p) => events.push({ type: "step-complete", step: p.step }));
+
+      await orchestrator.clarifyOnly();
+
+      expect(events.some((e) => e.type === "step-start" && e.step === "clarify")).toBe(true);
+      expect(events.some((e) => e.type === "step-complete" && e.step === "clarify")).toBe(true);
+    });
+
+    it("returns null on abort", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      let streamResolve: (() => void) | undefined;
+      mockContainer.streamFn.mockImplementation(() => {
+        return new Promise((resolve) => {
+          streamResolve = () => resolve(fakeStreamResponse(["text"]));
+          setTimeout(streamResolve, 10);
+        });
+      });
+
+      const promise = orchestrator.clarifyOnly();
+      orchestrator.abort();
+      const result = await promise;
+
+      expect(result).toBeNull();
+      expect(orchestrator.getState()).toBe("aborted");
+    });
+
+    it("returns null on streaming failure", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      mockContainer.streamFn.mockRejectedValue(new Error("Stream failure"));
+
+      const result = await orchestrator.clarifyOnly();
+
+      expect(result).toBeNull();
+      expect(orchestrator.getState()).toBe("failed");
+    });
+  });
+
+  describe("planWithContext()", () => {
+    it("returns PlanResult with plan text", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      mockContainer.streamFn.mockResolvedValueOnce(
+        fakeStreamResponse(["## Section 1\n", "## Section 2\n"]),
+      );
+
+      const result = await orchestrator.planWithContext(
+        "quantum computing",
+        "What areas?",
+        "Focus on error correction",
+      );
+
+      expect(result).not.toBeNull();
+      expect(result!.plan).toContain("Section 1");
+      expect(result!.plan).toContain("Section 2");
+    });
+
+    it("transitions to awaiting_plan_review on success", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      await orchestrator.planWithContext("topic", "questions", "feedback");
+
+      expect(orchestrator.getState()).toBe("awaiting_plan_review");
+    });
+
+    it("emits plan step events", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      const steps: string[] = [];
+      orchestrator.on("step-start", (p) => steps.push(p.step));
+      orchestrator.on("step-complete", (p) => steps.push(p.step));
+
+      await orchestrator.planWithContext("topic", "q", "f");
+
+      expect(steps).toContain("plan");
+    });
+
+    it("returns null on abort", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      let streamResolve: (() => void) | undefined;
+      mockContainer.streamFn.mockImplementation(() => {
+        return new Promise((resolve) => {
+          streamResolve = () => resolve(fakeStreamResponse(["plan text"]));
+          setTimeout(streamResolve, 10);
+        });
+      });
+
+      const promise = orchestrator.planWithContext("topic", "q", "f");
+      orchestrator.abort();
+      const result = await promise;
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("researchFromPlan()", () => {
+    it("returns ResearchPhaseResult with learnings, sources, images", async () => {
+      const searchProvider = createMockSearchProvider({
+        sources: [{ url: "https://example.com/page1", title: "Page 1" }],
+        images: [],
+      });
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config, searchProvider);
+
+      mockContainer.generateFn.mockResolvedValueOnce([
+        { query: "q1", researchGoal: "g1" },
+      ]);
+
+      const result = await orchestrator.researchFromPlan("## Plan\nSection 1");
+
+      expect(result).not.toBeNull();
+      expect(result!.learnings.length).toBeGreaterThan(0);
+      expect(result!.sources.length).toBeGreaterThan(0);
+      // Images come from analyze step, which currently returns empty
+      expect(result!.images).toEqual([]);
+    });
+
+    it("transitions to awaiting_results_review on success", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      // No queries → empty result, still success
+      mockContainer.generateFn.mockResolvedValueOnce([]);
+
+      await orchestrator.researchFromPlan("plan");
+
+      expect(orchestrator.getState()).toBe("awaiting_results_review");
+    });
+
+    it("handles empty SERP queries gracefully", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      mockContainer.generateFn.mockResolvedValueOnce([]);
+
+      const result = await orchestrator.researchFromPlan("plan");
+
+      expect(result).not.toBeNull();
+      expect(result!.learnings).toEqual([]);
+      expect(result!.sources).toEqual([]);
+      expect(result!.images).toEqual([]);
+    });
+
+    it("runs review loop when autoReviewRounds > 0", async () => {
+      const searchProvider = createMockSearchProvider();
+      const config = createTestConfig({ autoReviewRounds: 1 });
+      const orchestrator = new ResearchOrchestrator(config, searchProvider);
+
+      // SERP queries
+      mockContainer.generateFn.mockResolvedValueOnce([
+        { query: "q1", researchGoal: "g1" },
+      ]);
+      // Review returns empty (stop loop)
+      mockContainer.generateFn.mockResolvedValueOnce([]);
+
+      const reviewStarts: unknown[] = [];
+      orchestrator.on("step-start", (p) => {
+        if (p.step === "review") reviewStarts.push(p);
+      });
+
+      const result = await orchestrator.researchFromPlan("plan");
+
+      expect(result).not.toBeNull();
+      expect(reviewStarts.length).toBe(1);
+    });
+
+    it("returns null on abort", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      // Make generateStructured hang so we can abort
+      let genResolve: (() => void) | undefined;
+      mockContainer.generateFn.mockImplementation(() => {
+        return new Promise((resolve) => {
+          genResolve = () => resolve([]);
+          setTimeout(genResolve, 50);
+        });
+      });
+
+      const promise = orchestrator.researchFromPlan("plan");
+      orchestrator.abort();
+      const result = await promise;
+
+      expect(result).toBeNull();
+      expect(orchestrator.getState()).toBe("aborted");
+    });
+  });
+
+  describe("reportFromLearnings()", () => {
+    it("returns ReportResult with title and report", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      mockContainer.streamFn.mockResolvedValueOnce(
+        fakeStreamResponse(["# Final Report\n", "Report content here."]),
+      );
+
+      const learnings = ["Learning 1", "Learning 2"];
+      const sources = [{ url: "https://example.com" }];
+      const images: Array<{ url: string; description?: string }> = [];
+
+      const result = await orchestrator.reportFromLearnings(
+        "plan",
+        learnings,
+        sources,
+        images,
+      );
+
+      expect(result).not.toBeNull();
+      expect(result!.title).toBe("Final Report");
+      expect(result!.report).toContain("Report content here");
+      expect(result!.learnings).toEqual(learnings);
+      expect(result!.sources).toEqual(sources);
+    });
+
+    it("transitions to completed on success", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      await orchestrator.reportFromLearnings("plan", [], [], []);
+
+      expect(orchestrator.getState()).toBe("completed");
+    });
+
+    it("sets getResult() after completion", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      mockContainer.streamFn.mockResolvedValueOnce(
+        fakeStreamResponse(["# Title\nBody"]),
+      );
+
+      await orchestrator.reportFromLearnings("plan", ["l1"], [], []);
+
+      expect(orchestrator.getResult()).not.toBeNull();
+      expect(orchestrator.getResult()!.title).toBe("Title");
+    });
+
+    it("returns null on failure", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      mockContainer.streamFn.mockRejectedValue(new Error("Report failure"));
+
+      const result = await orchestrator.reportFromLearnings("plan", [], [], []);
+
+      expect(result).toBeNull();
+      expect(orchestrator.getState()).toBe("failed");
+    });
+
+    it("returns null on abort", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      let streamResolve: (() => void) | undefined;
+      mockContainer.streamFn.mockImplementation(() => {
+        return new Promise((resolve) => {
+          streamResolve = () => resolve(fakeStreamResponse(["report"]));
+          setTimeout(streamResolve, 10);
+        });
+      });
+
+      const promise = orchestrator.reportFromLearnings("plan", [], [], []);
+      orchestrator.abort();
+      const result = await promise;
+
+      expect(result).toBeNull();
+      expect(orchestrator.getState()).toBe("aborted");
+    });
+  });
+
+  // =========================================================================
+  // Phase chaining — calling phases in sequence should produce same result
+  // =========================================================================
+
+  describe("phase chaining", () => {
+    it("produces same final state as start() when chained manually", async () => {
+      const searchProvider = createMockSearchProvider({
+        sources: [{ url: "https://example.com", title: "Example" }],
+        images: [],
+      });
+      const config = createTestConfig({ autoReviewRounds: 0 });
+      const orchestrator = new ResearchOrchestrator(config, searchProvider);
+
+      // SERP queries for researchFromPlan
+      mockContainer.generateFn.mockResolvedValueOnce([
+        { query: "q1", researchGoal: "g1" },
+      ]);
+
+      // Phase 1: clarify
+      const clarifyResult = await orchestrator.clarifyOnly();
+      expect(orchestrator.getState()).toBe("awaiting_feedback");
+      expect(clarifyResult!.questions).toBeDefined();
+
+      // Phase 2: plan with context
+      const planResult = await orchestrator.planWithContext(
+        "Test research topic",
+        clarifyResult!.questions,
+        "Focus on practical applications",
+      );
+      expect(orchestrator.getState()).toBe("awaiting_plan_review");
+      expect(planResult!.plan).toBeDefined();
+
+      // Phase 3: research from plan
+      const researchResult = await orchestrator.researchFromPlan(planResult!.plan);
+      expect(orchestrator.getState()).toBe("awaiting_results_review");
+      expect(researchResult!.learnings.length).toBeGreaterThan(0);
+
+      // Phase 4: report from learnings
+      const reportResult = await orchestrator.reportFromLearnings(
+        planResult!.plan,
+        researchResult!.learnings,
+        researchResult!.sources,
+        researchResult!.images,
+      );
+      expect(orchestrator.getState()).toBe("completed");
+      expect(reportResult!.title).toBeDefined();
+      expect(reportResult!.report).toBeDefined();
+      expect(reportResult!.learnings).toEqual(researchResult!.learnings);
+    });
+  });
 });

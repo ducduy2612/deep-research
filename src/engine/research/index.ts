@@ -20,6 +20,10 @@ export type {
   ResearchEventMap,
   ResearchEventType,
   ResearchResult,
+  ClarifyResult,
+  PlanResult,
+  ResearchPhaseResult,
+  ReportResult,
 } from "./types";
 
 export {
@@ -38,6 +42,7 @@ export {
   getSystemPrompt,
   getClarifyPrompt,
   getPlanPrompt,
+  getPlanWithContextPrompt,
   getSerpQueriesPrompt,
   getAnalyzePrompt,
   getSearchResultPrompt,

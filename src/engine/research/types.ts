@@ -18,10 +18,13 @@ import type { AppError } from "@/lib/errors";
 export type ResearchState =
   | "idle"
   | "clarifying"
+  | "awaiting_feedback"
   | "planning"
+  | "awaiting_plan_review"
   | "searching"
   | "analyzing"
   | "reviewing"
+  | "awaiting_results_review"
   | "reporting"
   | "completed"
   | "failed"
@@ -139,6 +142,30 @@ export interface ResearchResult {
   sources: Source[];
   images: ImageSource[];
 }
+
+// ---------------------------------------------------------------------------
+// Phase result types (for multi-phase streaming)
+// ---------------------------------------------------------------------------
+
+/** Result of the clarify phase — generated follow-up questions. */
+export interface ClarifyResult {
+  questions: string;
+}
+
+/** Result of the plan phase — generated report plan. */
+export interface PlanResult {
+  plan: string;
+}
+
+/** Result of the search+analyze+review phase. */
+export interface ResearchPhaseResult {
+  learnings: string[];
+  sources: Source[];
+  images: ImageSource[];
+}
+
+/** Result of the report phase (same shape as full ResearchResult). */
+export type ReportResult = ResearchResult;
 
 // ---------------------------------------------------------------------------
 // Zod schemas
