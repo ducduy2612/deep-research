@@ -77,7 +77,7 @@ Existing events still work for the full-pipeline flow.
   - Estimate: 1.5 hours
   - Files: src/stores/__tests__/research-store.test.ts
   - Verify: pnpm vitest run src/stores/__tests__/research-store.test.ts
-- [ ] **T07: Verify full test suite passes with store changes** — Run full test suite to verify nothing is broken:
+- [x] **T07: Verified full test suite passes — 596 tests across 24 files green after multi-phase store changes** — Run full test suite to verify nothing is broken:
 
 1. `pnpm vitest run`
 2. Fix any broken type checks
