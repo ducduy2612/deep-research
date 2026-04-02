@@ -362,12 +362,16 @@ export class ResearchOrchestrator {
 
   /** Abort if running and clear all event handlers. */
   destroy(): void {
-    if (
-      this.state !== "idle" &&
-      this.state !== "completed" &&
-      this.state !== "failed" &&
-      this.state !== "aborted"
-    ) {
+    const doneStates: ResearchState[] = [
+      "idle",
+      "completed",
+      "failed",
+      "aborted",
+      "awaiting_feedback",
+      "awaiting_plan_review",
+      "awaiting_results_review",
+    ];
+    if (!doneStates.includes(this.state)) {
       this.abort();
     }
     this.handlers.clear();
@@ -514,6 +518,11 @@ export class ResearchOrchestrator {
     const allLearnings: string[] = [];
     const allSources: Source[] = [];
     const allImages: ImageSource[] = [];
+
+    // Signal search phase immediately so the client sees progress
+    // (generateSerpQueries can take 10-20s with no intermediate events)
+    this.transitionTo("searching");
+    this.emit("step-start", { step: "search" as ResearchStep, state: this.state });
 
     // Generate SERP queries via structured output
     const maxQueries = this.config.maxSearchQueries ?? 4;

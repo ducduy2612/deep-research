@@ -180,7 +180,8 @@ function makeActivity(
   step?: ResearchStep,
 ): ActivityEntry {
   activityCounter += 1;
-  return { id: `act-${activityCounter}`, timestamp: Date.now(), level, message, step };
+  const ts = Date.now();
+  return { id: `act-${ts}-${activityCounter}`, timestamp: ts, level, message, step };
 }
 
 const ALL_STEPS: ResearchStep[] = [
@@ -428,6 +429,20 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
       if (key in steps) {
         steps[key as ResearchStep] = val as StepStreamState;
       }
+    }
+
+    // Seed activityCounter from restored log to avoid duplicate act-N keys
+    if (saved.activityLog.length > 0) {
+      const maxId = saved.activityLog.reduce((max, entry) => {
+        // Format: act-{timestamp}-{counter} — extract the counter suffix
+        const match = entry.id.match(/^act-\d+-(\d+)$/);
+        if (match) return Math.max(max, parseInt(match[1], 10));
+        // Legacy format: act-{counter}
+        const legacy = entry.id.match(/^act-(\d+)$/);
+        if (legacy) return Math.max(max, parseInt(legacy[1], 10));
+        return max;
+      }, 0);
+      activityCounter = maxId;
     }
 
     set({

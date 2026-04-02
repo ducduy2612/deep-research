@@ -277,6 +277,22 @@ function createSSEStream(): {
   return { stream, controller, encoder };
 }
 
+/** Safely send final SSE events and close the stream. No-ops if already closed. */
+function finishStream(
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder,
+  events: string[],
+): void {
+  try {
+    for (const event of events) {
+      controller.enqueue(encoder.encode(event));
+    }
+    controller.close();
+  } catch {
+    // Stream already closed — client disconnected during research
+  }
+}
+
 function subscribeOrchestrator(
   orchestrator: ResearchOrchestrator,
   controller: ReadableStreamDefaultController<Uint8Array>,
@@ -338,18 +354,16 @@ async function handleClarifyPhase(
     try {
       controller.enqueue(encoder.encode(sseEvent("start", { topic: req.topic, phase: "clarify" })));
       const result = await orchestrator.clarifyOnly();
+      const events: string[] = [];
       if (result) {
-        controller.enqueue(encoder.encode(sseEvent("clarify-result", result)));
+        events.push(sseEvent("clarify-result", result));
       }
-      controller.enqueue(encoder.encode(sseEvent("done", {})));
-      controller.close();
+      events.push(sseEvent("done", {}));
+      finishStream(controller, encoder, events);
     } catch (error) {
       const err = toAppError(error, "RESEARCH_STEP_FAILED");
       logger.error("Clarify stream error", { code: err.code, message: err.message });
-      try {
-        controller.enqueue(encoder.encode(sseError(err.code, err.message)));
-        controller.close();
-      } catch { /* already closed */ }
+      finishStream(controller, encoder, [sseError(err.code, err.message)]);
     } finally {
       cleanup(unsubsGetter, orchestrator, onAbort, request);
     }
@@ -383,18 +397,16 @@ async function handlePlanPhase(
     try {
       controller.enqueue(encoder.encode(sseEvent("start", { topic: req.topic, phase: "plan" })));
       const result = await orchestrator.planWithContext(req.topic, req.questions, req.feedback);
+      const events: string[] = [];
       if (result) {
-        controller.enqueue(encoder.encode(sseEvent("plan-result", result)));
+        events.push(sseEvent("plan-result", result));
       }
-      controller.enqueue(encoder.encode(sseEvent("done", {})));
-      controller.close();
+      events.push(sseEvent("done", {}));
+      finishStream(controller, encoder, events);
     } catch (error) {
       const err = toAppError(error, "RESEARCH_STEP_FAILED");
       logger.error("Plan stream error", { code: err.code, message: err.message });
-      try {
-        controller.enqueue(encoder.encode(sseError(err.code, err.message)));
-        controller.close();
-      } catch { /* already closed */ }
+      finishStream(controller, encoder, [sseError(err.code, err.message)]);
     } finally {
       cleanup(unsubsGetter, orchestrator, onAbort, request);
     }
@@ -432,18 +444,16 @@ async function handleResearchPhase(
     try {
       controller.enqueue(encoder.encode(sseEvent("start", { phase: "research" })));
       const result = await orchestrator.researchFromPlan(req.plan);
+      const events: string[] = [];
       if (result) {
-        controller.enqueue(encoder.encode(sseEvent("research-result", result)));
+        events.push(sseEvent("research-result", result));
       }
-      controller.enqueue(encoder.encode(sseEvent("done", {})));
-      controller.close();
+      events.push(sseEvent("done", {}));
+      finishStream(controller, encoder, events);
     } catch (error) {
       const err = toAppError(error, "RESEARCH_STEP_FAILED");
       logger.error("Research stream error", { code: err.code, message: err.message });
-      try {
-        controller.enqueue(encoder.encode(sseError(err.code, err.message)));
-        controller.close();
-      } catch { /* already closed */ }
+      finishStream(controller, encoder, [sseError(err.code, err.message)]);
     } finally {
       cleanup(unsubsGetter, orchestrator, onAbort, request);
     }
@@ -485,18 +495,16 @@ async function handleReportPhase(
         req.sources as Source[],
         req.images as ImageSource[],
       );
+      const events: string[] = [];
       if (result) {
-        controller.enqueue(encoder.encode(sseEvent("result", result)));
+        events.push(sseEvent("result", result));
       }
-      controller.enqueue(encoder.encode(sseEvent("done", {})));
-      controller.close();
+      events.push(sseEvent("done", {}));
+      finishStream(controller, encoder, events);
     } catch (error) {
       const err = toAppError(error, "RESEARCH_STEP_FAILED");
       logger.error("Report stream error", { code: err.code, message: err.message });
-      try {
-        controller.enqueue(encoder.encode(sseError(err.code, err.message)));
-        controller.close();
-      } catch { /* already closed */ }
+      finishStream(controller, encoder, [sseError(err.code, err.message)]);
     } finally {
       cleanup(unsubsGetter, orchestrator, onAbort, request);
     }
@@ -543,18 +551,16 @@ async function handleFullPhase(
       controller.enqueue(encoder.encode(sseEvent("start", { topic: req.topic })));
 
       const result = await orchestrator.start();
+      const events: string[] = [];
       if (result) {
-        controller.enqueue(encoder.encode(sseEvent("result", result)));
+        events.push(sseEvent("result", result));
       }
-      controller.enqueue(encoder.encode(sseEvent("done", {})));
-      controller.close();
+      events.push(sseEvent("done", {}));
+      finishStream(controller, encoder, events);
     } catch (error) {
       const err = toAppError(error, "RESEARCH_STEP_FAILED");
       logger.error("Research stream error", { code: err.code, message: err.message });
-      try {
-        controller.enqueue(encoder.encode(sseError(err.code, err.message)));
-        controller.close();
-      } catch { /* already closed */ }
+      finishStream(controller, encoder, [sseError(err.code, err.message)]);
     } finally {
       cleanup(unsubsGetter, orchestrator, onAbort, request);
     }
