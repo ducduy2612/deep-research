@@ -30,6 +30,10 @@ export interface ProviderKeyConfig {
   readonly apiKey: string;
   readonly baseURL?: string;
   readonly enabled: boolean;
+  /** Model ID used for deep reasoning steps (clarify, plan, analyze, review, report). */
+  readonly thinkingModelId?: string;
+  /** Model ID used for fast networking steps (search query generation). */
+  readonly networkingModelId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -135,6 +139,8 @@ const providerKeySchema = z.object({
   apiKey: z.string().min(1),
   baseURL: z.string().optional(),
   enabled: z.boolean(),
+  thinkingModelId: z.string().optional(),
+  networkingModelId: z.string().optional(),
 });
 
 const settingsSchema = z.object({

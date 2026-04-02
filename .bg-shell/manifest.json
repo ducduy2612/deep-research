@@ -1,16 +1,1 @@
-[
-  {
-    "id": "ebab5256",
-    "label": "dev-server",
-    "command": "pnpm dev",
-    "cwd": "/home/converter/code/deep-research",
-    "ownerSessionFile": "/home/converter/.gsd/sessions/--home-converter-code-deep-research--/2026-04-01T00-07-37-349Z_fd1fa857-4178-422c-9127-d728af9a2498.jsonl",
-    "persistAcrossSessions": false,
-    "startedAt": 1775002079911,
-    "processType": "server",
-    "group": null,
-    "readyPattern": null,
-    "readyPort": 3000,
-    "pid": 537864
-  }
-]
+[]

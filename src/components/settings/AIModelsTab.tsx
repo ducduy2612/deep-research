@@ -47,26 +47,40 @@ function ProviderCard({ provider }: { provider: (typeof PROVIDER_IDS)[number] })
 
   const [apiKey, setApiKey] = useState(existing?.apiKey ?? "");
   const [baseUrl, setBaseUrl] = useState(existing?.baseURL ?? "");
+  const [thinkingModelId, setThinkingModelId] = useState(existing?.thinkingModelId ?? "");
+  const [networkingModelId, setNetworkingModelId] = useState(existing?.networkingModelId ?? "");
   const [showKey, setShowKey] = useState(false);
 
+  const currentApiKey = apiKey.trim() || existing?.apiKey || "";
+  const currentBaseUrl = baseUrl.trim() || existing?.baseURL || "";
+
   const handleSave = () => {
-    if (apiKey.trim()) {
+    if (currentApiKey) {
       setProvider({
         id: provider.id,
-        apiKey: apiKey.trim(),
-        baseURL: baseUrl.trim() || undefined,
+        apiKey: currentApiKey,
+        baseURL: currentBaseUrl || undefined,
         enabled,
+        thinkingModelId: thinkingModelId.trim() || undefined,
+        networkingModelId: networkingModelId.trim() || undefined,
       });
     }
   };
 
   const handleToggle = () => {
     if (!enabled && !apiKey.trim() && existing?.apiKey) {
-      setProvider({ id: provider.id, apiKey: existing.apiKey, baseURL: existing.baseURL, enabled: true });
+      setProvider({ id: provider.id, apiKey: existing.apiKey, baseURL: existing.baseURL, enabled: true, thinkingModelId: existing.thinkingModelId, networkingModelId: existing.networkingModelId });
     } else if (!enabled && apiKey.trim()) {
-      setProvider({ id: provider.id, apiKey: apiKey.trim(), baseURL: baseUrl.trim() || undefined, enabled: true });
+      setProvider({ id: provider.id, apiKey: apiKey.trim(), baseURL: baseUrl.trim() || undefined, enabled: true, thinkingModelId: thinkingModelId.trim() || undefined, networkingModelId: networkingModelId.trim() || undefined });
     } else {
-      setProvider({ id: provider.id, apiKey: existing?.apiKey ?? apiKey.trim(), baseURL: (existing?.baseURL ?? baseUrl.trim()) || undefined, enabled: false });
+      setProvider({
+        id: provider.id,
+        apiKey: existing?.apiKey ?? apiKey.trim(),
+        baseURL: (existing?.baseURL ?? baseUrl.trim()) || undefined,
+        enabled: false,
+        thinkingModelId: (existing?.thinkingModelId ?? thinkingModelId.trim()) || undefined,
+        networkingModelId: (existing?.networkingModelId ?? networkingModelId.trim()) || undefined,
+      });
     }
   };
 
@@ -74,6 +88,8 @@ function ProviderCard({ provider }: { provider: (typeof PROVIDER_IDS)[number] })
     removeProvider(provider.id);
     setApiKey("");
     setBaseUrl("");
+    setThinkingModelId("");
+    setNetworkingModelId("");
   };
 
   return (
@@ -143,6 +159,38 @@ function ProviderCard({ provider }: { provider: (typeof PROVIDER_IDS)[number] })
             placeholder="https://api.example.com/v1"
             className="w-full rounded-md border border-obsidian-surface-raised bg-obsidian-surface-well px-3 py-1.5 text-xs text-obsidian-on-surface placeholder:text-obsidian-on-surface-var/40 focus:border-obsidian-primary focus:outline-none"
           />
+        </div>
+      )}
+
+      {/* Model selection */}
+      {hasKey && (
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
+              {t("thinkingModel")}
+            </label>
+            <input
+              type="text"
+              value={thinkingModelId}
+              onChange={(e) => setThinkingModelId(e.target.value)}
+              placeholder={t("thinkingModelPlaceholder")}
+              onBlur={handleSave}
+              className="w-full rounded-md border border-obsidian-surface-raised bg-obsidian-surface-well px-3 py-1.5 text-xs text-obsidian-on-surface placeholder:text-obsidian-on-surface-var/40 focus:border-obsidian-primary focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
+              {t("networkingModel")}
+            </label>
+            <input
+              type="text"
+              value={networkingModelId}
+              onChange={(e) => setNetworkingModelId(e.target.value)}
+              placeholder={t("networkingModelPlaceholder")}
+              onBlur={handleSave}
+              className="w-full rounded-md border border-obsidian-surface-raised bg-obsidian-surface-well px-3 py-1.5 text-xs text-obsidian-on-surface placeholder:text-obsidian-on-surface-var/40 focus:border-obsidian-primary focus:outline-none"
+            />
+          </div>
         </div>
       )}
 

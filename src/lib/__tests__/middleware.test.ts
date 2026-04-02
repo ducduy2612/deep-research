@@ -69,14 +69,14 @@ describe("createVerifySignatureHandler", () => {
     expect(await runMiddleware(mockRequest(), [createVerifySignatureHandler(() => undefined)])).toBeInstanceOf(NextResponse);
   });
 
-  it("returns 401 when Authorization header missing", async () => {
+  it("passthrough when Authorization header missing (local client)", async () => {
     const res = await runMiddleware(mockRequest("http://localhost:3000/api/test", { "X-Timestamp": NOW.toString() }), [createVerifySignatureHandler(() => PASSWORD)]);
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
   });
 
-  it("returns 401 when X-Timestamp header missing", async () => {
+  it("passthrough when X-Timestamp header missing (local client)", async () => {
     const res = await runMiddleware(mockRequest("http://localhost:3000/api/test", { Authorization: "sig" }), [createVerifySignatureHandler(() => PASSWORD)]);
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
   });
 
   it("returns 401 for invalid timestamp format", async () => {
@@ -204,13 +204,24 @@ describe("full middleware chain", () => {
   const NOW = 1705320000000;
   const PASSWORD = "chain-password";
 
-  it("blocks at signature verification, later handlers not called", async () => {
+  it("passthrough with no auth headers (local client)", async () => {
     const disabledCalled = vi.fn();
     const handlers: MiddlewareHandler[] = [
       createVerifySignatureHandler(() => PASSWORD),
       async (_req, next) => { disabledCalled(); return next(); },
     ];
     const res = await runMiddleware(mockRequest(), handlers);
+    expect(res.status).toBe(200);
+    expect(disabledCalled).toHaveBeenCalled();
+  });
+
+  it("blocks with invalid signature when auth headers present", async () => {
+    const disabledCalled = vi.fn();
+    const handlers: MiddlewareHandler[] = [
+      createVerifySignatureHandler(() => PASSWORD),
+      async (_req, next) => { disabledCalled(); return next(); },
+    ];
+    const res = await runMiddleware(mockRequest("http://localhost:3000/api/test", { Authorization: "wrong", "X-Timestamp": NOW.toString() }), handlers);
     expect(res.status).toBe(401);
     expect(disabledCalled).not.toHaveBeenCalled();
   });

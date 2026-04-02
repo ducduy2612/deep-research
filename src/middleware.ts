@@ -1,13 +1,14 @@
 /**
  * Next.js Edge middleware: route-aware handler composition.
  *
- * Proxy mode (ACCESS_PASSWORD set): require HMAC signature on all /api/* routes.
- * Local mode (no ACCESS_PASSWORD): skip auth, still apply provider/model checks.
+ * Proxy mode (client sends auth headers): verify HMAC signature on all /api/* routes.
+ * Local mode (no auth headers): skip auth, still apply provider/model checks on research routes.
+ * ACCESS_PASSWORD being set does NOT block local requests — it only gates proxy clients.
  *
  * Route classes:
- *   /api/research/* → verify signature (proxy) + check disabled providers + check model filter
- *   /api/knowledge/* → verify signature only (proxy)
- *   /api/* other → verify signature only (proxy)
+ *   /api/research/* → verify signature (if headers present) + check disabled providers + check model filter
+ *   /api/knowledge/* → verify signature only (if headers present)
+ *   /api/* other → verify signature only (if headers present)
  *
  * NOTE: This middleware does NOT consume the request body.
  * Body consumption in middleware prevents route handlers from reading it.

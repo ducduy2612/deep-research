@@ -136,6 +136,7 @@ export function useResearch(): UseResearchReturn {
   const selectedKnowledgeIds = useSettingsStore((s) => s.selectedKnowledgeIds);
   const proxyMode = useSettingsStore((s) => s.proxyMode);
   const accessPassword = useSettingsStore((s) => s.accessPassword);
+  const providers = useSettingsStore((s) => s.providers);
 
   // UI navigation
   const navigate = useUIStore((s) => s.navigate);
@@ -190,8 +191,11 @@ export function useResearch(): UseResearchReturn {
         maxSearchQueries,
         localOnly: localOnlyMode,
         knowledgeContent,
-        // Send provider keys for server-side config building reference
-        // (server builds from env, but we include search config)
+        // Local mode: send client-side provider keys for the server to use.
+        // Proxy mode: omit — server uses its own env vars.
+        providers: !proxyMode
+          ? providers.filter((p) => p.enabled && p.apiKey).map((p) => ({ id: p.id, apiKey: p.apiKey, baseURL: p.baseURL, thinkingModelId: p.thinkingModelId, networkingModelId: p.networkingModelId }))
+          : undefined,
         search: {
           provider: searchProvider ?? undefined,
           includeDomains,
@@ -216,15 +220,18 @@ export function useResearch(): UseResearchReturn {
         });
 
         if (!response.ok) {
-          // Try to parse error from SSE error response
           const text = await response.text();
           let errorMsg = `HTTP ${response.status}`;
           try {
-            // Error responses are also SSE formatted
+            // Try SSE-formatted error first
             const dataMatch = text.match(/data:\s*(.+)/);
             if (dataMatch) {
               const errorData = JSON.parse(dataMatch[1]);
               errorMsg = errorData.message ?? errorMsg;
+            } else {
+              // Fallback: plain JSON error (middleware, etc.)
+              const json = JSON.parse(text);
+              errorMsg = json.message ?? json.error ?? errorMsg;
             }
           } catch {
             // Use default HTTP error
@@ -303,7 +310,7 @@ export function useResearch(): UseResearchReturn {
         cleanup();
       }
     },
-    [searchProvider, includeDomains, excludeDomains, citationImages, promptOverrides, autoReviewRounds, maxSearchQueries, localOnlyMode, selectedKnowledgeIds, proxyMode, accessPassword, startTimer, cleanup],
+    [searchProvider, includeDomains, excludeDomains, citationImages, promptOverrides, autoReviewRounds, maxSearchQueries, localOnlyMode, selectedKnowledgeIds, proxyMode, accessPassword, providers, startTimer, cleanup],
   );
 
   // Public actions

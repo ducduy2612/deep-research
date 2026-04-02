@@ -34,6 +34,8 @@ import { createSearchProvider } from "@/engine/search/factory";
 import { applyDomainFilters } from "@/engine/search/domain-filter";
 import { filterCitationImages } from "@/engine/search/citation-images";
 import { createRegistry } from "@/engine/provider/registry";
+import type { ProviderConfig, ProviderId } from "@/engine/provider/types";
+import { DEFAULT_GOOGLE_MODELS, DEFAULT_OPENAI_MODELS } from "@/lib/api-config";
 
 // ---------------------------------------------------------------------------
 // Request schema
@@ -50,6 +52,15 @@ const streamRequestSchema = z.object({
   maxSearchQueries: z.number().int().min(1).optional(),
   stepModelMap: z.record(z.string(), z.unknown()).optional(),
   promptOverrides: z.record(z.string(), z.string()).optional(),
+  // Local mode: client sends provider keys from browser settings.
+  // Proxy mode: omitted — server uses env vars instead.
+  providers: z.array(z.object({
+    id: z.string(),
+    apiKey: z.string().min(1),
+    baseURL: z.string().optional(),
+    thinkingModelId: z.string().optional(),
+    networkingModelId: z.string().optional(),
+  })).optional(),
   search: z
     .object({
       provider: searchProviderConfigSchema.optional(),
@@ -58,7 +69,6 @@ const streamRequestSchema = z.object({
       citationImages: z.boolean().optional(),
     })
     .optional(),
-
 });
 
 type StreamRequest = z.infer<typeof streamRequestSchema>;
@@ -149,6 +159,47 @@ function buildSearchProvider(
 }
 
 // ---------------------------------------------------------------------------
+// Build provider configs from client-sent keys (local mode)
+// ---------------------------------------------------------------------------
+
+/** Default models for provider IDs sent by the client. */
+const CLIENT_PROVIDER_MODELS: Record<string, ProviderConfig["models"]> = {
+  google: DEFAULT_GOOGLE_MODELS,
+  openai: DEFAULT_OPENAI_MODELS,
+  // OpenAI-compatible providers share the same model list
+  deepseek: DEFAULT_OPENAI_MODELS,
+  openrouter: DEFAULT_OPENAI_MODELS,
+  groq: DEFAULT_OPENAI_MODELS,
+  xai: DEFAULT_OPENAI_MODELS,
+};
+
+function buildClientProviderConfigs(
+  providers: { id: string; apiKey: string; baseURL?: string; thinkingModelId?: string; networkingModelId?: string }[],
+): ProviderConfig[] {
+  return providers
+    .filter((p) => CLIENT_PROVIDER_MODELS[p.id])
+    .map((p) => {
+      const defaultModels = CLIENT_PROVIDER_MODELS[p.id]!;
+      const models = defaultModels.map((m) => {
+        // Override model IDs if the client specified custom ones
+        if (m.role === "thinking" && p.thinkingModelId) {
+          return { ...m, id: p.thinkingModelId, name: p.thinkingModelId };
+        }
+        if (m.role === "networking" && p.networkingModelId) {
+          return { ...m, id: p.networkingModelId, name: p.networkingModelId };
+        }
+        return m;
+      });
+      return {
+        id: p.id as ProviderId,
+        apiKey: p.apiKey,
+        ...(p.baseURL && { baseURL: p.baseURL }),
+        models,
+      };
+    });
+}
+
+// ---------------------------------------------------------------------------
 // POST handler
 // ---------------------------------------------------------------------------
 
@@ -175,12 +226,14 @@ export async function POST(request: Request): Promise<Response> {
 
   const req = parsed.data;
 
-  // 2. Provider configs from env
-  const providerConfigs = buildProviderConfigs();
+  // 2. Provider configs — local mode uses client keys, proxy mode uses env
+  const providerConfigs = req.providers && req.providers.length > 0
+    ? buildClientProviderConfigs(req.providers)
+    : buildProviderConfigs();
   if (providerConfigs.length === 0) {
     return sseErrorResponse(
       "CONFIG_MISSING_KEY",
-      "No AI providers configured. Set GOOGLE_GENERATIVE_AI_API_KEY or OPENAI_API_KEY.",
+      "No AI providers configured. Add an API key in Settings (local mode) or set GOOGLE_GENERATIVE_AI_API_KEY / OPENAI_API_KEY on the server (proxy mode).",
       500,
     );
   }

@@ -1,14 +1,15 @@
 /**
  * Middleware: HMAC signature verification.
  *
- * When ACCESS_PASSWORD is set (proxy mode), all /api/* requests must include:
- *   - Authorization: <signature>
- *   - X-Timestamp: <unix-ms>
+ * When ACCESS_PASSWORD is set AND the client sends auth headers, verify the
+ * HMAC signature. Three cases:
  *
- * The signature is verified against the expected HMAC for the given password
- * and timestamp. If verification fails or headers are missing, returns 401.
+ * 1. No ACCESS_PASSWORD → local server, passthrough all requests.
+ * 2. ACCESS_PASSWORD set + no auth headers → local client, passthrough.
+ * 3. ACCESS_PASSWORD set + auth headers present → proxy client, verify signature.
  *
- * When ACCESS_PASSWORD is not set (local mode), this handler passes through.
+ * This allows a server with ACCESS_PASSWORD configured to serve both local
+ * requests (no auth) and proxied requests (auth required) simultaneously.
  */
 
 import type { NextRequest } from "next/server";
@@ -28,7 +29,7 @@ export function createVerifySignatureHandler(
   return async (request: NextRequest, next) => {
     const password = getPassword();
 
-    // No password configured → local mode, passthrough
+    // No password configured → local server, passthrough all requests
     if (!password) {
       return next();
     }
@@ -36,18 +37,12 @@ export function createVerifySignatureHandler(
     const signature = request.headers.get("Authorization");
     const timestampStr = request.headers.get("X-Timestamp");
 
-    // Missing headers
+    // Password configured but no auth headers → local client, passthrough
     if (!signature || !timestampStr) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-          message: "Missing Authorization or X-Timestamp header",
-        },
-        { status: 401 },
-      );
+      return next();
     }
 
-    // Parse timestamp
+    // Auth headers present → verify signature
     const timestamp = Number(timestampStr);
     if (!Number.isFinite(timestamp) || timestamp <= 0) {
       return NextResponse.json(
@@ -59,7 +54,6 @@ export function createVerifySignatureHandler(
       );
     }
 
-    // Verify signature
     const valid = verifySignature(signature, password, timestamp);
     if (!valid) {
       return NextResponse.json(
