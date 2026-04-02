@@ -4,7 +4,7 @@
 **Demo:** After this: After this: full interactive flow works in browser. Refresh mid-research preserves state. Abort at any phase works cleanly.
 
 ## Tasks
-- [ ] **T12: Implement state persistence across page refresh** — Implement persistence for multi-phase research state so page refresh doesn't lose progress:
+- [x] **T12: Add localforage persistence to research store with interrupted-connection recovery** — Implement persistence for multi-phase research state so page refresh doesn't lose progress:
 
 1. The research store already accumulates questions, feedback, plan, learnings, sources across phases
 2. Ensure localforage persistence works for the new fields (questions, feedback, plan, suggestion)

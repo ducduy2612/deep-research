@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useHistoryStore } from "@/stores/history-store";
 import { useKnowledgeStore } from "@/stores/knowledge-store";
+import { useResearchStore } from "@/stores/research-store";
 
 const SerwistProvider = dynamic(
   () =>
@@ -38,6 +39,7 @@ export function Providers({ children, messages, locale }: ProvidersProps) {
   const loaded = useSettingsStore((s) => s.loaded);
   const hydrateHistory = useHistoryStore((s) => s.hydrate);
   const hydrateKnowledge = useKnowledgeStore((s) => s.hydrate);
+  const hydrateResearch = useResearchStore((s) => s.hydrate);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -50,7 +52,10 @@ export function Providers({ children, messages, locale }: ProvidersProps) {
     hydrateKnowledge().catch((err) => {
       console.error("[Providers] Failed to hydrate knowledge:", err);
     });
-  }, [hydrate, hydrateHistory, hydrateKnowledge]);
+    hydrateResearch().catch((err) => {
+      console.error("[Providers] Failed to hydrate research:", err);
+    });
+  }, [hydrate, hydrateHistory, hydrateKnowledge, hydrateResearch]);
 
   useEffect(() => {
     setMounted(true);

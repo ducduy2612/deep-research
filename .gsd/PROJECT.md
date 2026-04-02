@@ -131,11 +131,13 @@ The Obsidian Deep design system (in `/design/`) defines:
 
 ## Current State (Post-M001, M002 In Progress)
 
-Milestone M001 (v1.0 — Full Rewrite) is **complete**. M002 (Interactive Multi-Phase Research) is in progress.
+Milestone M001 (v1.0 — Full Rewrite) is **complete**. M002 (Interactive Multi-Phase Research) is in progress — S01, S02, S03 complete; S04 remaining.
 
-- **125 source files, ~19K lines of code, 558 passing tests** (up from 498 after M002-S01)
+- **132 source files, ~23K lines of code, 617 passing tests** (182 from hooks/stores alone)
 - **M001 delivered:** 9 slices — Foundation → Providers → Research Engine → Search → Core UI → Settings/History → Knowledge Base → CORS Proxy → PWA/i18n/Polish
 - **M002 S01 delivered:** Multi-phase orchestrator with 4 independent phase methods + SSE route supporting clarify/plan/research/report/full phases
+- **M002 S02 delivered:** Research store multi-phase state machine with 13 states, checkpoint data tracking, elapsed timer
+- **M002 S03 delivered:** Interactive research flow UI — useResearch hook with 5 phase-specific SSE actions (clarify, submitFeedbackAndPlan, approvePlanAndResearch, requestMoreResearch, generateReport), ClarifyPanel/PlanPanel/ResearchActions checkpoint components, state-routed ActiveResearchCenter with phase-aware rendering, WorkflowProgress with awaiting indicators and elapsed timer, full i18n coverage
 - **All 45 M001 requirements validated** (44 fully, 1 partially — KB-06 AI rewriting deferred)
 - **Production build passes cleanly** with 6 static routes, 5 dynamic API routes, and middleware
 
@@ -169,4 +171,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 — M002 Interactive Research in progress: S01 (Engine + API: Multi-Phase Orchestrator & SSE Routes) complete. 558 tests passing.*
+*Last updated: 2026-04-02 — M002 Interactive Research in progress: S01–S03 complete, S04 (Polish: Persistence, Edge Cases, Browser Verification) remaining.*

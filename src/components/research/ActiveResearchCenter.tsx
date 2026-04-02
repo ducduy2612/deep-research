@@ -11,6 +11,7 @@ import { PlanPanel } from "./PlanPanel";
 import { ResearchActions } from "./ResearchActions";
 import type { ResearchStep } from "@/engine/provider/types";
 import type { ResearchState } from "@/engine/research/types";
+import { AlertTriangle, X } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -53,6 +54,8 @@ export function ActiveResearchCenter({
   const error = useResearchStore((s) => s.error);
   const searchResults = useResearchStore((s) => s.searchResults);
   const state = useResearchStore((s) => s.state);
+  const connectionInterrupted = useResearchStore((s) => s.connectionInterrupted);
+  const clearInterrupted = useResearchStore((s) => s.clearInterrupted);
 
   // Determine current step
   let currentStep: ResearchStep | null = null;
@@ -211,6 +214,29 @@ export function ActiveResearchCenter({
         {error && (
           <div className="mb-8 rounded-lg bg-obsidian-error-bg/30 p-6">
             <p className="text-sm text-obsidian-error">{error.message}</p>
+          </div>
+        )}
+
+        {/* Connection interrupted banner */}
+        {connectionInterrupted && (
+          <div className="mb-8 flex items-start gap-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-200">
+                Connection lost
+              </p>
+              <p className="mt-1 text-xs text-amber-200/60">
+                Your research session was interrupted. Your progress has been saved — you can
+                continue from where you left off by clicking the action button below.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={clearInterrupted}
+              className="shrink-0 rounded p-1 text-amber-200/40 transition-colors hover:text-amber-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         )}
 

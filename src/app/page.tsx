@@ -24,6 +24,7 @@ export default function Home() {
   const navigate = useUIStore((s) => s.navigate);
   const result = useResearchStore((s) => s.result);
   const state = useResearchStore((s) => s.state);
+  const connectionInterrupted = useResearchStore((s) => s.connectionInterrupted);
 
   const {
     connectionError,
@@ -43,6 +44,14 @@ export default function Home() {
       });
     }
   }, [connectionError]);
+
+  // Restore navigation on mount: if research state is non-idle, navigate to active view
+  useEffect(() => {
+    if (state !== "idle" && activeView === "hub") {
+      navigate("active");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only check
+  }, []);
 
   // Auto-navigate to report when research completes with a result
   useEffect(() => {

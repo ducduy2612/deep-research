@@ -19,6 +19,10 @@ const envSchema = z.object({
   BRAVE_API_BASE_URL: z.string().url().optional(),
   SEARXNG_API_BASE_URL: z.string().url().optional(),
 
+  // Model overrides (proxy mode — server-side model selection)
+  MCP_THINKING_MODEL: z.string().optional(),
+  MCP_TASK_MODEL: z.string().optional(),
+
   // Client-exposed env vars
   NEXT_PUBLIC_DISABLED_AI_PROVIDER: z.string().optional(),
   NEXT_PUBLIC_DISABLED_SEARCH_PROVIDER: z.string().optional(),

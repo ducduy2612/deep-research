@@ -1,4 +1,4 @@
-# M001: M001: v1.0 — Full Rewrite
+# M001: M001: v1.0 - Full Rewrite
 
 ## Vision
 A ground-up rewrite of the Deep Research application — an AI-powered research tool that orchestrates multi-step web research using various LLM providers. The rewrite applies the Obsidian Dark design system, simplifies AI providers to Gemini native + OpenAI-compatible, and establishes clean architecture from the start.

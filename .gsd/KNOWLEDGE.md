@@ -272,3 +272,25 @@ Lessons learned, patterns, and gotchas discovered during development.
 - Extract `resolveProviderConfigs`, `buildSearchProvider`, `createSSEStream`, `subscribeOrchestrator`, `cleanup` as shared helpers
 - Each phase handler is ~40 lines (down from duplicated 60+ line blocks)
 - The pattern: parse request → build config → create orchestrator → subscribe events → return stream
+
+### S03 — Hook + UI: Interactive Research Flow Components
+
+#### Store done handler must skip completed transition for awaiting_* states
+- The research store's done handler transitions to `completed` by default, but for multi-phase flow, `awaiting_feedback`, `awaiting_plan_review`, and `awaiting_results_review` states need to stay at those states when the SSE stream ends
+- Without this guard, the done event from clarify phase would jump straight to `completed` instead of staying at `awaiting_feedback`
+
+#### connectSSE generic body + isReportPhase flag over per-phase connectors
+- Instead of duplicating SSE connection logic per phase, connectSSE accepts a generic request body and a boolean flag for report-phase auto-save
+- Each phase action (clarify, submitFeedbackAndPlan, etc.) builds its own body then calls connectSSE
+
+#### Prop-threaded callbacks over shared context for multi-phase actions
+- Phase action callbacks (clarify, submitFeedbackAndPlan, etc.) are destructured from useResearch in page.tsx and threaded through ActiveResearch → ActiveResearchCenter via props
+- Avoids dual hook instances and keeps the data flow explicit — no hidden context subscription
+
+#### Editable markdown toggle (preview ↔ raw textarea) over contentEditable
+- ClarifyPanel and PlanPanel use a toggle between MarkdownRenderer preview and a raw textarea for editing
+- contentEditable was considered but rejected — it's inconsistent across browsers and hard to control layout for streaming markdown content
+
+#### WorkflowProgress state-aware icons (Pause for awaiting, Loader2 for streaming)
+- Multi-phase states get visual differentiation: Pause icon in amber for awaiting-user-input states, Loader2 in primary for streaming/active states
+- Makes it immediately clear when the user needs to take action vs when the system is working

@@ -10,6 +10,28 @@ import type { ProviderConfig } from "@/engine/provider/types";
 import type { SearchProviderConfig } from "@/engine/search/types";
 
 // ---------------------------------------------------------------------------
+// Model override helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply env-based model ID overrides to a model list.
+ * Only used in proxy mode — local mode uses user-selected model IDs from the client.
+ */
+function applyModelOverrides(
+  models: ProviderConfig["models"]
+): ProviderConfig["models"] {
+  return models.map((m) => {
+    if (m.role === "thinking" && env.MCP_THINKING_MODEL) {
+      return { ...m, id: env.MCP_THINKING_MODEL, name: env.MCP_THINKING_MODEL };
+    }
+    if (m.role === "networking" && env.MCP_TASK_MODEL) {
+      return { ...m, id: env.MCP_TASK_MODEL, name: env.MCP_TASK_MODEL };
+    }
+    return m;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Default model lists
 // ---------------------------------------------------------------------------
 
@@ -77,7 +99,7 @@ export function buildProviderConfigs(): ProviderConfig[] {
       ...(env.GOOGLE_GENERATIVE_AI_API_BASE_URL && {
         baseURL: env.GOOGLE_GENERATIVE_AI_API_BASE_URL,
       }),
-      models: DEFAULT_GOOGLE_MODELS,
+      models: applyModelOverrides(DEFAULT_GOOGLE_MODELS),
     });
   }
 
@@ -88,7 +110,7 @@ export function buildProviderConfigs(): ProviderConfig[] {
       ...(env.OPENAI_API_BASE_URL && {
         baseURL: env.OPENAI_API_BASE_URL,
       }),
-      models: DEFAULT_OPENAI_MODELS,
+      models: applyModelOverrides(DEFAULT_OPENAI_MODELS),
     });
   }
 

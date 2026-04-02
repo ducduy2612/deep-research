@@ -4,9 +4,14 @@
  * Tracks: topic, orchestrator lifecycle state, streaming text per step,
  * search tasks/results, final result, errors, elapsed time, and activity log.
  * Consumes SSE events from /api/research/stream via handleEvent().
+ *
+ * Persistence: State is persisted to localforage on every change. On hydration,
+ * streaming states are converted to their nearest checkpoint (awaiting_*) so the
+ * user sees their last completed data and can re-trigger the interrupted phase.
  */
 
 import { create } from "zustand";
+import { z } from "zod";
 
 import type {
   ResearchState,
@@ -16,7 +21,9 @@ import type {
   Source,
   ImageSource,
 } from "@/engine/research/types";
+import { sourceSchema, imageSourceSchema } from "@/engine/research/types";
 import type { ResearchStep } from "@/engine/provider/types";
+import * as storage from "@/lib/storage";
 
 // ---------------------------------------------------------------------------
 // Activity log
@@ -55,6 +62,72 @@ const EMPTY_STEP: StepStreamState = {
 };
 
 // ---------------------------------------------------------------------------
+// Persistence schemas (Zod-validated for localforage round-trip)
+// ---------------------------------------------------------------------------
+
+const stepStreamSchema = z.object({
+  text: z.string(),
+  reasoning: z.string(),
+  progress: z.number(),
+  startTime: z.number().nullable(),
+  endTime: z.number().nullable(),
+  duration: z.number().nullable(),
+});
+
+const searchResultSchema = z.object({
+  query: z.string(),
+  researchGoal: z.string(),
+  learning: z.string(),
+  sources: z.array(sourceSchema),
+  images: z.array(imageSourceSchema),
+});
+
+const searchTaskSchema = z.object({
+  query: z.string(),
+  researchGoal: z.string(),
+});
+
+const researchResultSchema = z.object({
+  title: z.string(),
+  report: z.string(),
+  learnings: z.array(z.string()),
+  sources: z.array(sourceSchema),
+  images: z.array(imageSourceSchema),
+});
+
+const errorSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+});
+
+const activityEntrySchema = z.object({
+  id: z.string(),
+  timestamp: z.number(),
+  level: z.enum(["info", "success", "warn", "error"]),
+  message: z.string(),
+  step: z.string().optional(),
+});
+
+const persistedStateSchema = z.object({
+  topic: z.string(),
+  state: z.string(),
+  steps: z.record(z.string(), stepStreamSchema),
+  searchTasks: z.array(searchTaskSchema),
+  searchResults: z.array(searchResultSchema),
+  result: researchResultSchema.nullable(),
+  error: errorSchema.nullable(),
+  startedAt: z.number().nullable(),
+  completedAt: z.number().nullable(),
+  activityLog: z.array(activityEntrySchema),
+  questions: z.string(),
+  feedback: z.string(),
+  plan: z.string(),
+  suggestion: z.string(),
+});
+
+const STORAGE_KEY = "research-state";
+
+// ---------------------------------------------------------------------------
 // Store state & actions
 // ---------------------------------------------------------------------------
 
@@ -74,6 +147,8 @@ export interface ResearchStoreState {
   readonly feedback: string;
   readonly plan: string;
   readonly suggestion: string;
+  // Persistence
+  readonly connectionInterrupted: boolean;
 }
 
 export interface ResearchStoreActions {
@@ -86,6 +161,9 @@ export interface ResearchStoreActions {
   setFeedback: (text: string) => void;
   setPlan: (text: string) => void;
   setSuggestion: (text: string) => void;
+  // Persistence
+  hydrate: () => Promise<void>;
+  clearInterrupted: () => void;
 }
 
 export type ResearchStore = ResearchStoreState & ResearchStoreActions;
@@ -131,6 +209,8 @@ const INITIAL_STATE: ResearchStoreState = {
   feedback: "",
   plan: "",
   suggestion: "",
+  // Persistence
+  connectionInterrupted: false,
 };
 
 // ---------------------------------------------------------------------------
@@ -164,11 +244,13 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
             result: null,
             error: null,
             activityLog: [makeActivity("info", `Starting research: ${d.topic ?? ""}`)],
+            connectionInterrupted: false,
           });
         } else {
           // Intermediate phase (plan/research/report): don't reset accumulated state
           set((s) => ({
             activityLog: [...s.activityLog, makeActivity("info", `Starting ${d.phase} phase`)],
+            connectionInterrupted: false,
           }));
         }
         break;
@@ -302,6 +384,8 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
   reset: () => {
     activityCounter = 0;
     set({ ...INITIAL_STATE, steps: emptySteps() });
+    // Clear persisted state on explicit reset
+    storage.remove(STORAGE_KEY).catch(() => {});
   },
 
   abort: () => {
@@ -311,7 +395,97 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
       activityLog: [...s.activityLog, makeActivity("warn", "Research aborted")],
     }));
   },
+
+  hydrate: async () => {
+    const saved = await storage.get(STORAGE_KEY, persistedStateSchema);
+    if (!saved) return;
+
+    // Don't restore idle or terminal states — nothing useful to recover
+    const terminalStates = ["idle", "completed", "failed", "aborted"];
+    if (terminalStates.includes(saved.state)) return;
+
+    // Convert streaming states to nearest checkpoint on rehydration
+    let restoredState = saved.state as ResearchState;
+    let connectionInterrupted = false;
+
+    const streamingToCheckpoint: Record<string, ResearchState> = {
+      clarifying: "awaiting_feedback",
+      planning: "awaiting_plan_review",
+      searching: "awaiting_results_review",
+      analyzing: "awaiting_results_review",
+      reviewing: "awaiting_results_review",
+      reporting: "awaiting_results_review",
+    };
+
+    if (streamingToCheckpoint[saved.state]) {
+      restoredState = streamingToCheckpoint[saved.state];
+      connectionInterrupted = true;
+    }
+
+    // Restore steps with proper typing
+    const steps = emptySteps();
+    for (const [key, val] of Object.entries(saved.steps)) {
+      if (key in steps) {
+        steps[key as ResearchStep] = val as StepStreamState;
+      }
+    }
+
+    set({
+      topic: saved.topic,
+      state: restoredState,
+      steps,
+      searchTasks: saved.searchTasks as SearchTask[],
+      searchResults: saved.searchResults as SearchResult[],
+      result: saved.result as ResearchResult | null,
+      error: saved.error as { code: string; message: string } | null,
+      startedAt: saved.startedAt,
+      completedAt: saved.completedAt,
+      activityLog: saved.activityLog as ActivityEntry[],
+      questions: saved.questions,
+      feedback: saved.feedback,
+      plan: saved.plan,
+      suggestion: saved.suggestion,
+      connectionInterrupted,
+    });
+  },
+
+  clearInterrupted: () => {
+    set({ connectionInterrupted: false });
+  },
 }));
+
+// ---------------------------------------------------------------------------
+// Auto-persist: save state to localforage on every change
+// ---------------------------------------------------------------------------
+
+useResearchStore.subscribe((state) => {
+  // Don't persist idle state — nothing to recover
+  if (state.state === "idle") {
+    storage.remove(STORAGE_KEY).catch(() => {});
+    return;
+  }
+
+  const persistData = {
+    topic: state.topic,
+    state: state.state,
+    steps: state.steps,
+    searchTasks: state.searchTasks,
+    searchResults: state.searchResults,
+    result: state.result,
+    error: state.error,
+    startedAt: state.startedAt,
+    completedAt: state.completedAt,
+    activityLog: state.activityLog,
+    questions: state.questions,
+    feedback: state.feedback,
+    plan: state.plan,
+    suggestion: state.suggestion,
+  };
+
+  storage.set(STORAGE_KEY, persistData, persistedStateSchema).catch((err) => {
+    console.error("[research-store] Failed to persist state:", err);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Selectors
