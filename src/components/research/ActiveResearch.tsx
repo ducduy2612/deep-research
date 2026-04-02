@@ -18,13 +18,23 @@ import {
 
 interface ActiveResearchProps {
   className?: string;
+  onSubmitFeedbackAndPlan: () => void;
+  onApprovePlanAndResearch: () => void;
+  onRequestMoreResearch: () => void;
+  onGenerateReport: () => void;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function ActiveResearch({ className }: ActiveResearchProps) {
+export function ActiveResearch({
+  className,
+  onSubmitFeedbackAndPlan,
+  onApprovePlanAndResearch,
+  onRequestMoreResearch,
+  onGenerateReport,
+}: ActiveResearchProps) {
   const state = useResearchStore((s) => s.state);
 
   return (
@@ -40,7 +50,12 @@ export function ActiveResearch({ className }: ActiveResearchProps) {
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel id="center" minSize="30%">
-          <ActiveResearchCenter />
+          <ActiveResearchCenter
+            onSubmitFeedbackAndPlan={onSubmitFeedbackAndPlan}
+            onApprovePlanAndResearch={onApprovePlanAndResearch}
+            onRequestMoreResearch={onRequestMoreResearch}
+            onGenerateReport={onGenerateReport}
+          />
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel id="right" minSize="18%" maxSize="40%">

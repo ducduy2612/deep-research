@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T09",
+  "unitId": "M002/S03/T09",
+  "timestamp": 1775118100803,
+  "passed": false,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "pnpm lint",
+      "exitCode": 1,
+      "durationMs": 1271,
+      "verdict": "fail"
+    },
+    {
+      "command": "pnpm build",
+      "exitCode": 1,
+      "durationMs": 3013,
+      "verdict": "fail"
+    }
+  ],
+  "retryAttempt": 1,
+  "maxRetries": 2
+}

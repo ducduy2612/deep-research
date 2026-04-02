@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TavilyProvider } from "../providers/tavily";
 import { FirecrawlProvider } from "../providers/firecrawl";

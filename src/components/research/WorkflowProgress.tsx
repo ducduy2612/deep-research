@@ -5,27 +5,80 @@ import {
   Check,
   Loader2,
   Circle,
+  Pause,
+  Timer,
 } from "lucide-react";
 
 import { cn } from "@/utils/style";
 import type { ResearchStep } from "@/engine/provider/types";
 import type { ResearchState } from "@/engine/research/types";
+import { useResearchStore, selectElapsedMs } from "@/stores/research-store";
 
 // ---------------------------------------------------------------------------
 // Step definitions
 // ---------------------------------------------------------------------------
 
-const STEPS: { step: ResearchStep; labelKey: string; state: ResearchState }[] = [
-  { step: "clarify", labelKey: "topic", state: "clarifying" },
-  { step: "plan", labelKey: "questions", state: "planning" },
-  { step: "search", labelKey: "research", state: "searching" },
-  { step: "analyze", labelKey: "analyze", state: "analyzing" },
-  { step: "review", labelKey: "review", state: "reviewing" },
-  { step: "report", labelKey: "report", state: "reporting" },
+interface StepDef {
+  step: ResearchStep;
+  labelKey: string;
+  /** States where this step is actively streaming. */
+  activeStates: ResearchState[];
+  /** States where this step is awaiting user input (checkpoint). */
+  awaitingStates: ResearchState[];
+}
+
+const STEPS: StepDef[] = [
+  {
+    step: "clarify",
+    labelKey: "topic",
+    activeStates: ["clarifying"],
+    awaitingStates: ["awaiting_feedback"],
+  },
+  {
+    step: "plan",
+    labelKey: "questions",
+    activeStates: ["planning"],
+    awaitingStates: ["awaiting_plan_review"],
+  },
+  {
+    step: "search",
+    labelKey: "research",
+    activeStates: ["searching"],
+    awaitingStates: [],
+  },
+  {
+    step: "analyze",
+    labelKey: "analyze",
+    activeStates: ["analyzing"],
+    awaitingStates: [],
+  },
+  {
+    step: "review",
+    labelKey: "review",
+    activeStates: ["reviewing"],
+    awaitingStates: ["awaiting_results_review"],
+  },
+  {
+    step: "report",
+    labelKey: "report",
+    activeStates: ["reporting"],
+    awaitingStates: [],
+  },
 ];
 
+/** Ordered list of all states for determining progress position. */
 const STATE_ORDER: ResearchState[] = [
-  "clarifying", "planning", "searching", "analyzing", "reviewing", "reporting",
+  "clarifying", "awaiting_feedback",
+  "planning", "awaiting_plan_review",
+  "searching",
+  "analyzing",
+  "reviewing", "awaiting_results_review",
+  "reporting",
+];
+
+/** Terminal states. */
+const TERMINAL_STATES: ResearchState[] = [
+  "completed", "failed", "aborted", "idle",
 ];
 
 // ---------------------------------------------------------------------------
@@ -44,13 +97,13 @@ interface WorkflowProgressProps {
 export function WorkflowProgress({ state, className }: WorkflowProgressProps) {
   const t = useTranslations("Workflow");
 
-  // Determine the progress index
-  let progressIdx = -1;
-  if (state === "completed" || state === "failed" || state === "aborted" || state === "idle") {
-    progressIdx = -1;
-  } else {
-    progressIdx = STATE_ORDER.indexOf(state);
-  }
+  const isTerminal = TERMINAL_STATES.includes(state);
+  const progressIdx = isTerminal ? -1 : STATE_ORDER.indexOf(state);
+
+  // Elapsed timer from store
+  const elapsedMs = useResearchStore(selectElapsedMs);
+
+  const isCompleted = state === "completed";
 
   return (
     <div
@@ -60,30 +113,43 @@ export function WorkflowProgress({ state, className }: WorkflowProgressProps) {
       )}
     >
       {STEPS.map((s, idx) => {
-        const isCompleted = progressIdx >= 0 && idx < progressIdx;
-        const isActive = idx === progressIdx;
+        const isActive = s.activeStates.includes(state);
+        const isAwaiting = s.awaitingStates.includes(state);
+        // A step is completed if the progress index is past this step's states
+        const stepStartIdx = STATE_ORDER.indexOf(s.activeStates[0]);
+        const stepAwaitingIdx = s.awaitingStates.length > 0
+          ? STATE_ORDER.indexOf(s.awaitingStates[0])
+          : stepStartIdx;
+        const isStepCompleted = progressIdx >= 0 &&
+          progressIdx > Math.max(stepStartIdx, stepAwaitingIdx);
 
         return (
           <div key={s.step} className="flex items-center gap-4">
             <div className="flex flex-col items-center gap-1">
               <div className="flex items-center gap-3">
                 <StepIcon
-                  completed={isCompleted}
+                  completed={isStepCompleted || isCompleted}
                   active={isActive}
+                  awaiting={isAwaiting}
                 />
                 <span
                   className={cn(
                     "font-mono text-[10px] font-bold uppercase tracking-[0.2em]",
                     isActive && "text-obsidian-primary-deep",
-                    isCompleted && "text-obsidian-on-surface opacity-60",
-                    !isCompleted && !isActive && "text-obsidian-on-surface opacity-30",
+                    isAwaiting && "text-amber-400",
+                    isStepCompleted && "text-obsidian-on-surface opacity-60",
+                    !isStepCompleted && !isActive && !isAwaiting && "text-obsidian-on-surface opacity-30",
                   )}
                 >
                   {t(`steps.${s.labelKey}`)}
                 </span>
               </div>
-              {isActive && (
-                <div className="h-1 w-4 rounded-full bg-obsidian-primary-deep" />
+              {(isActive || isAwaiting) && (
+                <div className={cn(
+                  "h-1 w-4 rounded-full",
+                  isActive && "bg-obsidian-primary-deep",
+                  isAwaiting && "bg-amber-400",
+                )} />
               )}
             </div>
             {idx < STEPS.length - 1 && (
@@ -92,6 +158,14 @@ export function WorkflowProgress({ state, className }: WorkflowProgressProps) {
           </div>
         );
       })}
+
+      {/* Elapsed timer */}
+      {elapsedMs !== null && elapsedMs > 0 && (
+        <div className="flex items-center gap-1.5 font-mono text-[10px] text-obsidian-on-surface-var/60">
+          <Timer className="h-3 w-3" />
+          <span>{formatElapsed(elapsedMs)}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -100,8 +174,16 @@ export function WorkflowProgress({ state, className }: WorkflowProgressProps) {
 // Step icon
 // ---------------------------------------------------------------------------
 
-function StepIcon({ completed, active }: { completed: boolean; active: boolean }) {
-  if (completed) {
+function StepIcon({
+  completed,
+  active,
+  awaiting,
+}: {
+  completed: boolean;
+  active: boolean;
+  awaiting: boolean;
+}) {
+  if (completed && !active && !awaiting) {
     return (
       <div className="flex h-5 w-5 items-center justify-center">
         <Check className="h-4 w-4 text-obsidian-primary-deep" />
@@ -115,9 +197,28 @@ function StepIcon({ completed, active }: { completed: boolean; active: boolean }
       </div>
     );
   }
+  if (awaiting) {
+    return (
+      <div className="flex h-5 w-5 items-center justify-center">
+        <Pause className="h-4 w-4 text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.3)]" />
+      </div>
+    );
+  }
   return (
     <div className="flex h-5 w-5 items-center justify-center">
       <Circle className="h-4 w-4 text-obsidian-on-surface opacity-30" />
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function formatElapsed(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  if (min > 0) return `${min}m ${sec.toString().padStart(2, "0")}s`;
+  return `${sec}s`;
 }

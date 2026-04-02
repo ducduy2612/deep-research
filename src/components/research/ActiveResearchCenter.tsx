@@ -6,7 +6,11 @@ import { Loader2, ExternalLink } from "lucide-react";
 import { cn } from "@/utils/style";
 import { useResearchStore } from "@/stores/research-store";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import { ClarifyPanel } from "./ClarifyPanel";
+import { PlanPanel } from "./PlanPanel";
+import { ResearchActions } from "./ResearchActions";
 import type { ResearchStep } from "@/engine/provider/types";
+import type { ResearchState } from "@/engine/research/types";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -14,6 +18,10 @@ import type { ResearchStep } from "@/engine/provider/types";
 
 interface ActiveResearchCenterProps {
   className?: string;
+  onSubmitFeedbackAndPlan: () => void;
+  onApprovePlanAndResearch: () => void;
+  onRequestMoreResearch: () => void;
+  onGenerateReport: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -24,11 +32,22 @@ const STEP_ORDER: ResearchStep[] = [
   "clarify", "plan", "search", "analyze", "review", "report",
 ];
 
+/** States that use the standard streaming + completed cards layout. */
+const STREAMING_STATES: ResearchState[] = [
+  "searching", "analyzing", "reviewing", "reporting",
+];
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function ActiveResearchCenter({ className }: ActiveResearchCenterProps) {
+export function ActiveResearchCenter({
+  className,
+  onSubmitFeedbackAndPlan,
+  onApprovePlanAndResearch,
+  onRequestMoreResearch,
+  onGenerateReport,
+}: ActiveResearchCenterProps) {
   const t = useTranslations("Research");
   const steps = useResearchStore((s) => s.steps);
   const error = useResearchStore((s) => s.error);
@@ -48,7 +67,7 @@ export function ActiveResearchCenter({ className }: ActiveResearchCenterProps) {
   const currentLabel = currentStep ? t(`steps.${currentStep}`) : null;
   const activeText = currentStep ? steps[currentStep].text : "";
 
-  // Completed steps
+  // Completed steps (for the streaming view)
   const completedSteps = STEP_ORDER.filter(
     (s) => steps[s].endTime !== null,
   );
@@ -56,35 +75,61 @@ export function ActiveResearchCenter({ className }: ActiveResearchCenterProps) {
   // Idle state
   const isIdle = state === "idle";
 
-  return (
-    <section
-      className={cn(
-        "flex-1 overflow-y-auto bg-obsidian-surface-deck p-8",
-        className,
-      )}
-    >
-      <div className="mx-auto max-w-5xl">
-        {/* Header */}
-        {currentLabel && (
-          <div className="mb-10 flex items-center gap-3">
-            <h2 className="text-2xl font-bold text-obsidian-on-surface">
-              {currentLabel}
-            </h2>
-            <div className="flex items-end gap-1 pb-1">
-              <span className="h-1 w-1 animate-bounce rounded-full bg-obsidian-primary-deep" />
-              <span className="h-1 w-1 animate-bounce rounded-full bg-obsidian-primary-deep [animation-delay:0.2s]" />
-              <span className="h-1 w-1 animate-bounce rounded-full bg-obsidian-primary-deep [animation-delay:0.4s]" />
-            </div>
-          </div>
-        )}
+  // -----------------------------------------------------------------------
+  // Center content routing
+  // -----------------------------------------------------------------------
 
-        {/* Error display */}
-        {error && (
-          <div className="mb-8 rounded-lg bg-obsidian-error-bg/30 p-6">
-            <p className="text-sm text-obsidian-error">{error.message}</p>
-          </div>
-        )}
+  function renderCenterContent() {
+    switch (state) {
+      // ---- Clarify phase ----
+      case "clarifying":
+      case "awaiting_feedback":
+        return (
+          <ClarifyPanel onSubmitFeedbackAndPlan={onSubmitFeedbackAndPlan} />
+        );
 
+      // ---- Plan phase ----
+      case "planning":
+      case "awaiting_plan_review":
+        return (
+          <PlanPanel onApprovePlanAndResearch={onApprovePlanAndResearch} />
+        );
+
+      // ---- Research phase (streaming search/analyze/review) ----
+      case "searching":
+      case "analyzing":
+      case "reviewing":
+        return renderStreamingView();
+
+      // ---- Awaiting results review ----
+      case "awaiting_results_review":
+        return (
+          <div className="flex flex-col gap-8">
+            {renderStreamingView()}
+            <ResearchActions
+              onRequestMoreResearch={onRequestMoreResearch}
+              onGenerateReport={onGenerateReport}
+            />
+          </div>
+        );
+
+      // ---- Report phase (streaming) ----
+      case "reporting":
+        return renderStreamingView();
+
+      // ---- Completed ----
+      case "completed":
+        return renderStreamingView();
+
+      default:
+        return null;
+    }
+  }
+
+  /** Standard streaming view: completed step cards + active streaming + search results. */
+  function renderStreamingView() {
+    return (
+      <>
         {/* Completed step cards */}
         {completedSteps.map((step) => {
           const stepData = steps[step];
@@ -136,6 +181,41 @@ export function ActiveResearchCenter({ className }: ActiveResearchCenterProps) {
             ))}
           </div>
         )}
+      </>
+    );
+  }
+
+  return (
+    <section
+      className={cn(
+        "flex-1 overflow-y-auto bg-obsidian-surface-deck p-8",
+        className,
+      )}
+    >
+      <div className="mx-auto max-w-5xl">
+        {/* Header for streaming states */}
+        {STREAMING_STATES.includes(state) && currentLabel && (
+          <div className="mb-10 flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-obsidian-on-surface">
+              {currentLabel}
+            </h2>
+            <div className="flex items-end gap-1 pb-1">
+              <span className="h-1 w-1 animate-bounce rounded-full bg-obsidian-primary-deep" />
+              <span className="h-1 w-1 animate-bounce rounded-full bg-obsidian-primary-deep [animation-delay:0.2s]" />
+              <span className="h-1 w-1 animate-bounce rounded-full bg-obsidian-primary-deep [animation-delay:0.4s]" />
+            </div>
+          </div>
+        )}
+
+        {/* Error display */}
+        {error && (
+          <div className="mb-8 rounded-lg bg-obsidian-error-bg/30 p-6">
+            <p className="text-sm text-obsidian-error">{error.message}</p>
+          </div>
+        )}
+
+        {/* State-routed center content */}
+        {renderCenterContent()}
 
         {/* Idle state */}
         {isIdle && (

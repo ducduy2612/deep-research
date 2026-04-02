@@ -61,7 +61,7 @@ All components:
   - Estimate: 2.5 hours
   - Files: src/components/research/ClarifyPanel.tsx, src/components/research/PlanPanel.tsx, src/components/research/ResearchActions.tsx
   - Verify: pnpm lint && pnpm build
-- [ ] **T10: Wire panels into ActiveResearch layout** — Update the research page and ActiveResearch components to integrate the new checkpoint panels:
+- [x] **T10: Wire multi-phase checkpoint panels into ActiveResearch with state-routed center content, updated WorkflowProgress with awaiting indicators and elapsed timer, and switched TopicInput to clarify()** — Update the research page and ActiveResearch components to integrate the new checkpoint panels:
 
 1. Update TopicInput to call `clarify()` instead of `start()`
 2. Update ActiveResearch layout to show panels based on store state:

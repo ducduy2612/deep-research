@@ -25,7 +25,14 @@ export default function Home() {
   const result = useResearchStore((s) => s.result);
   const state = useResearchStore((s) => s.state);
 
-  const { connectionError, start } = useResearch();
+  const {
+    connectionError,
+    clarify,
+    submitFeedbackAndPlan,
+    approvePlanAndResearch,
+    requestMoreResearch,
+    generateReport,
+  } = useResearch();
 
   // Show error toast when connection errors occur
   useEffect(() => {
@@ -55,11 +62,17 @@ export default function Home() {
       {/* Main content area */}
       <main className="flex flex-1 flex-col">
         {activeView === "hub" && (
-          <HubView onStart={start} />
+          <HubView onStart={clarify} />
         )}
 
         {activeView === "active" && (
-          <ActiveResearch className="flex-1" />
+          <ActiveResearch
+            className="flex-1"
+            onSubmitFeedbackAndPlan={submitFeedbackAndPlan}
+            onApprovePlanAndResearch={approvePlanAndResearch}
+            onRequestMoreResearch={requestMoreResearch}
+            onGenerateReport={generateReport}
+          />
         )}
 
         {activeView === "report" && (
