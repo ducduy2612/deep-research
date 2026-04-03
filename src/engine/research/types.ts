@@ -188,6 +188,102 @@ export const searchTaskSchema = z.object({
   researchGoal: z.string().min(1),
 });
 
+// ---------------------------------------------------------------------------
+// Search result schema
+// ---------------------------------------------------------------------------
+
+export const searchResultSchema = z.object({
+  query: z.string(),
+  researchGoal: z.string(),
+  learning: z.string(),
+  sources: z.array(sourceSchema),
+  images: z.array(imageSourceSchema),
+});
+
+// ---------------------------------------------------------------------------
+// Research result schema
+// ---------------------------------------------------------------------------
+
+export const researchResultSchema = z.object({
+  title: z.string(),
+  report: z.string(),
+  learnings: z.array(z.string()),
+  sources: z.array(sourceSchema),
+  images: z.array(imageSourceSchema),
+});
+
+// ---------------------------------------------------------------------------
+// Checkpoint types (immutable phase snapshots)
+// ---------------------------------------------------------------------------
+
+/** Phases that can produce a frozen checkpoint. */
+export type CheckpointPhase = "clarify" | "plan" | "research" | "report";
+
+/** Frozen snapshot of the clarify phase. */
+export interface ClarifyCheckpoint {
+  readonly frozenAt: number;
+  readonly questions: string;
+}
+
+/** Frozen snapshot of the plan phase. */
+export interface PlanCheckpoint {
+  readonly frozenAt: number;
+  readonly plan: string;
+  readonly searchTasks: readonly SearchTask[];
+}
+
+/** Frozen snapshot of the research phase. */
+export interface ResearchPhaseCheckpoint {
+  readonly frozenAt: number;
+  readonly searchResults: readonly SearchResult[];
+  readonly result: ResearchResult | null;
+}
+
+/** Frozen snapshot of the report phase. */
+export interface ReportCheckpoint {
+  readonly frozenAt: number;
+  readonly result: ResearchResult;
+}
+
+/** Immutable checkpoints for each completed research phase. */
+export interface ResearchCheckpoints {
+  readonly clarify?: ClarifyCheckpoint;
+  readonly plan?: PlanCheckpoint;
+  readonly research?: ResearchPhaseCheckpoint;
+  readonly report?: ReportCheckpoint;
+}
+
+/** Zod schema for the checkpoints map. */
+export const checkpointsSchema = z.object({
+  clarify: z
+    .object({ frozenAt: z.number(), questions: z.string() })
+    .optional(),
+  plan: z
+    .object({
+      frozenAt: z.number(),
+      plan: z.string(),
+      searchTasks: z.array(searchTaskSchema),
+    })
+    .optional(),
+  research: z
+    .object({
+      frozenAt: z.number(),
+      searchResults: z.array(searchResultSchema),
+      result: researchResultSchema.nullable(),
+    })
+    .optional(),
+  report: z
+    .object({
+      frozenAt: z.number(),
+      result: researchResultSchema,
+    })
+    .optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Research config schema
+// ---------------------------------------------------------------------------
+
 export const researchConfigSchema = z.object({
   topic: z.string().min(1),
   providerConfigs: z.array(providerConfigSchema).min(1),

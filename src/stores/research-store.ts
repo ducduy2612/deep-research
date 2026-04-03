@@ -11,7 +11,6 @@
  */
 
 import { create } from "zustand";
-import { z } from "zod";
 
 import type {
   ResearchState,
@@ -20,10 +19,12 @@ import type {
   SearchResult,
   Source,
   ImageSource,
+  CheckpointPhase,
+  ResearchCheckpoints,
 } from "@/engine/research/types";
-import { sourceSchema, imageSourceSchema } from "@/engine/research/types";
 import type { ResearchStep } from "@/engine/provider/types";
 import * as storage from "@/lib/storage";
+import { persistedStateSchema, STORAGE_KEY } from "./research-store-persist";
 
 // ---------------------------------------------------------------------------
 // Activity log
@@ -62,87 +63,6 @@ const EMPTY_STEP: StepStreamState = {
 };
 
 // ---------------------------------------------------------------------------
-// Persistence schemas (Zod-validated for localforage round-trip)
-// ---------------------------------------------------------------------------
-
-const stepStreamSchema = z.object({
-  text: z.string(),
-  reasoning: z.string(),
-  progress: z.number(),
-  startTime: z.number().nullable(),
-  endTime: z.number().nullable(),
-  duration: z.number().nullable(),
-});
-
-const searchResultSchema = z.object({
-  query: z.string(),
-  researchGoal: z.string(),
-  learning: z.string(),
-  sources: z.array(sourceSchema),
-  images: z.array(imageSourceSchema),
-});
-
-const searchTaskSchema = z.object({
-  query: z.string(),
-  researchGoal: z.string(),
-});
-
-const researchResultSchema = z.object({
-  title: z.string(),
-  report: z.string(),
-  learnings: z.array(z.string()),
-  sources: z.array(sourceSchema),
-  images: z.array(imageSourceSchema),
-});
-
-const errorSchema = z.object({
-  code: z.string(),
-  message: z.string(),
-});
-
-const activityEntrySchema = z.object({
-  id: z.string(),
-  timestamp: z.number(),
-  level: z.enum(["info", "success", "warn", "error"]),
-  message: z.string(),
-  step: z.string().optional(),
-});
-
-const researchStateValues = [
-  "clarifying",
-  "awaiting_feedback",
-  "planning",
-  "awaiting_plan_review",
-  "searching",
-  "analyzing",
-  "reviewing",
-  "awaiting_results_review",
-  "reporting",
-  "completed",
-  "failed",
-  "aborted",
-] as const;
-
-const persistedStateSchema = z.object({
-  topic: z.string(),
-  state: z.enum(researchStateValues),
-  steps: z.record(z.string(), stepStreamSchema),
-  searchTasks: z.array(searchTaskSchema),
-  searchResults: z.array(searchResultSchema),
-  result: researchResultSchema.nullable(),
-  error: errorSchema.nullable(),
-  startedAt: z.number().nullable(),
-  completedAt: z.number().nullable(),
-  activityLog: z.array(activityEntrySchema),
-  questions: z.string(),
-  feedback: z.string(),
-  plan: z.string(),
-  suggestion: z.string(),
-});
-
-const STORAGE_KEY = "research-state";
-
-// ---------------------------------------------------------------------------
 // Store state & actions
 // ---------------------------------------------------------------------------
 
@@ -157,11 +77,14 @@ export interface ResearchStoreState {
   readonly startedAt: number | null;
   readonly completedAt: number | null;
   readonly activityLog: readonly ActivityEntry[];
-  // Multi-phase checkpoint fields
+  // Multi-phase workspace fields (mutable — user can edit)
   readonly questions: string;
   readonly feedback: string;
   readonly plan: string;
   readonly suggestion: string;
+  readonly manualQueries: readonly string[];
+  // Immutable phase checkpoints
+  readonly checkpoints: ResearchCheckpoints;
   // Persistence
   readonly connectionInterrupted: boolean;
 }
@@ -171,11 +94,14 @@ export interface ResearchStoreActions {
   handleEvent: (eventType: string, data: unknown) => void;
   reset: () => void;
   abort: () => void;
-  // Multi-phase checkpoint setters
+  // Multi-phase workspace setters
   setQuestions: (text: string) => void;
   setFeedback: (text: string) => void;
   setPlan: (text: string) => void;
   setSuggestion: (text: string) => void;
+  setManualQueries: (queries: string[]) => void;
+  // Checkpoint actions
+  freeze: (phase: CheckpointPhase) => void;
   // Persistence
   hydrate: () => Promise<void>;
   clearInterrupted: () => void;
@@ -220,11 +146,14 @@ const INITIAL_STATE: ResearchStoreState = {
   startedAt: null,
   completedAt: null,
   activityLog: [],
-  // Multi-phase checkpoint fields
+  // Multi-phase workspace fields
   questions: "",
   feedback: "",
   plan: "",
   suggestion: "",
+  manualQueries: [],
+  // Immutable checkpoints
+  checkpoints: {},
   // Persistence
   connectionInterrupted: false,
 };
@@ -242,6 +171,47 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
   setFeedback: (text: string) => set({ feedback: text }),
   setPlan: (text: string) => set({ plan: text }),
   setSuggestion: (text: string) => set({ suggestion: text }),
+  setManualQueries: (queries: string[]) => set({ manualQueries: queries }),
+
+  freeze: (phase: CheckpointPhase) => {
+    set((s) => {
+      const frozenAt = Date.now();
+      let updated: ResearchCheckpoints;
+
+      switch (phase) {
+        case "clarify":
+          updated = { ...s.checkpoints, clarify: { frozenAt, questions: s.questions } };
+          break;
+        case "plan":
+          updated = {
+            ...s.checkpoints,
+            plan: { frozenAt, plan: s.plan, searchTasks: [...s.searchTasks] },
+          };
+          break;
+        case "research":
+          updated = {
+            ...s.checkpoints,
+            research: { frozenAt, searchResults: [...s.searchResults], result: s.result },
+          };
+          break;
+        case "report": {
+          if (!s.result) return {};
+          updated = { ...s.checkpoints, report: { frozenAt, result: s.result } };
+          break;
+        }
+        default:
+          return {};
+      }
+
+      return {
+        checkpoints: updated,
+        activityLog: [
+          ...s.activityLog,
+          makeActivity("info", `Checkpoint frozen: ${phase}`),
+        ],
+      };
+    });
+  },
 
   handleEvent: (eventType: string, data: unknown) => {
     switch (eventType) {
@@ -539,6 +509,8 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
       feedback: saved.feedback,
       plan: saved.plan,
       suggestion: saved.suggestion,
+      manualQueries: saved.manualQueries ?? [],
+      checkpoints: saved.checkpoints ?? {},
       connectionInterrupted,
     });
   },
@@ -574,6 +546,8 @@ useResearchStore.subscribe((state) => {
     feedback: state.feedback,
     plan: state.plan,
     suggestion: state.suggestion,
+    manualQueries: state.manualQueries,
+    checkpoints: state.checkpoints,
   };
 
   storage.set(STORAGE_KEY, persistData as unknown as z.infer<typeof persistedStateSchema>, persistedStateSchema).catch((err) => {
