@@ -4,7 +4,7 @@
 **Demo:** After this: Store has checkpoints{} + workspace{} separation. Workspace edits (questions, feedback, suggestion, manual queries) survive refresh. Frozen data is immutable — freeze() action prevents mutation. All 617+ existing tests pass.
 
 ## Tasks
-- [ ] **T01: Extract persist schemas + add checkpoint types + implement freeze action** — Extract persistence schemas from research-store.ts into a new research-store-persist.ts helper to keep the store under 500 lines. Add checkpoint type definitions to engine/research/types.ts. Add checkpoints, manualQueries, and freeze() to the store. Update reset(), persist schema, auto-persist, hydrate, and barrel exports.
+- [x] **T01: Verify checkpoint types, persist schemas, freeze action, and fix pre-existing AI SDK v6 compatibility issues** — Extract persistence schemas from research-store.ts into a new research-store-persist.ts helper to keep the store under 500 lines. Add checkpoint type definitions to engine/research/types.ts. Add checkpoints, manualQueries, and freeze() to the store. Update reset(), persist schema, auto-persist, hydrate, and barrel exports.
   - Estimate: 1h
   - Files: src/engine/research/types.ts, src/stores/research-store-persist.ts, src/stores/research-store.ts, src/stores/index.ts
   - Verify: pnpm vitest run && pnpm build

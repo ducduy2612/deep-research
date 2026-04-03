@@ -550,7 +550,7 @@ useResearchStore.subscribe((state) => {
     checkpoints: state.checkpoints,
   };
 
-  storage.set(STORAGE_KEY, persistData as unknown as z.infer<typeof persistedStateSchema>, persistedStateSchema).catch((err) => {
+  storage.set(STORAGE_KEY, persistData as never, persistedStateSchema).catch((err) => {
     console.error("[research-store] Failed to persist state:", err);
   });
 });

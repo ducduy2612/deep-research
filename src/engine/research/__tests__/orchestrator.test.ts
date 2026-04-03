@@ -60,7 +60,7 @@ import { ResearchOrchestrator } from "../orchestrator";
 import type { ResearchConfig, ResearchState } from "../types";
 import type { SearchProvider } from "../search-provider";
 import type { ProviderConfig } from "@/engine/provider/types";
-import { MockLanguageModelV3 } from "ai/test";
+import { MockLanguageModelV1 } from "ai/test";
 import { simulateReadableStream } from "ai";
 
 // ---------------------------------------------------------------------------
@@ -106,17 +106,16 @@ function fakeStreamResponse(textChunks: string[] = ["response text"]) {
     for (const chunk of textChunks) {
       yield {
         type: "text-delta" as const,
-        id: "text-1",
-        text: chunk,
+        textDelta: chunk,
       };
     }
     yield {
       type: "finish" as const,
-      finishReason: { unified: "stop" as const, raw: undefined },
-      logprobs: undefined,
+      finishReason: "stop" as const,
       usage: {
-        inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
-        outputTokens: { total: 20, text: 20, reasoning: undefined },
+        promptTokens: 10,
+        completionTokens: 20,
+        totalTokens: 30,
       },
     };
   })();
@@ -150,32 +149,23 @@ describe("ResearchOrchestrator", () => {
     vi.clearAllMocks();
 
     // Default mock model
-    mockContainer.model = new MockLanguageModelV3({
+    mockContainer.model = new MockLanguageModelV1({
       doStream: async () => ({
         stream: simulateReadableStream({
           chunks: [
-            { type: "text-delta", id: "text-1", delta: "text" },
-            { type: "text-end", id: "text-1" },
+            { type: "text-delta", textDelta: "text" },
             {
               type: "finish",
-              finishReason: { unified: "stop", raw: undefined },
-              logprobs: undefined,
-              usage: {
-                inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
-                outputTokens: { total: 20, text: 20, reasoning: undefined },
-              },
+              finishReason: "stop",
+              usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
             },
           ],
         }),
       }),
       doGenerate: async () => ({
         content: [{ type: "text", text: JSON.stringify([]) }],
-        finishReason: { unified: "stop", raw: undefined },
-        usage: {
-          inputTokens: { total: 5, noCache: 5, cacheRead: undefined, cacheWrite: undefined },
-          outputTokens: { total: 10, text: 10, reasoning: undefined },
-        },
-        warnings: [],
+        finishReason: "stop",
+        usage: { promptTokens: 5, completionTokens: 10, totalTokens: 15 },
       }),
     });
 

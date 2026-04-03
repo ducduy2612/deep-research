@@ -11,8 +11,6 @@
 import { z } from "zod";
 
 import {
-  sourceSchema,
-  imageSourceSchema,
   searchResultSchema,
   researchResultSchema,
 } from "@/engine/research/types";

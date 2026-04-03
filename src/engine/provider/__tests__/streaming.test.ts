@@ -140,12 +140,12 @@ describe("streamWithAbort", () => {
     });
 
     captureCallback("onFinish")({
-      usage: { inputTokens: 100, outputTokens: 50 },
+      usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
     });
 
     expect(logger.info).toHaveBeenCalledWith("Stream finished", {
-      inputTokens: 100,
-      outputTokens: 50,
+      promptTokens: 100,
+      completionTokens: 50,
       steps: 0,
     });
     expect(onFinish).toHaveBeenCalledWith({
@@ -176,21 +176,21 @@ describe("generateStructured", () => {
 
   it("calls generateText with correct model, output config, and prompt", async () => {
     const model = createMockModel();
-    mockGenerateText.mockResolvedValue({ output: { name: "test" } });
+    mockGenerateText.mockResolvedValue({ experimental_output: { name: "test" } });
 
     const result = await generateStructured({ model, schema: testSchema, prompt: "Generate" });
 
     const args = mockGenerateText.mock.calls[0][0] as Record<string, unknown>;
     expect(args.model).toBe(model);
     expect(args.prompt).toBe("Generate");
-    // output should be an Output.object({ schema }) — just verify it exists
-    expect(args.output).toBeDefined();
+    // experimental_output should be an Output.object({ schema }) — just verify it exists
+    expect(args.experimental_output).toBeDefined();
     expect(result).toEqual({ name: "test" });
   });
 
   it("passes abortSignal to generateText", async () => {
     const abortSignal = new AbortController().signal;
-    mockGenerateText.mockResolvedValue({ output: { name: "x" } });
+    mockGenerateText.mockResolvedValue({ experimental_output: { name: "x" } });
 
     await generateStructured({
       model: createMockModel(),
@@ -205,7 +205,7 @@ describe("generateStructured", () => {
 
   it("logs with schema description when present", async () => {
     const schemaWithDesc = z.object({ value: z.number() }).describe("MySchema");
-    mockGenerateText.mockResolvedValue({ output: { value: 1 } });
+    mockGenerateText.mockResolvedValue({ experimental_output: { value: 1 } });
 
     await generateStructured({
       model: createMockModel(),
@@ -219,7 +219,7 @@ describe("generateStructured", () => {
   });
 
   it("uses 'unknown' for schemaType when no description", async () => {
-    mockGenerateText.mockResolvedValue({ output: { name: "x" } });
+    mockGenerateText.mockResolvedValue({ experimental_output: { name: "x" } });
 
     await generateStructured({
       model: createMockModel(),

@@ -153,23 +153,27 @@ export class ModelNativeSearchProvider implements SearchProvider {
 
     // Extract just the model ID after the "google:" prefix
     const modelId = modelString.replace("google:", "");
-    const model = google(modelId);
+    const model = google(modelId, {
+      useSearchGrounding: true,
+    });
 
     const result = await generateText({
       model,
       prompt: query,
-      tools: {
-        google_search: google.tools.googleSearch({}),
-      },
       abortSignal,
     });
 
-    const sources = result.sources
-      .filter((s) => s.sourceType === "url")
-      .map((s) => ({
-        url: s.url,
-        ...(s.title && { title: s.title }),
-      }));
+    const groundingChunks = (
+      result.providerMetadata?.google as
+        { groundingChunks?: { web?: { uri: string; title: string } }[] } | undefined
+    )?.groundingChunks;
+
+    const sources = groundingChunks
+      ?.filter((c) => c.web?.uri)
+      .map((c) => ({
+        url: c.web!.uri,
+        title: c.web!.title,
+      })) ?? [];
 
     logger.info("ModelNativeSearchProvider: Google results", {
       sourceCount: sources.length,

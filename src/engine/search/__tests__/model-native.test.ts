@@ -145,17 +145,24 @@ describe("ModelNativeSearchProvider", () => {
   // -------------------------------------------------------------------------
 
   describe("Google provider", () => {
-    it("creates Google provider, uses googleSearch tool, and calls generateText", async () => {
-      const googleModelFn = createGoogleModelFn("mock-google-grounded-model");
+    it("creates Google provider with useSearchGrounding and calls generateText", async () => {
+      const googleModelFn = vi.fn().mockReturnValue("mock-google-grounded-model");
       vi.mocked(createGoogleGenerativeAI).mockReturnValue(
         googleModelFn as never,
       );
 
-      vi.mocked(generateText).mockResolvedValue(
-        mockGenerateTextResult([
-          { url: "https://example.com", title: "Example" },
-        ]) as never,
-      );
+      vi.mocked(generateText).mockResolvedValue({
+        text: "response",
+        finishReason: "stop",
+        usage: { promptTokens: 10, completionTokens: 20 },
+        providerMetadata: {
+          google: {
+            groundingChunks: [
+              { web: { uri: "https://example.com", title: "Example" } },
+            ],
+          },
+        },
+      } as never);
 
       const provider = new ModelNativeSearchProvider(
         makeOptions("google"),
@@ -167,21 +174,20 @@ describe("ModelNativeSearchProvider", () => {
         apiKey: "test-api-key",
       });
 
-      // Model should be created without useSearchGrounding (tool-based now)
-      expect(googleModelFn).toHaveBeenCalledWith("google-networking-model");
+      // Model should be created with useSearchGrounding enabled
+      expect(googleModelFn).toHaveBeenCalledWith("google-networking-model", {
+        useSearchGrounding: true,
+      });
 
-      // googleSearch tool should be called
-      expect(googleModelFn.tools.googleSearch).toHaveBeenCalledWith({});
-
-      // generateText should be called with the model and google_search tool
+      // generateText should be called with the model (no tools)
       expect(generateText).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "mock-google-grounded-model",
           prompt: "test query",
-          tools: { google_search: "mock-search-tool" },
         }),
       );
 
+      // Sources should be extracted from groundingChunks
       expect(result.sources).toHaveLength(1);
       expect(result.sources[0]).toEqual({
         url: "https://example.com",
@@ -572,17 +578,19 @@ describe("ModelNativeSearchProvider", () => {
   // -------------------------------------------------------------------------
 
   describe("Source extraction", () => {
-    it("filters to url sources only", async () => {
+    it("extracts sources from groundingChunks", async () => {
       vi.mocked(generateText).mockResolvedValue({
         text: "Generated",
-        sources: [
-          { sourceType: "url", id: "0", url: "https://example.com", title: "URL Source" },
-          { sourceType: "file" as never, id: "1" } as never,
-        ],
-        toolCalls: [],
-        toolResults: [],
         finishReason: "stop",
         usage: { promptTokens: 10, completionTokens: 20 },
+        providerMetadata: {
+          google: {
+            groundingChunks: [
+              { web: { uri: "https://example.com", title: "URL Source" } },
+              { web: { uri: "https://other.com", title: "Other" } },
+            ],
+          },
+        },
       } as never);
 
       const googleModelFn = createGoogleModelFn();
@@ -595,21 +603,23 @@ describe("ModelNativeSearchProvider", () => {
       );
       const result = await provider.search("q");
 
-      expect(result.sources).toHaveLength(1);
+      expect(result.sources).toHaveLength(2);
       expect(result.sources[0].url).toBe("https://example.com");
     });
 
     it("includes title only when present", async () => {
       vi.mocked(generateText).mockResolvedValue({
         text: "Generated",
-        sources: [
-          { sourceType: "url", id: "0", url: "https://a.com", title: "Has Title" },
-          { sourceType: "url", id: "1", url: "https://b.com" },
-        ],
-        toolCalls: [],
-        toolResults: [],
         finishReason: "stop",
         usage: { promptTokens: 10, completionTokens: 20 },
+        providerMetadata: {
+          google: {
+            groundingChunks: [
+              { web: { uri: "https://a.com", title: "Has Title" } },
+              { web: { uri: "https://b.com" } },
+            ],
+          },
+        },
       } as never);
 
       const googleModelFn = createGoogleModelFn();
@@ -629,6 +639,7 @@ describe("ModelNativeSearchProvider", () => {
       });
       expect(result.sources[1]).toEqual({
         url: "https://b.com",
+        title: undefined,
       });
     });
 
