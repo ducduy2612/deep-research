@@ -8,7 +8,7 @@
   - Estimate: 1h
   - Files: src/stores/research-store.ts, src/stores/research-store-persist.ts, src/stores/__tests__/research-store-crud.test.ts
   - Verify: pnpm vitest run src/stores/__tests__/research-store-crud.test.ts
-- [ ] **T02: SearchResultCard + ManualQueryInput components** — Build SearchResultCard component showing search result with delete/retry buttons, collapsible learning section, source list. Build ManualQueryInput with text input + Add button + removable chip list. Both use store actions from T01.
+- [x] **T02: Built SearchResultCard (delete/retry/collapsible learning+sources) and ManualQueryInput (input+removable chips) with full i18n** — Build SearchResultCard component showing search result with delete/retry buttons, collapsible learning section, source list. Build ManualQueryInput with text input + Add button + removable chip list. Both use store actions from T01.
   - Estimate: 1h
   - Files: src/components/research/SearchResultCard.tsx, src/components/research/ManualQueryInput.tsx, messages/en.json, messages/vi.json
   - Verify: pnpm build 2>&1 | tail -5

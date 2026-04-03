@@ -283,5 +283,15 @@
     "frozenBadge": "Frozen",
     "activeLabel": "Active",
     "pendingLabel": "Pending"
+  },
+  "SearchResultCard": {
+    "delete": "Delete result",
+    "retry": "Retry search",
+    "sources": "{count} sources",
+    "learning": "Learning"
+  },
+  "ManualQueryInput": {
+    "placeholder": "Add a search query...",
+    "add": "Add"
   }
 }

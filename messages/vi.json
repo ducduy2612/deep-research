@@ -283,5 +283,15 @@
     "frozenBadge": "Đã lưu",
     "activeLabel": "Đang hoạt động",
     "pendingLabel": "Chờ xử lý"
+  },
+  "SearchResultCard": {
+    "delete": "Xóa kết quả",
+    "retry": "Tìm kiếm lại",
+    "sources": "{count} nguồn",
+    "learning": "Phát hiện"
+  },
+  "ManualQueryInput": {
+    "placeholder": "Thêm truy vấn tìm kiếm...",
+    "add": "Thêm"
   }
 }
