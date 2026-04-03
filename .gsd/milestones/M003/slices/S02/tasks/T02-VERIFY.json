@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T02",
+  "unitId": "M003/S02/T02",
+  "timestamp": 1775231182840,
+  "passed": false,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "pnpm vitest run — all tests pass. pnpm build — production build succeeds. grep -q 'freeze.*clarify' src/components/research/ClarifyPanel.tsx. grep -q 'freeze.*plan' src/components/research/PlanPanel.tsx. ! grep -q 'renderCenterContent' src/components/research/ActiveResearchCenter.tsx. grep -q 'PhaseAccordion' src/components/research/ActiveResearchCenter.tsx",
+      "exitCode": 1,
+      "durationMs": 177,
+      "verdict": "fail"
+    }
+  ],
+  "retryAttempt": 1,
+  "maxRetries": 2
+}

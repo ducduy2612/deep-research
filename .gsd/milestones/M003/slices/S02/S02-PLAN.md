@@ -80,7 +80,7 @@ Must-Haves:
   - Estimate: 1h
   - Files: src/components/research/ClarifyPanel.tsx, src/components/research/PlanPanel.tsx, src/components/research/ActiveResearchCenter.tsx
   - Verify: pnpm vitest run — all tests pass. pnpm build — production build succeeds. grep -q 'freeze.*clarify' src/components/research/ClarifyPanel.tsx. grep -q 'freeze.*plan' src/components/research/PlanPanel.tsx. ! grep -q 'renderCenterContent' src/components/research/ActiveResearchCenter.tsx. grep -q 'PhaseAccordion' src/components/research/ActiveResearchCenter.tsx
-- [ ] **T03: Write PhaseAccordion unit tests verifying frozen/active rendering and state mapping** — Create a test file that verifies PhaseAccordion correctly renders frozen vs active phases based on store state. Tests cover: frozen detection, active detection, summary badges, read-only content rendering, and freeze→accordion flow.
+- [x] **T03: Add PhaseAccordion unit tests (9 cases) covering frozen/active/pending rendering with vi.hoisted mock pattern** — Create a test file that verifies PhaseAccordion correctly renders frozen vs active phases based on store state. Tests cover: frozen detection, active detection, summary badges, read-only content rendering, and freeze→accordion flow.
 
 Steps:
 1. Create `src/components/research/__tests__/phase-accordion.test.tsx`
