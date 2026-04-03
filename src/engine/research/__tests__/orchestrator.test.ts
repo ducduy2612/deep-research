@@ -106,16 +106,15 @@ function fakeStreamResponse(textChunks: string[] = ["response text"]) {
     for (const chunk of textChunks) {
       yield {
         type: "text-delta" as const,
-        delta: chunk,
+        text: chunk,
       };
     }
     yield {
       type: "finish" as const,
       finishReason: "stop" as const,
       usage: {
-        promptTokens: 10,
-        completionTokens: 20,
-        totalTokens: 30,
+        inputTokens: 10,
+        outputTokens: 20,
       },
     };
   })();
@@ -153,7 +152,7 @@ describe("ResearchOrchestrator", () => {
       doStream: async () => ({
         stream: simulateReadableStream({
           chunks: [
-            { type: "text-delta", delta: "text" },
+            { type: "text-delta", text: "text" },
             {
               type: "finish",
               finishReason: "stop",

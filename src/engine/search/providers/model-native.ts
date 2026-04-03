@@ -133,7 +133,7 @@ export class ModelNativeSearchProvider implements SearchProvider {
   }
 
   // -------------------------------------------------------------------------
-  // Google: useSearchGrounding model option
+  // Google: googleSearch provider tool
   // -------------------------------------------------------------------------
 
   private async searchGoogle(
@@ -142,8 +142,8 @@ export class ModelNativeSearchProvider implements SearchProvider {
     abortSignal: AbortSignal | undefined,
   ): Promise<SearchProviderResult> {
     // Create a fresh Google provider with search grounding enabled.
-    // We can't use the registry model because we need to pass the
-    // useSearchGrounding setting at model creation time.
+    // We can't use the registry model because we need the
+    // googleSearch provider tool for search grounding.
     const google = createGoogleGenerativeAI({
       apiKey: this.providerConfig.apiKey,
       ...(this.providerConfig.baseURL && {
@@ -153,13 +153,14 @@ export class ModelNativeSearchProvider implements SearchProvider {
 
     // Extract just the model ID after the "google:" prefix
     const modelId = modelString.replace("google:", "");
-    const model = google(modelId, {
-      useSearchGrounding: true,
-    });
+    const model = google(modelId);
 
     const result = await generateText({
       model,
       prompt: query,
+      tools: {
+        google_search: google.tools.googleSearch({}),
+      },
       abortSignal,
     });
 

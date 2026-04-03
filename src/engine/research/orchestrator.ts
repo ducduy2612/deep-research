@@ -224,10 +224,10 @@ export class ResearchOrchestrator {
         if (this.isAborted()) return null;
 
         if (part.type === "text-delta") {
-          this.emit("step-delta", { step, text: part.delta });
-          planText += part.delta;
+          this.emit("step-delta", { step, text: part.text });
+          planText += part.text;
         } else if (part.type === "reasoning-delta") {
-          this.emit("step-reasoning", { step, text: part.delta });
+          this.emit("step-reasoning", { step, text: part.text });
         }
       }
 
@@ -442,10 +442,10 @@ export class ResearchOrchestrator {
         if (this.isAborted()) return "";
 
         if (part.type === "text-delta") {
-          this.emit("step-delta", { step, text: part.delta });
-          questionsText += part.delta;
+          this.emit("step-delta", { step, text: part.text });
+          questionsText += part.text;
         } else if (part.type === "reasoning-delta") {
-          this.emit("step-reasoning", { step, text: part.delta });
+          this.emit("step-reasoning", { step, text: part.text });
         }
       }
 
@@ -489,10 +489,10 @@ export class ResearchOrchestrator {
         if (this.isAborted()) return "";
 
         if (part.type === "text-delta") {
-          this.emit("step-delta", { step, text: part.delta });
-          planText += part.delta;
+          this.emit("step-delta", { step, text: part.text });
+          planText += part.text;
         } else if (part.type === "reasoning-delta") {
-          this.emit("step-reasoning", { step, text: part.delta });
+          this.emit("step-reasoning", { step, text: part.text });
         }
       }
 
@@ -626,10 +626,10 @@ export class ResearchOrchestrator {
         }
 
         if (part.type === "text-delta") {
-          this.emit("step-delta", { step, text: part.delta });
-          learning += part.delta;
+          this.emit("step-delta", { step, text: part.text });
+          learning += part.text;
         } else if (part.type === "reasoning-delta") {
-          this.emit("step-reasoning", { step, text: part.delta });
+          this.emit("step-reasoning", { step, text: part.text });
         }
       }
 
@@ -793,10 +793,10 @@ export class ResearchOrchestrator {
         if (this.isAborted()) return "";
 
         if (part.type === "text-delta") {
-          this.emit("step-delta", { step, text: part.delta });
-          reportText += part.delta;
+          this.emit("step-delta", { step, text: part.text });
+          reportText += part.text;
         } else if (part.type === "reasoning-delta") {
-          this.emit("step-reasoning", { step, text: part.delta });
+          this.emit("step-reasoning", { step, text: part.text });
         }
       }
 

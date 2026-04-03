@@ -145,8 +145,12 @@ describe("ModelNativeSearchProvider", () => {
   // -------------------------------------------------------------------------
 
   describe("Google provider", () => {
-    it("creates Google provider with useSearchGrounding and calls generateText", async () => {
-      const googleModelFn = vi.fn().mockReturnValue("mock-google-grounded-model");
+    it("creates Google provider with search grounding tool and calls generateText", async () => {
+      const mockTool = { type: "provider-tool", id: "google.google_search" };
+      const googleModelFn = vi.fn().mockReturnValue("mock-google-model");
+      (googleModelFn as never).tools = {
+        googleSearch: vi.fn().mockReturnValue(mockTool),
+      };
       vi.mocked(createGoogleGenerativeAI).mockReturnValue(
         googleModelFn as never,
       );
@@ -174,16 +178,17 @@ describe("ModelNativeSearchProvider", () => {
         apiKey: "test-api-key",
       });
 
-      // Model should be created with useSearchGrounding enabled
-      expect(googleModelFn).toHaveBeenCalledWith("google-networking-model", {
-        useSearchGrounding: true,
-      });
+      // Model should be created without extra options
+      expect(googleModelFn).toHaveBeenCalledWith("google-networking-model");
 
-      // generateText should be called with the model (no tools)
+      // generateText should be called with the model and googleSearch tool
       expect(generateText).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: "mock-google-grounded-model",
+          model: "mock-google-model",
           prompt: "test query",
+          tools: {
+            google_search: mockTool,
+          },
         }),
       );
 

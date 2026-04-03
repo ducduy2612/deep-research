@@ -140,7 +140,7 @@ describe("streamWithAbort", () => {
     });
 
     captureCallback("onFinish")({
-      usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+      usage: { inputTokens: 100, outputTokens: 50 },
     });
 
     expect(logger.info).toHaveBeenCalledWith("Stream finished", {

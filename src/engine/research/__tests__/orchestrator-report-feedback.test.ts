@@ -72,7 +72,7 @@ function createTestConfig(overrides?: Partial<ResearchConfig>): ResearchConfig {
 function fakeStreamResponse(textChunks: string[] = ["response text"]) {
   const fullStream = (async function* () {
     for (const chunk of textChunks) {
-      yield { type: "text-delta" as const, delta: chunk };
+      yield { type: "text-delta" as const, text: chunk };
     }
     yield {
       type: "finish" as const, finishReason: "stop" as const,
