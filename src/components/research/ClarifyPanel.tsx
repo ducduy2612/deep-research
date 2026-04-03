@@ -60,11 +60,15 @@ export function ClarifyPanel({
     [setFeedback],
   );
 
+  const freeze = useResearchStore((s) => s.freeze);
+
   const handleSubmit = useCallback(() => {
     // Persist edited questions before submitting
     if (isEditing) setIsEditing(false);
+    // Freeze the clarify phase checkpoint before transitioning
+    freeze("clarify");
     onSubmitFeedbackAndPlan();
-  }, [isEditing, onSubmitFeedbackAndPlan]);
+  }, [isEditing, freeze, onSubmitFeedbackAndPlan]);
 
   // Loading state while still streaming
   if (isClarifying && !displayText) {

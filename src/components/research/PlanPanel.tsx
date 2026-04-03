@@ -55,10 +55,14 @@ export function PlanPanel({
     [setPlan],
   );
 
+  const freeze = useResearchStore((s) => s.freeze);
+
   const handleApprove = useCallback(() => {
     if (isEditing) setIsEditing(false);
+    // Freeze the plan phase checkpoint before transitioning
+    freeze("plan");
     onApprovePlanAndResearch();
-  }, [isEditing, onApprovePlanAndResearch]);
+  }, [isEditing, freeze, onApprovePlanAndResearch]);
 
   // Loading state while still streaming
   if (isPlanning && !displayText) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle, X } from "lucide-react";
 
 import { cn } from "@/utils/style";
 import { useResearchStore } from "@/stores/research-store";
@@ -9,9 +9,8 @@ import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { ClarifyPanel } from "./ClarifyPanel";
 import { PlanPanel } from "./PlanPanel";
 import { ResearchActions } from "./ResearchActions";
+import { PhaseAccordion } from "./PhaseAccordion";
 import type { ResearchStep } from "@/engine/provider/types";
-import type { ResearchState } from "@/engine/research/types";
-import { AlertTriangle, X } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -26,16 +25,11 @@ interface ActiveResearchCenterProps {
 }
 
 // ---------------------------------------------------------------------------
-// Step order
+// Step order (for streaming label resolution)
 // ---------------------------------------------------------------------------
 
 const STEP_ORDER: ResearchStep[] = [
   "clarify", "plan", "search", "analyze", "review", "report",
-];
-
-/** States that use the standard streaming + completed cards layout. */
-const STREAMING_STATES: ResearchState[] = [
-  "searching", "analyzing", "reviewing", "reporting",
 ];
 
 // ---------------------------------------------------------------------------
@@ -57,7 +51,7 @@ export function ActiveResearchCenter({
   const connectionInterrupted = useResearchStore((s) => s.connectionInterrupted);
   const clearInterrupted = useResearchStore((s) => s.clearInterrupted);
 
-  // Determine current step
+  // Determine current step for streaming label
   let currentStep: ResearchStep | null = null;
   for (const step of STEP_ORDER) {
     const s = steps[step];
@@ -73,57 +67,9 @@ export function ActiveResearchCenter({
   const isIdle = state === "idle";
 
   // -----------------------------------------------------------------------
-  // Center content routing
+  // Streaming view — reused by PhaseAccordion render prop
   // -----------------------------------------------------------------------
 
-  function renderCenterContent() {
-    switch (state) {
-      // ---- Clarify phase ----
-      case "clarifying":
-      case "awaiting_feedback":
-        return (
-          <ClarifyPanel onSubmitFeedbackAndPlan={onSubmitFeedbackAndPlan} />
-        );
-
-      // ---- Plan phase ----
-      case "planning":
-      case "awaiting_plan_review":
-        return (
-          <PlanPanel onApprovePlanAndResearch={onApprovePlanAndResearch} />
-        );
-
-      // ---- Research phase (streaming search/analyze/review) ----
-      case "searching":
-      case "analyzing":
-      case "reviewing":
-        return renderStreamingView();
-
-      // ---- Awaiting results review ----
-      case "awaiting_results_review":
-        return (
-          <div className="flex flex-col gap-8">
-            {renderStreamingView()}
-            <ResearchActions
-              onRequestMoreResearch={onRequestMoreResearch}
-              onGenerateReport={onGenerateReport}
-            />
-          </div>
-        );
-
-      // ---- Report phase (streaming) ----
-      case "reporting":
-        return renderStreamingView();
-
-      // ---- Completed ----
-      case "completed":
-        return renderStreamingView();
-
-      default:
-        return null;
-    }
-  }
-
-  /** Standard streaming view: accumulated search rounds + active streaming. */
   function renderStreamingView() {
     return (
       <>
@@ -169,20 +115,6 @@ export function ActiveResearchCenter({
       )}
     >
       <div className="mx-auto max-w-5xl">
-        {/* Header for streaming states */}
-        {STREAMING_STATES.includes(state) && currentLabel && (
-          <div className="mb-10 flex items-center gap-3">
-            <h2 className="text-2xl font-bold text-obsidian-on-surface">
-              {currentLabel}
-            </h2>
-            <div className="flex items-end gap-1 pb-1">
-              <span className="h-1 w-1 animate-bounce rounded-full bg-obsidian-primary-deep" />
-              <span className="h-1 w-1 animate-bounce rounded-full bg-obsidian-primary-deep [animation-delay:0.2s]" />
-              <span className="h-1 w-1 animate-bounce rounded-full bg-obsidian-primary-deep [animation-delay:0.4s]" />
-            </div>
-          </div>
-        )}
-
         {/* Error display */}
         {error && (
           <div className="mb-8 rounded-lg bg-obsidian-error-bg/30 p-6">
@@ -213,8 +145,24 @@ export function ActiveResearchCenter({
           </div>
         )}
 
-        {/* State-routed center content */}
-        {renderCenterContent()}
+        {/* Phase accordion handles all content routing */}
+        {!isIdle && (
+          <PhaseAccordion
+            onRenderClarify={() => (
+              <ClarifyPanel onSubmitFeedbackAndPlan={onSubmitFeedbackAndPlan} />
+            )}
+            onRenderPlan={() => (
+              <PlanPanel onApprovePlanAndResearch={onApprovePlanAndResearch} />
+            )}
+            onRenderStreaming={renderStreamingView}
+            onRenderResearchActions={() => (
+              <ResearchActions
+                onRequestMoreResearch={onRequestMoreResearch}
+                onGenerateReport={onGenerateReport}
+              />
+            )}
+          />
+        )}
 
         {/* Idle state */}
         {isIdle && (

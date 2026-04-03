@@ -40,7 +40,7 @@ Must-Haves:
   - Estimate: 1.5h
   - Files: src/components/research/PhaseAccordion.tsx, messages/en.json, messages/vi.json
   - Verify: pnpm build succeeds with no TypeScript errors. grep -q 'PhaseAccordion' src/components/research/PhaseAccordion.tsx. grep -q 'PhaseAccordion' messages/en.json. Component file is under 300 lines: test $(wc -l < src/components/research/PhaseAccordion.tsx) -le 300
-- [ ] **T02: Wire freeze() into ClarifyPanel/PlanPanel and integrate PhaseAccordion into ActiveResearchCenter** — Add freeze() calls to ClarifyPanel's Submit button and PlanPanel's Approve button. Replace ActiveResearchCenter's renderCenterContent() switch with PhaseAccordion component. Verify all existing tests still pass.
+- [x] **T02: Wire freeze() into ClarifyPanel/PlanPanel and replace ActiveResearchCenter switch with PhaseAccordion** — Add freeze() calls to ClarifyPanel's Submit button and PlanPanel's Approve button. Replace ActiveResearchCenter's renderCenterContent() switch with PhaseAccordion component. Verify all existing tests still pass.
 
 Steps:
 1. In `src/components/research/ClarifyPanel.tsx`, modify handleSubmit callback:
