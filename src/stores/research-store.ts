@@ -281,16 +281,37 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
       }
       case "step-complete": {
         const d = data as { step: ResearchStep; duration: number };
-        set((s) => ({
-          steps: {
+        set((s) => {
+          const updatedSteps = {
             ...s.steps,
             [d.step]: { ...s.steps[d.step], progress: 100, endTime: Date.now(), duration: d.duration },
-          },
-          activityLog: [
-            ...s.activityLog,
-            makeActivity("success", `Completed ${d.step} in ${(d.duration / 1000).toFixed(1)}s`, d.step),
-          ],
-        }));
+          };
+
+          // Accumulate completed analyze rounds into searchResults so the UI
+          // can show all previous rounds instead of only the current one.
+          let updatedSearchResults = s.searchResults;
+          if (d.step === "analyze" && updatedSteps.analyze.text) {
+            updatedSearchResults = [
+              ...s.searchResults,
+              {
+                query: "",
+                researchGoal: "",
+                learning: updatedSteps.analyze.text,
+                sources: [] as Source[],
+                images: [] as ImageSource[],
+              },
+            ];
+          }
+
+          return {
+            steps: updatedSteps,
+            searchResults: updatedSearchResults,
+            activityLog: [
+              ...s.activityLog,
+              makeActivity("success", `Completed ${d.step} in ${(d.duration / 1000).toFixed(1)}s`, d.step),
+            ],
+          };
+        });
         break;
       }
       case "step-error": {

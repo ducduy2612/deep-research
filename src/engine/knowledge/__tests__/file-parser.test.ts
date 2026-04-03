@@ -4,54 +4,54 @@ import { parseTextContent, getParserCategory } from "../file-parser";
 describe("parseTextContent", () => {
   it("decodes UTF-8 text from ArrayBuffer", () => {
     const text = "Hello, world!";
-    const buffer = new TextEncoder().encode(text).buffer;
+    const buffer = new TextEncoder().encode(text).buffer as ArrayBuffer;
     expect(parseTextContent(buffer, "text/plain")).toBe(text);
   });
 
   it("handles text/plain MIME type", () => {
     const text = "plain text content";
-    const buffer = new TextEncoder().encode(text).buffer;
+    const buffer = new TextEncoder().encode(text).buffer as ArrayBuffer;
     expect(parseTextContent(buffer, "text/plain")).toBe(text);
   });
 
   it("handles text/csv MIME type", () => {
     const csv = "name,age\nAlice,30\nBob,25";
-    const buffer = new TextEncoder().encode(csv).buffer;
+    const buffer = new TextEncoder().encode(csv).buffer as ArrayBuffer;
     expect(parseTextContent(buffer, "text/csv")).toBe(csv);
   });
 
   it("handles application/json MIME type", () => {
     const json = '{"key": "value", "number": 42}';
-    const buffer = new TextEncoder().encode(json).buffer;
+    const buffer = new TextEncoder().encode(json).buffer as ArrayBuffer;
     expect(parseTextContent(buffer, "application/json")).toBe(json);
   });
 
   it("handles application/xml MIME type", () => {
     const xml = "<root><item>test</item></root>";
-    const buffer = new TextEncoder().encode(xml).buffer;
+    const buffer = new TextEncoder().encode(xml).buffer as ArrayBuffer;
     expect(parseTextContent(buffer, "application/xml")).toBe(xml);
   });
 
   it("handles text/markdown MIME type", () => {
     const md = "# Title\n\nSome **bold** text.";
-    const buffer = new TextEncoder().encode(md).buffer;
+    const buffer = new TextEncoder().encode(md).buffer as ArrayBuffer;
     expect(parseTextContent(buffer, "text/markdown")).toBe(md);
   });
 
   it("handles image/svg+xml MIME type", () => {
     const svg = '<svg xmlns="http://www.w3.org/2000/svg"><circle r="10"/></svg>';
-    const buffer = new TextEncoder().encode(svg).buffer;
+    const buffer = new TextEncoder().encode(svg).buffer as ArrayBuffer;
     expect(parseTextContent(buffer, "image/svg+xml")).toBe(svg);
   });
 
   it("handles application/x-yaml MIME type", () => {
     const yaml = "key:\n  nested: value\n  list:\n    - item1\n    - item2";
-    const buffer = new TextEncoder().encode(yaml).buffer;
+    const buffer = new TextEncoder().encode(yaml).buffer as ArrayBuffer;
     expect(parseTextContent(buffer, "application/x-yaml")).toBe(yaml);
   });
 
   it("throws for unsupported MIME type", () => {
-    const buffer = new TextEncoder().encode("data").buffer;
+    const buffer = new TextEncoder().encode("data").buffer as ArrayBuffer;
     expect(() => parseTextContent(buffer, "application/pdf")).toThrow(
       "Unsupported text MIME type",
     );
@@ -64,7 +64,7 @@ describe("parseTextContent", () => {
 
   it("preserves Unicode characters", () => {
     const unicode = "Hello 世界 🌍 مرحبا Привет";
-    const buffer = new TextEncoder().encode(unicode).buffer;
+    const buffer = new TextEncoder().encode(unicode).buffer as ArrayBuffer;
     expect(parseTextContent(buffer, "text/plain")).toBe(unicode);
   });
 });

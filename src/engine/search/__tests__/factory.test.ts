@@ -38,7 +38,7 @@ const mockProviderConfig = {
         reasoning: false,
         searchGrounding: true,
         structuredOutput: true,
-        maxTokens: 1048576,
+        maxOutputTokens: 1048576,
       },
     },
   ],

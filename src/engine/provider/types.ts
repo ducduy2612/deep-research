@@ -47,7 +47,7 @@ export interface ModelCapabilities {
   reasoning: boolean;
   searchGrounding: boolean;
   structuredOutput: boolean;
-  maxTokens: number;
+  maxOutputTokens: number;
 }
 
 /** A single model within a provider. */
@@ -87,7 +87,7 @@ export const modelCapabilitiesSchema = z.object({
   reasoning: z.boolean(),
   searchGrounding: z.boolean(),
   structuredOutput: z.boolean(),
-  maxTokens: z.number().int().positive(),
+  maxOutputTokens: z.number().int().positive(),
 });
 
 export const providerModelConfigSchema = z.object({

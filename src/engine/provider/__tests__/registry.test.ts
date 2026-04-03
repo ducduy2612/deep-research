@@ -4,13 +4,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mocks — must be before any import that references the mocked modules
 // ---------------------------------------------------------------------------
 
-const mockProviderInstances: Record<string, { languageModel: ReturnType<typeof vi.fn> }> = {};
+const mockProviderInstances: Record<string, Record<string, ReturnType<typeof vi.fn>>> = {};
 
 vi.mock("@ai-sdk/google", () => ({
   createGoogleGenerativeAI: vi.fn(() => {
-    const lm = vi.fn().mockReturnValue({ __type: "language-model" });
-    const provider = { languageModel: lm, __type: "google-provider" };
-    mockProviderInstances["google"] = provider as never;
+    const call = vi.fn().mockReturnValue({ __type: "language-model" });
+    const provider = function (modelId: string) {
+      return call(modelId);
+    };
+    provider.languageModel = call;
+    provider.__type = "google-provider";
+    mockProviderInstances["google"] = { call, provider } as never;
     return provider;
   }),
 }));
@@ -18,42 +22,12 @@ vi.mock("@ai-sdk/google", () => ({
 vi.mock("@ai-sdk/openai", () => ({
   createOpenAI: vi.fn((opts: Record<string, unknown>) => {
     const id = (opts as { name?: string }).name ?? "openai";
-    const lm = vi.fn().mockReturnValue({ __type: "language-model" });
-    const provider = { languageModel: lm, chat: vi.fn(), __type: "openai-provider" };
-    mockProviderInstances[id] = provider as never;
+    const chat = vi.fn().mockReturnValue({ __type: "chat-language-model" });
+    const provider = { languageModel: vi.fn(), chat, __type: "openai-provider" };
+    mockProviderInstances[id] = { chat, provider } as never;
     return provider;
   }),
 }));
-
-// Capture the record passed to createProviderRegistry for assertions
-let capturedRegistryRecord: Record<string, unknown> = {};
-
-vi.mock("ai", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("ai")>();
-  return {
-    ...actual,
-    createProviderRegistry: vi.fn((record: Record<string, unknown>) => {
-      capturedRegistryRecord = record;
-      // Simulate the registry's languageModel method
-      return {
-        languageModel: (modelString: string) => {
-          const colonIndex = modelString.indexOf(":");
-          if (colonIndex === -1) {
-            throw new Error(`Invalid model string: '${modelString}'`);
-          }
-          const providerKey = modelString.slice(0, colonIndex);
-          const provider = record[providerKey];
-          if (!provider) {
-            throw new Error(`No provider found for '${providerKey}'`);
-          }
-          return (provider as { languageModel: (m: string) => unknown }).languageModel(
-            modelString.slice(colonIndex + 1),
-          );
-        },
-      };
-    }),
-  };
-});
 
 vi.mock("@/lib/logger", () => ({
   logger: {
@@ -69,7 +43,6 @@ vi.mock("@/lib/logger", () => ({
 // ---------------------------------------------------------------------------
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createProviderRegistry } from "ai";
 import { AppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 
@@ -92,7 +65,7 @@ const googleConfig: ProviderConfig = {
         reasoning: true,
         searchGrounding: true,
         structuredOutput: true,
-        maxTokens: 65536,
+        maxOutputTokens: 65536,
       },
     },
     {
@@ -103,7 +76,7 @@ const googleConfig: ProviderConfig = {
         reasoning: false,
         searchGrounding: true,
         structuredOutput: true,
-        maxTokens: 8192,
+        maxOutputTokens: 8192,
       },
     },
   ],
@@ -121,7 +94,7 @@ const openaiConfig: ProviderConfig = {
         reasoning: true,
         searchGrounding: false,
         structuredOutput: true,
-        maxTokens: 16384,
+        maxOutputTokens: 16384,
       },
     },
     {
@@ -132,7 +105,7 @@ const openaiConfig: ProviderConfig = {
         reasoning: false,
         searchGrounding: false,
         structuredOutput: true,
-        maxTokens: 8192,
+        maxOutputTokens: 8192,
       },
     },
   ],
@@ -146,7 +119,6 @@ const configs = [googleConfig, openaiConfig];
 
 beforeEach(() => {
   vi.clearAllMocks();
-  capturedRegistryRecord = {};
 });
 
 // --- createRegistry --------------------------------------------------------
@@ -155,19 +127,23 @@ describe("createRegistry", () => {
   it("creates a registry with Google + OpenAI providers", () => {
     const registry = createRegistry(configs);
 
-    expect(createProviderRegistry).toHaveBeenCalledOnce();
-    expect(capturedRegistryRecord).toHaveProperty("google");
-    expect(capturedRegistryRecord).toHaveProperty("openai");
-    expect(Object.keys(capturedRegistryRecord)).toHaveLength(2);
+    expect(registry.providers).toHaveProperty("google");
+    expect(registry.providers).toHaveProperty("openai");
+    expect(Object.keys(registry.providers)).toHaveLength(2);
     expect(registry).toBeDefined();
   });
 
   it("creates an empty registry with empty array", () => {
     const registry = createRegistry([]);
 
-    expect(createProviderRegistry).toHaveBeenCalledWith({});
-    expect(Object.keys(capturedRegistryRecord)).toHaveLength(0);
+    expect(Object.keys(registry.providers)).toHaveLength(0);
     expect(registry).toBeDefined();
+  });
+
+  it("stores the original configs", () => {
+    const registry = createRegistry(configs);
+
+    expect(registry.configs).toBe(configs);
   });
 
   it("logs registry creation with provider count and ids", () => {
@@ -201,13 +177,27 @@ describe("createRegistry", () => {
 // --- resolveModel ----------------------------------------------------------
 
 describe("resolveModel", () => {
-  it("resolves a valid 'google:gemini-2.5-pro' model string", () => {
+  it("resolves a Google model via provider function call", () => {
     const registry = createRegistry(configs);
     const model = resolveModel(registry, "google:gemini-2.5-pro");
 
     expect(model).toBeDefined();
+    // Google provider is called as a function
+    expect(mockProviderInstances["google"].call).toHaveBeenCalledWith("gemini-2.5-pro");
     expect(logger.debug).toHaveBeenCalledWith("Model resolved", {
       modelString: "google:gemini-2.5-pro",
+    });
+  });
+
+  it("resolves an OpenAI model via provider.chat()", () => {
+    const registry = createRegistry(configs);
+    const model = resolveModel(registry, "openai:gpt-4o");
+
+    expect(model).toBeDefined();
+    // OpenAI-compatible providers use .chat() not the default Responses API
+    expect(mockProviderInstances["openai"].chat).toHaveBeenCalledWith("gpt-4o");
+    expect(logger.debug).toHaveBeenCalledWith("Model resolved", {
+      modelString: "openai:gpt-4o",
     });
   });
 
@@ -255,6 +245,8 @@ describe("getDefaultModel", () => {
     const model = getDefaultModel(registry, configs, "openai", "networking");
 
     expect(model).toBeDefined();
+    // OpenAI-compatible → resolved via .chat()
+    expect(mockProviderInstances["openai"].chat).toHaveBeenCalledWith("gpt-4o-mini");
   });
 
   it("throws AppError when provider is not in configs", () => {
@@ -290,7 +282,7 @@ describe("getDefaultModel", () => {
             reasoning: true,
             searchGrounding: false,
             structuredOutput: true,
-            maxTokens: 16384,
+            maxOutputTokens: 16384,
           },
         },
       ],

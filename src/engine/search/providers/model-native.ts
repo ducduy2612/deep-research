@@ -153,11 +153,14 @@ export class ModelNativeSearchProvider implements SearchProvider {
 
     // Extract just the model ID after the "google:" prefix
     const modelId = modelString.replace("google:", "");
-    const model = google(modelId, { useSearchGrounding: true });
+    const model = google(modelId);
 
     const result = await generateText({
       model,
       prompt: query,
+      tools: {
+        google_search: google.tools.googleSearch({}),
+      },
       abortSignal,
     });
 

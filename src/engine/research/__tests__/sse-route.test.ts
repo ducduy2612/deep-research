@@ -83,11 +83,11 @@ import { createSearchProvider } from "@/engine/search/factory";
 
 async function collectSSEEvents(
   response: Response,
-): Promise<Array<{ event: string; data: unknown }>> {
+): Promise<Array<{ event: string; data: Record<string, unknown> }>> {
   if (!response.body) throw new Error("No body");
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  const events: Array<{ event: string; data: unknown }> = [];
+  const events: Array<{ event: string; data: Record<string, unknown> }> = [];
   let buffer = "";
 
   while (true) {
@@ -104,7 +104,7 @@ async function collectSSEEvents(
         if (line.startsWith("event: ")) event = line.slice(7);
         else if (line.startsWith("data: ")) data = line.slice(6);
       }
-      if (event) events.push({ event, data: JSON.parse(data) });
+      if (event) events.push({ event, data: JSON.parse(data) as Record<string, unknown> });
     }
   }
   return events;
@@ -248,7 +248,7 @@ describe("SSE Research Stream Route", () => {
       setupHappyPath();
       await POST(createRequest(validBody()));
       const subs = mockOrchestratorInstance.on.mock.calls.map(
-        (c: [string]) => c[0],
+        (c: any[]) => c[0] as string,
       );
       expect(subs).toEqual(
         expect.arrayContaining([

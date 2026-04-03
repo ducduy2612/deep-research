@@ -1,24 +1,32 @@
-import { createProviderRegistry } from "ai";
-import type { ProviderRegistryProvider, LanguageModel } from "ai";
+import type { LanguageModel } from "ai";
 
 import { AppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 
 import type { ProviderConfig, ProviderId, ModelRole } from "./types";
-import { getModelsByRole } from "./types";
+import { isOpenAICompatible, getModelsByRole } from "./types";
 import { createProvider } from "./factory";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
+type AnyProvider = any;
+
 /**
  * Opaque registry type returned by {@link createRegistry}.
  *
- * Wraps the AI SDK's `ProviderRegistryProvider` — consumers pass this to
- * {@link resolveModel} and {@link getDefaultModel}.
+ * Stores raw provider instances internally so that models can be resolved
+ * using the correct API (Chat Completions for OpenAI-compatible, native for
+ * Google). Consumers pass this to {@link resolveModel} and
+ * {@link getDefaultModel}.
  */
-export type ProviderRegistry = ProviderRegistryProvider;
+export interface ProviderRegistry {
+  /** Raw provider instances keyed by config id. */
+  providers: Record<string, AnyProvider>;
+  /** The original configs, needed for role-based model lookup. */
+  configs: ProviderConfig[];
+}
 
 // ---------------------------------------------------------------------------
 // createRegistry
@@ -28,18 +36,20 @@ export type ProviderRegistry = ProviderRegistryProvider;
  * Creates a provider registry from an array of {@link ProviderConfig}s.
  *
  * Each config is fed through {@link createProvider} to obtain an AI SDK
- * provider instance. The instances are keyed by `config.id` and passed to
- * `createProviderRegistry` so that models can later be resolved via
- * `"providerId:modelName"` strings.
+ * provider instance. The instances are stored keyed by `config.id` for
+ * later model resolution via {@link resolveModel}.
+ *
+ * OpenAI-compatible providers are resolved via `.chat()` (Chat Completions
+ * API) instead of the default Responses API, which only real OpenAI supports.
  *
  * @throws {AppError} AI_REQUEST_FAILED if any factory call fails.
  */
 export function createRegistry(configs: ProviderConfig[]): ProviderRegistry {
-  const providerRecord: Record<string, ReturnType<typeof createProvider>> = {};
+  const providers: Record<string, AnyProvider> = {};
 
   for (const config of configs) {
     try {
-      providerRecord[config.id] = createProvider(config);
+      providers[config.id] = createProvider(config);
     } catch (cause) {
       throw new AppError(
         "AI_REQUEST_FAILED",
@@ -53,14 +63,12 @@ export function createRegistry(configs: ProviderConfig[]): ProviderRegistry {
     }
   }
 
-  const registry = createProviderRegistry(providerRecord);
-
   logger.info("Registry created", {
     providerCount: configs.length,
     providers: configs.map((c) => c.id),
   });
 
-  return registry;
+  return { providers, configs };
 }
 
 // ---------------------------------------------------------------------------
@@ -69,6 +77,9 @@ export function createRegistry(configs: ProviderConfig[]): ProviderRegistry {
 
 /**
  * Resolves a `"providerId:modelName"` string to a {@link LanguageModel}.
+ *
+ * For OpenAI-compatible providers, uses `.chat()` to target the Chat
+ * Completions API instead of the default Responses API.
  *
  * @example
  * ```ts
@@ -82,8 +93,35 @@ export function resolveModel(
   registry: ProviderRegistry,
   modelString: string,
 ): LanguageModel {
+  const colonIndex = modelString.indexOf(":");
+  if (colonIndex === -1) {
+    throw new AppError(
+      "AI_REQUEST_FAILED",
+      `Invalid model string '${modelString}' — expected 'providerId:modelName'`,
+      { category: "ai", context: { modelString } },
+    );
+  }
+
+  const providerId = modelString.slice(0, colonIndex);
+  const modelId = modelString.slice(colonIndex + 1);
+
+  const provider = registry.providers[providerId];
+  if (!provider) {
+    throw new AppError(
+      "AI_REQUEST_FAILED",
+      `No provider '${providerId}' in registry`,
+      { category: "ai", context: { modelString, providerId } },
+    );
+  }
+
   try {
-    const model = registry.languageModel(modelString as `${string}:${string}`);
+    // OpenAI-compatible providers default to Responses API when called as a
+    // function. Non-OpenAI endpoints (ZAI, DeepSeek, OpenRouter, etc.) don't
+    // support it — use .chat() for Chat Completions API instead.
+    const model = isOpenAICompatible(providerId as ProviderId)
+      ? provider.chat(modelId)
+      : provider(modelId);
+
     logger.debug("Model resolved", { modelString });
     return model;
   } catch (cause) {

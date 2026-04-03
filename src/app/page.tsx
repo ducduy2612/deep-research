@@ -24,8 +24,6 @@ export default function Home() {
   const navigate = useUIStore((s) => s.navigate);
   const result = useResearchStore((s) => s.result);
   const state = useResearchStore((s) => s.state);
-  const connectionInterrupted = useResearchStore((s) => s.connectionInterrupted);
-
   const {
     connectionError,
     clarify,

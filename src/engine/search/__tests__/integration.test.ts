@@ -90,7 +90,7 @@ function makeConfig(): ResearchConfig {
               reasoning: false,
               searchGrounding: false,
               structuredOutput: true,
-              maxTokens: 1048576,
+              maxOutputTokens: 1048576,
             },
           },
           {
@@ -101,7 +101,7 @@ function makeConfig(): ResearchConfig {
               reasoning: false,
               searchGrounding: false,
               structuredOutput: true,
-              maxTokens: 1048576,
+              maxOutputTokens: 1048576,
             },
           },
         ],

@@ -44,7 +44,7 @@ export const DEFAULT_GOOGLE_MODELS: ProviderConfig["models"] = [
       reasoning: true,
       searchGrounding: true,
       structuredOutput: true,
-      maxTokens: 65536,
+      maxOutputTokens: 65536,
     },
   },
   {
@@ -55,7 +55,7 @@ export const DEFAULT_GOOGLE_MODELS: ProviderConfig["models"] = [
       reasoning: false,
       searchGrounding: true,
       structuredOutput: true,
-      maxTokens: 8192,
+      maxOutputTokens: 8192,
     },
   },
 ];
@@ -69,7 +69,7 @@ export const DEFAULT_OPENAI_MODELS: ProviderConfig["models"] = [
       reasoning: true,
       searchGrounding: false,
       structuredOutput: true,
-      maxTokens: 16384,
+      maxOutputTokens: 16384,
     },
   },
   {
@@ -80,7 +80,7 @@ export const DEFAULT_OPENAI_MODELS: ProviderConfig["models"] = [
       reasoning: false,
       searchGrounding: false,
       structuredOutput: true,
-      maxTokens: 8192,
+      maxOutputTokens: 8192,
     },
   },
 ];

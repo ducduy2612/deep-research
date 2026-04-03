@@ -1,5 +1,5 @@
-import { streamText, generateObject, generateText } from "ai";
-import type { LanguageModel, CoreMessage, ToolSet } from "ai";
+import { streamText, generateText, Output } from "ai";
+import type { LanguageModel, ModelMessage, ToolSet } from "ai";
 
 import { AppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
@@ -10,7 +10,7 @@ import { logger } from "@/lib/logger";
 
 export interface StreamOptions {
   model: LanguageModel;
-  messages: CoreMessage[];
+  messages: ModelMessage[];
   abortSignal?: AbortSignal;
   /** Called when the stream is aborted (expected, not an error). */
   onAbort?: (steps: number) => void;
@@ -77,13 +77,13 @@ export async function streamWithAbort(options: StreamOptions) {
     onFinish: (event) => {
       const usage = event.usage;
       logger.info("Stream finished", {
-        promptTokens: usage.promptTokens,
-        completionTokens: usage.completionTokens,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
         steps: stepCount,
       });
       onFinish?.({
-        promptTokens: usage.promptTokens,
-        completionTokens: usage.completionTokens,
+        promptTokens: usage.inputTokens ?? 0,
+        completionTokens: usage.outputTokens ?? 0,
       });
     },
   });
@@ -177,13 +177,18 @@ export async function generateStructured<T>(
   const { model, schema, prompt, abortSignal } = options;
 
   try {
-    const result = await generateObject({ model, schema, prompt, abortSignal });
+    const result = await generateText({
+      model,
+      output: Output.object({ schema }),
+      prompt,
+      abortSignal,
+    });
 
     logger.info("Structured output generated", {
       schemaType: (schema as unknown as { description?: string }).description ?? "unknown",
     });
 
-    return result.object;
+    return result.output as T;
   } catch (cause) {
     const isAbort =
       cause instanceof DOMException && cause.name === "AbortError";

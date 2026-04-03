@@ -62,7 +62,7 @@ const googleConfig: ProviderConfig = {
         reasoning: true,
         searchGrounding: true,
         structuredOutput: true,
-        maxTokens: 65536,
+        maxOutputTokens: 65536,
       },
     },
   ],
@@ -85,7 +85,7 @@ const openaiConfig: ProviderConfig = {
         reasoning: true,
         searchGrounding: false,
         structuredOutput: true,
-        maxTokens: 16384,
+        maxOutputTokens: 16384,
       },
     },
   ],
@@ -104,7 +104,7 @@ const deepseekConfig: ProviderConfig = {
         reasoning: true,
         searchGrounding: false,
         structuredOutput: false,
-        maxTokens: 8192,
+        maxOutputTokens: 8192,
       },
     },
   ],
@@ -123,7 +123,7 @@ const openrouterConfig: ProviderConfig = {
         reasoning: true,
         searchGrounding: false,
         structuredOutput: true,
-        maxTokens: 16384,
+        maxOutputTokens: 16384,
       },
     },
   ],
@@ -162,7 +162,7 @@ describe("createGoogleProvider", () => {
       apiKey: "google-api-key-123",
     });
     expect(provider).toBeDefined();
-    expect((provider as Record<string, string>).__type).toBe("google-provider");
+    expect((provider as unknown as Record<string, string>).__type).toBe("google-provider");
   });
 
   it("passes baseURL when provided", () => {
@@ -285,7 +285,7 @@ describe("createProvider", () => {
 
     expect(createGoogleGenerativeAI).toHaveBeenCalledOnce();
     expect(createOpenAI).not.toHaveBeenCalled();
-    expect((provider as Record<string, string>).__type).toBe("google-provider");
+    expect((provider as unknown as Record<string, string>).__type).toBe("google-provider");
   });
 
   it("dispatches to OpenAI factory for 'openai' id", () => {
@@ -293,7 +293,7 @@ describe("createProvider", () => {
 
     expect(createOpenAI).toHaveBeenCalledOnce();
     expect(createGoogleGenerativeAI).not.toHaveBeenCalled();
-    expect((provider as Record<string, string>).__type).toBe("openai-provider");
+    expect((provider as unknown as Record<string, string>).__type).toBe("openai-provider");
   });
 
   it("dispatches to OpenAI factory for 'deepseek' id", () => {

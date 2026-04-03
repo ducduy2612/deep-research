@@ -110,7 +110,7 @@ describe("researchConfigSchema", () => {
               reasoning: true,
               searchGrounding: true,
               structuredOutput: true,
-              maxTokens: 65536,
+              maxOutputTokens: 65536,
             },
           },
         ],

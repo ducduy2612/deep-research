@@ -8,6 +8,19 @@ import type { ProviderConfig } from "@/engine/provider/types";
 // Mocks
 // ---------------------------------------------------------------------------
 
+/**
+ * Creates a mock Google model function with `.tools.googleSearch` attached.
+ * Vitest's Mock type doesn't allow arbitrary properties, so we use Object.assign.
+ */
+function createGoogleModelFn(modelReturn = "mock-google-model") {
+  const googleSearch = vi.fn(() => "mock-search-tool");
+  return Object.assign(
+    vi.fn(() => modelReturn),
+    { tools: { googleSearch } },
+  );
+}
+
+
 vi.mock("ai", () => ({
   generateText: vi.fn(),
   createProviderRegistry: vi.fn(() => ({
@@ -15,12 +28,16 @@ vi.mock("ai", () => ({
   })),
 }));
 
-vi.mock("@ai-sdk/google", () => ({
-  createGoogleGenerativeAI: vi.fn(() => {
-    const modelFn = vi.fn(() => "mock-google-model");
-    return modelFn;
-  }),
-}));
+vi.mock("@ai-sdk/google", () => {
+  const googleSearchTool = vi.fn(() => "mock-google-search-tool");
+  const modelFn = Object.assign(
+    vi.fn(() => "mock-google-model"),
+    { tools: { googleSearch: googleSearchTool } },
+  );
+  return {
+    createGoogleGenerativeAI: vi.fn(() => modelFn),
+  };
+});
 
 vi.mock("@ai-sdk/openai", () => ({
   createOpenAI: vi.fn(() => ({
@@ -74,7 +91,7 @@ function makeConfig(
           reasoning: false,
           searchGrounding: true,
           structuredOutput: true,
-          maxTokens: 4096,
+          maxOutputTokens: 4096,
         },
       },
     ],
@@ -128,8 +145,8 @@ describe("ModelNativeSearchProvider", () => {
   // -------------------------------------------------------------------------
 
   describe("Google provider", () => {
-    it("creates model with useSearchGrounding=true and calls generateText", async () => {
-      const googleModelFn = vi.fn(() => "mock-google-grounded-model");
+    it("creates Google provider, uses googleSearch tool, and calls generateText", async () => {
+      const googleModelFn = createGoogleModelFn("mock-google-grounded-model");
       vi.mocked(createGoogleGenerativeAI).mockReturnValue(
         googleModelFn as never,
       );
@@ -150,16 +167,18 @@ describe("ModelNativeSearchProvider", () => {
         apiKey: "test-api-key",
       });
 
-      // Model should be created with useSearchGrounding: true
-      expect(googleModelFn).toHaveBeenCalledWith("google-networking-model", {
-        useSearchGrounding: true,
-      });
+      // Model should be created without useSearchGrounding (tool-based now)
+      expect(googleModelFn).toHaveBeenCalledWith("google-networking-model");
 
-      // generateText should be called with the grounded model
+      // googleSearch tool should be called
+      expect(googleModelFn.tools.googleSearch).toHaveBeenCalledWith({});
+
+      // generateText should be called with the model and google_search tool
       expect(generateText).toHaveBeenCalledWith(
         expect.objectContaining({
           model: "mock-google-grounded-model",
           prompt: "test query",
+          tools: { google_search: "mock-search-tool" },
         }),
       );
 
@@ -172,7 +191,7 @@ describe("ModelNativeSearchProvider", () => {
     });
 
     it("uses custom baseURL when configured", async () => {
-      const googleModelFn = vi.fn(() => "model");
+      const googleModelFn = createGoogleModelFn("model");
       vi.mocked(createGoogleGenerativeAI).mockReturnValue(
         googleModelFn as never,
       );
@@ -443,7 +462,7 @@ describe("ModelNativeSearchProvider", () => {
                 reasoning: true,
                 searchGrounding: false,
                 structuredOutput: true,
-                maxTokens: 8192,
+                maxOutputTokens: 8192,
               },
             },
           ],
@@ -463,7 +482,7 @@ describe("ModelNativeSearchProvider", () => {
 
   describe("Abort signal propagation", () => {
     it("passes abortSignal to generateText for Google", async () => {
-      const googleModelFn = vi.fn(() => "model");
+      const googleModelFn = createGoogleModelFn();
       vi.mocked(createGoogleGenerativeAI).mockReturnValue(
         googleModelFn as never,
       );
@@ -566,7 +585,7 @@ describe("ModelNativeSearchProvider", () => {
         usage: { promptTokens: 10, completionTokens: 20 },
       } as never);
 
-      const googleModelFn = vi.fn(() => "model");
+      const googleModelFn = createGoogleModelFn();
       vi.mocked(createGoogleGenerativeAI).mockReturnValue(
         googleModelFn as never,
       );
@@ -593,7 +612,7 @@ describe("ModelNativeSearchProvider", () => {
         usage: { promptTokens: 10, completionTokens: 20 },
       } as never);
 
-      const googleModelFn = vi.fn(() => "model");
+      const googleModelFn = createGoogleModelFn();
       vi.mocked(createGoogleGenerativeAI).mockReturnValue(
         googleModelFn as never,
       );
@@ -618,7 +637,7 @@ describe("ModelNativeSearchProvider", () => {
         mockGenerateTextResult() as never,
       );
 
-      const googleModelFn = vi.fn(() => "model");
+      const googleModelFn = createGoogleModelFn();
       vi.mocked(createGoogleGenerativeAI).mockReturnValue(
         googleModelFn as never,
       );

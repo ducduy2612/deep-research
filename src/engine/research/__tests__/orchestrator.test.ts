@@ -60,8 +60,8 @@ import { ResearchOrchestrator } from "../orchestrator";
 import type { ResearchConfig, ResearchState } from "../types";
 import type { SearchProvider } from "../search-provider";
 import type { ProviderConfig } from "@/engine/provider/types";
-import { MockLanguageModelV1 } from "ai/test";
-import type { LanguageModelV1 } from "@ai-sdk/provider";
+import { MockLanguageModelV3 } from "ai/test";
+import { simulateReadableStream } from "ai";
 
 // ---------------------------------------------------------------------------
 // Test config builder
@@ -79,7 +79,7 @@ const TEST_PROVIDER_CONFIG: ProviderConfig = {
         reasoning: true,
         searchGrounding: false,
         structuredOutput: true,
-        maxTokens: 8192,
+        maxOutputTokens: 8192,
       },
     },
   ],
@@ -104,12 +104,20 @@ function createTestConfig(
 function fakeStreamResponse(textChunks: string[] = ["response text"]) {
   const fullStream = (async function* () {
     for (const chunk of textChunks) {
-      yield { type: "text-delta" as const, textDelta: chunk };
+      yield {
+        type: "text-delta" as const,
+        id: "text-1",
+        text: chunk,
+      };
     }
     yield {
       type: "finish" as const,
-      finishReason: "stop" as const,
-      usage: { promptTokens: 10, completionTokens: 20 },
+      finishReason: { unified: "stop" as const, raw: undefined },
+      logprobs: undefined,
+      usage: {
+        inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
+        outputTokens: { total: 20, text: 20, reasoning: undefined },
+      },
     };
   })();
 
@@ -142,26 +150,32 @@ describe("ResearchOrchestrator", () => {
     vi.clearAllMocks();
 
     // Default mock model
-    mockContainer.model = new MockLanguageModelV1({
+    mockContainer.model = new MockLanguageModelV3({
       doStream: async () => ({
-        stream: new ReadableStream<LanguageModelV1.StreamPart>({
-          start(controller) {
-            controller.enqueue({ type: "text-delta", textDelta: "text" });
-            controller.enqueue({
+        stream: simulateReadableStream({
+          chunks: [
+            { type: "text-delta", id: "text-1", delta: "text" },
+            { type: "text-end", id: "text-1" },
+            {
               type: "finish",
-              finishReason: "stop",
-              usage: { promptTokens: 10, completionTokens: 20 },
-              providerMetadata: undefined,
-            });
-            controller.close();
-          },
+              finishReason: { unified: "stop", raw: undefined },
+              logprobs: undefined,
+              usage: {
+                inputTokens: { total: 10, noCache: 10, cacheRead: undefined, cacheWrite: undefined },
+                outputTokens: { total: 20, text: 20, reasoning: undefined },
+              },
+            },
+          ],
         }),
       }),
       doGenerate: async () => ({
-        text: JSON.stringify([]),
-        usage: { promptTokens: 5, completionTokens: 10 },
-        finishReason: "stop",
-        providerMetadata: undefined,
+        content: [{ type: "text", text: JSON.stringify([]) }],
+        finishReason: { unified: "stop", raw: undefined },
+        usage: {
+          inputTokens: { total: 5, noCache: 5, cacheRead: undefined, cacheWrite: undefined },
+          outputTokens: { total: 10, text: 10, reasoning: undefined },
+        },
+        warnings: [],
       }),
     });
 

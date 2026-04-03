@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { cn } from "@/utils/style";
 import { useResearchStore } from "@/stores/research-store";
@@ -70,12 +70,6 @@ export function ActiveResearchCenter({
   const currentLabel = currentStep ? t(`steps.${currentStep}`) : null;
   const activeText = currentStep ? steps[currentStep].text : "";
 
-  // Completed steps (for the streaming view)
-  const completedSteps = STEP_ORDER.filter(
-    (s) => steps[s].endTime !== null,
-  );
-
-  // Idle state
   const isIdle = state === "idle";
 
   // -----------------------------------------------------------------------
@@ -129,32 +123,25 @@ export function ActiveResearchCenter({
     }
   }
 
-  /** Standard streaming view: completed step cards + active streaming + search results. */
+  /** Standard streaming view: accumulated search rounds + active streaming. */
   function renderStreamingView() {
     return (
       <>
-        {/* Completed step cards */}
-        {completedSteps.map((step) => {
-          const stepData = steps[step];
-          if (!stepData.text) return null;
-          return (
-            <div key={step} className="mb-8">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-obsidian-on-surface-var">
-                  {t(`steps.${step}`)}
-                </span>
-                {stepData.duration && (
-                  <span className="font-mono text-[10px] text-obsidian-on-surface-var/40">
-                    {(stepData.duration / 1000).toFixed(1)}s
+        {/* Accumulated search rounds (completed analyze steps) */}
+        {searchResults.length > 0 && (
+          <div className="mb-8 space-y-6">
+            {searchResults.map((result, idx) => (
+              <div key={idx} className="rounded-lg bg-obsidian-surface-sheet p-6">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-obsidian-on-surface-var">
+                    {t("steps.analyze")} — Round {idx + 1}
                   </span>
-                )}
+                </div>
+                <MarkdownRenderer content={result.learning} />
               </div>
-              <div className="rounded-lg bg-obsidian-surface-sheet p-6">
-                <MarkdownRenderer content={stepData.text} />
-              </div>
-            </div>
-          );
-        })}
+            ))}
+          </div>
+        )}
 
         {/* Active streaming content */}
         {activeText && (
@@ -168,20 +155,6 @@ export function ActiveResearchCenter({
             <div className="rounded-lg bg-obsidian-surface-sheet p-6">
               <MarkdownRenderer content={activeText} />
             </div>
-          </div>
-        )}
-
-        {/* Search result cards */}
-        {searchResults.length > 0 && (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {searchResults.map((result, idx) => (
-              <SearchResultCard
-                key={idx}
-                query={result.query}
-                learning={result.learning}
-                sources={result.sources}
-              />
-            ))}
           </div>
         )}
       </>
@@ -253,55 +226,5 @@ export function ActiveResearchCenter({
         )}
       </div>
     </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Search result card
-// ---------------------------------------------------------------------------
-
-function SearchResultCard({
-  query,
-  learning,
-  sources,
-}: {
-  query: string;
-  learning: string;
-  sources: { url: string; title?: string }[];
-}) {
-  const domain = sources[0]
-    ? (() => {
-        try {
-          return new URL(sources[0].url).hostname;
-        } catch {
-          return sources[0].url;
-        }
-      })()
-    : null;
-
-  return (
-    <div className="rounded-lg bg-obsidian-surface-sheet p-6 transition-all hover:bg-obsidian-surface-raised">
-      <div className="mb-4 flex items-start justify-between">
-        {domain && (
-          <span className="font-mono text-[10px] uppercase tracking-tighter text-obsidian-on-surface-var">
-            {domain}
-          </span>
-        )}
-      </div>
-      <h4 className="mb-3 text-sm font-bold leading-snug text-obsidian-on-surface">
-        {query}
-      </h4>
-      <p className="mb-4 line-clamp-2 text-xs leading-relaxed text-obsidian-on-surface-var">
-        {learning}
-      </p>
-      {sources[0] && (
-        <div className="flex items-center gap-2">
-          <ExternalLink className="h-3 w-3 text-obsidian-on-surface-var/40" />
-          <span className="truncate font-mono text-[10px] text-obsidian-on-surface-var/40">
-            {sources[0].url}
-          </span>
-        </div>
-      )}
-    </div>
   );
 }
