@@ -532,6 +532,9 @@ export class ResearchOrchestrator {
       return { allLearnings, allSources, allImages };
     }
 
+    // Emit search tasks so the UI can show what queries will be researched
+    this.emit("search-task", { tasks: queries });
+
     // Execute each search task
     for (const task of queries) {
       if (this.isAborted())
@@ -543,15 +546,24 @@ export class ResearchOrchestrator {
       this.emit("step-start", { step: "search", state: this.state });
 
       let sources: Source[];
+      let images: ImageSource[];
 
       try {
         const searchResult = await this.searchProvider.search(task.query, {
           abortSignal: this.abortController?.signal,
         });
         sources = searchResult.sources;
+        images = searchResult.images ?? [];
 
         const searchDuration = Date.now() - searchStart;
         this.emit("step-complete", { step: "search", duration: searchDuration });
+
+        // Emit per-query search result so UI can accumulate in real-time
+        this.emit("search-result", {
+          query: task.query,
+          sources,
+          images,
+        });
       } catch (error) {
         this.handleStepError("search", error);
         throw error;
@@ -712,6 +724,13 @@ export class ResearchOrchestrator {
             this.emit("step-complete", {
               step: "search",
               duration: searchDuration,
+            });
+
+            // Emit per-query search result so UI can accumulate
+            this.emit("search-result", {
+              query: task.query,
+              sources,
+              images: searchResult.images ?? [],
             });
           } catch (error) {
             this.handleStepError("search", error);

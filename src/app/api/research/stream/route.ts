@@ -301,6 +301,7 @@ function subscribeOrchestrator(
   const eventTypes: ResearchEventType[] = [
     "step-start", "step-delta", "step-reasoning",
     "step-complete", "step-error", "progress",
+    "search-task", "search-result",
   ];
 
   const unsubs = eventTypes.map((et) =>

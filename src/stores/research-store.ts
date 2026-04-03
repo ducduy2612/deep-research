@@ -108,9 +108,24 @@ const activityEntrySchema = z.object({
   step: z.string().optional(),
 });
 
+const researchStateValues = [
+  "clarifying",
+  "awaiting_feedback",
+  "planning",
+  "awaiting_plan_review",
+  "searching",
+  "analyzing",
+  "reviewing",
+  "awaiting_results_review",
+  "reporting",
+  "completed",
+  "failed",
+  "aborted",
+] as const;
+
 const persistedStateSchema = z.object({
   topic: z.string(),
-  state: z.string(),
+  state: z.enum(researchStateValues),
   steps: z.record(z.string(), stepStreamSchema),
   searchTasks: z.array(searchTaskSchema),
   searchResults: z.array(searchResultSchema),
@@ -287,20 +302,32 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
             [d.step]: { ...s.steps[d.step], progress: 100, endTime: Date.now(), duration: d.duration },
           };
 
-          // Accumulate completed analyze rounds into searchResults so the UI
-          // can show all previous rounds instead of only the current one.
+          // When analyze completes, update the corresponding searchResult with the learning
           let updatedSearchResults = s.searchResults;
           if (d.step === "analyze" && updatedSteps.analyze.text) {
-            updatedSearchResults = [
-              ...s.searchResults,
-              {
-                query: "",
-                researchGoal: "",
-                learning: updatedSteps.analyze.text,
-                sources: [] as Source[],
-                images: [] as ImageSource[],
-              },
-            ];
+            // Find the last searchResult without a learning and fill it in
+            const lastEmptyIdx = s.searchResults.findIndex(
+              (r) => !r.learning,
+            );
+            if (lastEmptyIdx >= 0) {
+              updatedSearchResults = s.searchResults.map((r, i) =>
+                i === lastEmptyIdx
+                  ? { ...r, learning: updatedSteps.analyze.text }
+                  : r,
+              );
+            } else {
+              // No matching search-result event — create a standalone entry
+              updatedSearchResults = [
+                ...s.searchResults,
+                {
+                  query: "",
+                  researchGoal: "",
+                  learning: updatedSteps.analyze.text,
+                  sources: [] as Source[],
+                  images: [] as ImageSource[],
+                },
+              ];
+            }
           }
 
           return {
@@ -312,6 +339,37 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
             ],
           };
         });
+        break;
+      }
+      case "search-task": {
+        const d = data as { tasks: SearchTask[] };
+        set((s) => ({
+          searchTasks: d.tasks,
+          activityLog: [
+            ...s.activityLog,
+            makeActivity("info", `Generated ${d.tasks.length} search queries`),
+          ],
+        }));
+        break;
+      }
+      case "search-result": {
+        const d = data as { query: string; sources: Source[]; images: ImageSource[] };
+        set((s) => ({
+          searchResults: [
+            ...s.searchResults,
+            {
+              query: d.query,
+              researchGoal: "",
+              learning: "",
+              sources: d.sources,
+              images: d.images,
+            },
+          ],
+          activityLog: [
+            ...s.activityLog,
+            makeActivity("info", `Found ${d.sources.length} sources for "${d.query}"`),
+          ],
+        }));
         break;
       }
       case "step-error": {
@@ -518,7 +576,7 @@ useResearchStore.subscribe((state) => {
     suggestion: state.suggestion,
   };
 
-  storage.set(STORAGE_KEY, persistData, persistedStateSchema).catch((err) => {
+  storage.set(STORAGE_KEY, persistData as unknown as z.infer<typeof persistedStateSchema>, persistedStateSchema).catch((err) => {
     console.error("[research-store] Failed to persist state:", err);
   });
 });

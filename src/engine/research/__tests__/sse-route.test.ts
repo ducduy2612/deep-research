@@ -372,7 +372,7 @@ describe("SSE Research Stream Route", () => {
       mockOrchestratorInstance.on.mockReturnValue(unsub);
       mockOrchestratorInstance.start.mockResolvedValue(null);
       await POST(createRequest(validBody()));
-      expect(unsub).toHaveBeenCalledTimes(6);
+      expect(unsub).toHaveBeenCalledTimes(8);
     });
 
     it("streams done without result when null returned", async () => {

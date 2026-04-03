@@ -125,6 +125,8 @@ export interface ResearchEventMap {
   "step-complete": { step: ResearchStep; duration: number };
   "step-error": { step: ResearchStep; error: AppError };
   progress: { step: ResearchStep; progress: number };
+  "search-task": { tasks: SearchTask[] };
+  "search-result": { query: string; sources: Source[]; images: ImageSource[] };
 }
 
 /** Union of all event type strings. */
