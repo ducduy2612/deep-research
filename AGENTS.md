@@ -36,7 +36,7 @@ design/           — Obsidian Deep design system specs and HTML mockups
 
 - **Path alias:** `@/` maps to `src/`
 - **Import order:** React/Next → third-party → components → hooks/stores → utils/types
-- **Components:** Max 300 lines per file. Use `"use client"` for browser-dependent components
+- **Components:** Max 500 lines per file (ESLint enforced). Use `"use client"` for browser-dependent components
 - **Styling:** Tailwind CSS, mobile-first responsive. Dark mode with `dark:` classes
 - **State:** Zustand stores with `persist` middleware. Use radash utilities for common ops
 - **Validation:** Zod for all external input (API responses, user input)

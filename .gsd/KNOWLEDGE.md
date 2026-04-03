@@ -294,3 +294,24 @@ Lessons learned, patterns, and gotchas discovered during development.
 #### WorkflowProgress state-aware icons (Pause for awaiting, Loader2 for streaming)
 - Multi-phase states get visual differentiation: Pause icon in amber for awaiting-user-input states, Loader2 in primary for streaming/active states
 - Makes it immediately clear when the user needs to take action vs when the system is working
+
+## M003 — Checkpointed Workspace Model
+
+### AI SDK v6 breaking changes from v4
+
+The following API changes were encountered when upgrading beyond AI SDK v4:
+- `ModelMessage` → `CoreMessage` in streaming and orchestrator code
+- `usage.inputTokens/outputTokens` → `usage.promptTokens/completionTokens`
+- `generateText({ output: ... })` → `generateText({ experimental_output: ... })`
+- `result.output` → `result.experimental_output`
+- Stream chunk `part.text` → `part.textDelta`
+- `"reasoning-delta"` → `"reasoning"` stream part type
+- Google search grounding: no longer a `google.tools.googleSearch({})` tool — use `useSearchGrounding: true` model option, with sources from `providerMetadata.google.groundingChunks`
+
+### Freeze test activity log search specificity
+
+When testing freeze() by checking the activity log for frozen events, use the specific prefix `"Checkpoint frozen: {phase}"` rather than just the phase name. Searching for `"clarify"` matches "Starting clarify step" before the freeze entry, causing false positives.
+
+### Persist schema extracted to separate file
+
+The research store's persistence schemas (Zod schemas for saved state) were extracted to `research-store-persist.ts` to keep the main store file under 500 lines (ESLint max-lines rule). This is a pattern worth repeating for other stores that grow large.

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T02",
+  "unitId": "M003/S01/T02",
+  "timestamp": 1775229741100,
+  "passed": true,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "pnpm vitest run -- src/stores/__tests__/research-store-freeze.test.ts",
+      "exitCode": 0,
+      "durationMs": 2384,
+      "verdict": "pass"
+    },
+    {
+      "command": "pnpm vitest run",
+      "exitCode": 0,
+      "durationMs": 2344,
+      "verdict": "pass"
+    }
+  ]
+}

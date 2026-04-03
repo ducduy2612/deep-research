@@ -14,7 +14,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useResearchStore } from "@/stores/research-store";
-import type { ResearchResult, SearchResult } from "@/engine/research/types";
+import type { ResearchResult } from "@/engine/research/types";
 import * as storage from "@/lib/storage";
 
 // ---------------------------------------------------------------------------

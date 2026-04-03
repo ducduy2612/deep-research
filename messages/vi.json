@@ -270,5 +270,18 @@
       "review": "XEM XÉT",
       "report": "BÁO CÁO"
     }
+  },
+  "PhaseAccordion": {
+    "clarifyTitle": "Làm rõ",
+    "planTitle": "Kế hoạch",
+    "researchTitle": "Nghiên cứu",
+    "reportTitle": "Báo cáo",
+    "clarifySummary": "{count} câu hỏi đã trả lời",
+    "planSummary": "{count} truy vấn đã lên kế hoạch",
+    "researchSummary": "{learnings} phát hiện · {sources} nguồn",
+    "reportSummary": "Báo cáo hoàn thành",
+    "frozenBadge": "Đã lưu",
+    "activeLabel": "Đang hoạt động",
+    "pendingLabel": "Chờ xử lý"
   }
 }

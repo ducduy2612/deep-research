@@ -270,5 +270,18 @@
       "review": "REVIEW",
       "report": "REPORT"
     }
+  },
+  "PhaseAccordion": {
+    "clarifyTitle": "Clarify",
+    "planTitle": "Plan",
+    "researchTitle": "Research",
+    "reportTitle": "Report",
+    "clarifySummary": "{count} questions answered",
+    "planSummary": "{count} queries planned",
+    "researchSummary": "{learnings} learnings · {sources} sources",
+    "reportSummary": "Report complete",
+    "frozenBadge": "Frozen",
+    "activeLabel": "Active",
+    "pendingLabel": "Pending"
   }
 }

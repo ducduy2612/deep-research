@@ -10,14 +10,14 @@ Users can input a research question, interactively guide the research process th
 
 ## Current State
 
-M001 (v1.0 Full Rewrite) and M002 (Interactive Multi-Phase Research) are complete. The application has:
-- **132+ source files, ~23K lines, 617+ passing tests**
+M001 (v1.0 Full Rewrite) and M002 (Interactive Multi-Phase Research) are complete. M003 (Frozen Checkpoints + Active Workspace) is in progress — S01 (Store Refactor) is complete. The application has:
+- **132+ source files, ~23K lines, 669 passing tests**
 - Multi-phase orchestrator with clarify/plan/research/report/full SSE phases
-- Research store with 13-state state machine, checkpoint tracking, elapsed timer
+- Research store with checkpoints{} + workspace{} separation, freeze() action, 31 freeze-specific tests
 - Interactive research flow UI with phase-specific panels and actions
 - PWA support, i18n (EN + VI), CORS proxy mode, knowledge base, history
 
-M003 (Frozen Checkpoints + Active Workspace) is next — transforming the multi-phase flow into a checkpointed workspace model where completed phases are immutable and the active phase is a fully editable, persistent workspace.
+M003 S01 complete: Store has immutable checkpoints (clarify/plan/research/report) and mutable workspace (questions, feedback, plan, suggestion, manualQueries). freeze() creates immutable snapshots. All state persists across refresh with backward compatibility.
 
 ## Architecture / Key Patterns
 
