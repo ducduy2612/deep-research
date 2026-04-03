@@ -1,459 +1,406 @@
 # Requirements
 
+This file is the explicit capability and coverage contract for the project.
+
+Use it to track what is actively in scope, what has been validated by completed work, what is intentionally deferred, and what is explicitly out of scope.
+
 ## Active
+
+### R050 — Checkpoint + workspace store separation
+
+- Class: core-capability
+- Status: active
+- Description: Research store restructured with immutable `checkpoints` object (clarify, plan, research) and mutable `workspace` object scoped to the active phase. Frozen checkpoint data is never mutated after phase completion.
+- Why it matters: Enables the frozen/active workspace model — the architectural foundation for all other M003 features.
+- Source: user
+- Primary owning slice: M003/S01
+- Supporting slices: none
+- Validation: unmapped
+- Notes: Must preserve backward compatibility with existing SSE event handling and hydration.
+
+### R051 — Workspace state persistence across refresh
+
+- Class: continuity
+- Status: active
+- Description: Active workspace state (edits, partial results, suggestion text, manual queries) persists to localforage and survives browser refresh. On rehydration, mid-stream states convert to nearest awaiting_* state as before, but workspace edits are restored.
+- Why it matters: Users shouldn't lose their in-progress work on refresh. Current persistence only saves checkpoint-level data.
+- Source: user
+- Primary owning slice: M003/S01
+- Supporting slices: M003/S02
+- Validation: unmapped
+- Notes: Extends existing auto-persist subscription and Zod-validated schema.
+
+### R052 — Research workspace per-task CRUD (delete, retry, manual queries)
+
+- Class: primary-user-loop
+- Status: active
+- Description: Each search result is an editable card. User can: delete a card (removes query + learning + sources from accumulated data), retry a failed/bad query (re-search only, single query), and add manual queries (queued for next "More Research" batch).
+- Why it matters: The research phase is where users spend the most time. Without CRUD control, they're passive observers of whatever the AI decides to search.
+- Source: user
+- Primary owning slice: M003/S03
+- Supporting slices: none
+- Validation: unmapped
+- Notes: Delete removes everything (query, learning, sources) from downstream data. Retry is search-only (not analyze). Manual queries queue for next batch.
+
+### R053 — Suggestion input + single review round per "More Research"
+
+- Class: primary-user-loop
+- Status: active
+- Description: Suggestion input appears pre-fill when user is about to click "More Research". Included in review prompt so AI generates follow-up queries aligned with user's direction. One review round per click.
+- Why it matters: Gives users steering control over research depth and direction without overwhelming them with options.
+- Source: user
+- Primary owning slice: M003/S03
+- Supporting slices: none
+- Validation: unmapped
+- Notes: Suggestion is consumed only when "More Research" is clicked, not continuously.
+
+### R054 — Explicit "Finalize Findings" to freeze research phase
+
+- Class: core-capability
+- Status: active
+- Description: An explicit "Finalize Findings" button that freezes the research phase, converting workspace data (learnings, sources, images) into an immutable checkpoint before proceeding to report.
+- Why it matters: The user must be in control of when research is "done". Auto-freezing would cut short iterative deepening.
+- Source: user
+- Primary owning slice: M003/S03
+- Supporting slices: none
+- Validation: unmapped
+
+### R055 — Phase freeze UX — accordion layout with frozen/active distinction
+
+- Class: core-capability
+- Status: active
+- Description: Accordion layout where completed phases are collapsed (showing summary badge) and read-only, while the active phase is expanded and editable. Clear visual distinction between frozen and active states.
+- Why it matters: Gives users a clear sense of progress — "I've locked in clarify, I've locked in plan, I'm working on research now."
+- Source: user
+- Primary owning slice: M003/S02
+- Supporting slices: none
+- Validation: unmapped
+- Notes: Frozen phases show summary (e.g. "3 questions answered"). Click to expand read-only. Active phase takes full workspace.
+
+### R056 — Manual freeze actions for clarify/plan phases
+
+- Class: core-capability
+- Status: active
+- Description: User explicitly clicks a freeze/submit button to lock in the clarify and plan phases. No auto-freezing on stream end.
+- Why it matters: User control over phase transitions. Current behavior (Submit Feedback & Plan) already does this for clarify — extend consistently.
+- Source: user
+- Primary owning slice: M003/S02
+- Supporting slices: none
+- Validation: unmapped
+
+### R057 — Report workspace — feedback input + AI regeneration
+
+- Class: primary-user-loop
+- Status: active
+- Description: Report phase is a feedback workspace, not an editor. User sees the streamed report and can write comments/requirements. "Regenerate" sends frozen inputs + user feedback to AI for report rewrite. Multiple regeneration rounds possible.
+- Why it matters: Allows iterative refinement without the complexity of inline editing. Simpler and more predictable than freeform editing.
+- Source: user
+- Primary owning slice: M003/S04
+- Supporting slices: none
+- Validation: unmapped
+- Notes: No inline report text editing. User writes feedback, AI regenerates entire report from frozen checkpoint data.
+
+### R058 — Report export — Markdown (.md) download
+
+- Class: core-capability
+- Status: active
+- Description: User can download the final report as a .md file with proper filename (derived from report title or topic).
+- Why it matters: Most basic export format — users need to get their report out of the app.
+- Source: user
+- Primary owning slice: M003/S05
+- Supporting slices: none
+- Validation: unmapped
+- Notes: Trivial — Blob download from report markdown string.
+
+### R059 — Report export — PDF generation (client-side)
+
+- Class: core-capability
+- Status: active
+- Description: User can export the final report as PDF, generated entirely client-side using html2pdf.js (markdown → HTML via marked → render to DOM → html2pdf.js capture).
+- Why it matters: PDF is the most common sharing format. Client-side generation avoids server dependencies.
+- Source: user
+- Primary owning slice: M003/S05
+- Supporting slices: none
+- Validation: unmapped
+- Notes: Uses html2pdf.js (already established pattern). marked already in deps for HTML conversion.
+
+### R060 — Search result export (MD/JSON)
+
+- Class: core-capability
+- Status: active
+- Description: User can export individual or all search results as Markdown or JSON from the research workspace.
+- Why it matters: Researchers often need raw data separate from the report for their own analysis.
+- Source: user
+- Primary owning slice: M003/S05
+- Supporting slices: M003/S03
+- Validation: unmapped
+
+### R061 — Add-to-knowledge-base from search results
+
+- Class: integration
+- Status: active
+- Description: User can add search result content (learning + sources) directly to the knowledge base from the research workspace.
+- Why it matters: Bridges research and knowledge base — useful findings get persisted for future research sessions.
+- Source: inferred
+- Primary owning slice: M003/S05
+- Supporting slices: M003/S03
+- Validation: unmapped
+
+### R062 — Frozen phase visual badges and read-only state
+
+- Class: core-capability
+- Status: active
+- Description: Completed phases display a "frozen" badge (e.g. ✅ icon, muted styling) and their content is non-editable. Active phase has distinct visual treatment (glowing border, primary color accent).
+- Why it matters: Visual clarity about what's locked vs what's editable prevents user confusion.
+- Source: user
+- Primary owning slice: M003/S02
+- Supporting slices: none
+- Validation: unmapped
 
 ## Validated
 
 ### UI-01 — All 6 screens implement Obsidian Deep design system (dark-only, tonal layering, no borders)
 
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S01 — Design tokens, Tailwind config, /design page with 30/30 browser assertions; M001-S09 — polish pass confirmed across all components
 
-All 6 screens implement Obsidian Deep design system (dark-only, tonal layering, no borders)
-
 ### UI-02 — System uses surface hierarchy (Well → Deck → Sheet → Raised → Float) consistently across all components
 
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S01 — 7 surface levels as swatches on /design page; M001-S09 — surface hierarchy corrections applied
 
-System uses surface hierarchy (Well → Deck → Sheet → Raised → Float) consistently across all components
-
 ### UI-03 — Floating elements use glassmorphism (backdrop-blur, semi-transparent backgrounds)
 
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S01 — Glassmorphism demo with backdrop-blur(20px) + rgba(53,52,55,0.7); S05/S06 — glassmorphism dialogs
 
-Floating elements use glassmorphism (backdrop-blur, semi-transparent backgrounds)
-
 ### UI-04 — Typography uses Inter for body and JetBrains Mono for code, with consistent spacing tokens
 
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S01 — Inter + JetBrains Mono via next/font, CSS variable strategy, 4 typography roles demonstrated
 
-Typography uses Inter for body and JetBrains Mono for code, with consistent spacing tokens
-
 ### UI-05 — No component file exceeds 300 lines
 
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S01 through S09 — wc -l confirms all files under 300 lines (max: HistoryDialog at 300)
 
-No component file exceeds 300 lines
-
 ### RES-01 — User can input a research topic via the Research Hub screen
 
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S05 — TopicInput component with glassmorphism textarea and Start Research button
 
-User can input a research topic via the Research Hub screen
+### RES-02 — User can watch real-time streaming progress of each research step
 
-### RES-02 — User can watch real-time streaming progress of each research step (clarifying questions, report plan, search tasks, report generation)
-
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S05 — ActiveResearch 3-panel layout with WorkflowProgress step indicator and streaming cards
 
-User can watch real-time streaming progress of each research step (clarifying questions, report plan, search tasks, report generation)
-
 ### RES-03 — User receives a structured markdown final report with citations, source references, and optional images
 
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S05 — FinalReport with MarkdownRenderer, TOC sidebar, source references
 
-User receives a structured markdown final report with citations, source references, and optional images
+### RES-04 — User can configure report style and length
 
-### RES-04 — User can configure report style (balanced, executive, technical, concise) and length (brief, standard, comprehensive)
-
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S05 — ReportConfig with style (4 options) and length (3 options) selectors
 
-User can configure report style (balanced, executive, technical, concise) and length (brief, standard, comprehensive)
-
 ### RES-05 — User can abort an in-progress research session and see partial results
 
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S03 — AbortController cancellation; M001-S05 — useResearch hook abort + partial result preservation
 
-User can abort an in-progress research session and see partial results
+### RES-06 — User receives clear error feedback when any research step fails
 
-### RES-06 — User receives clear error feedback when any research step fails (API limits, bad keys, network errors) with recovery options
-
+- Class: failure-visibility
 - Status: validated
-- Class: core-capability
 - Source: inferred
 - Validation: M001-S05 — SSE error events + sonner toasts for all failure modes
 
-User receives clear error feedback when any research step fails (API limits, bad keys, network errors) with recovery options
-
 ### AI-01 — User can configure Google Gemini provider with API key and select thinking/networking models
 
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S02 — ProviderConfig supports Google with apiKey + models; M001-S06 — AIModelsTab Google provider card
 
-User can configure Google Gemini provider with API key and select thinking/networking models
+### AI-02 — User can configure OpenAI-compatible providers with API key, base URL, and model selection
 
-### AI-02 — User can configure OpenAI-compatible providers (OpenAI, DeepSeek, OpenRouter, Groq, xAI) with API key, base URL, and model selection
-
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S02 — createOpenAICompatibleProvider handles 5 providers; M001-S06 — AIModelsTab 5 provider cards
 
-User can configure OpenAI-compatible providers (OpenAI, DeepSeek, OpenRouter, Groq, xAI) with API key, base URL, and model selection
+### AI-03 — User can assign separate thinking and networking models per provider
 
-### AI-03 — User can assign separate thinking and networking models per provider (dual-model architecture)
-
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S02 — ModelRole type + getModelsByRole() helper, 21 type tests pass
 
-User can assign separate thinking and networking models per provider (dual-model architecture)
+### AI-04 — User can customize which model is used at each step of the research workflow
 
-### AI-04 — User can customize which model is used at each step of the research workflow (clarify, plan, search, analyze, review, report)
-
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S02 — ResearchStep + StepModelMap types for per-step model assignment
 
-User can customize which model is used at each step of the research workflow (clarify, plan, search, analyze, review, report)
+### AI-05 — System uses AI SDK structured output instead of raw JSON parsing
 
-### AI-05 — System uses AI SDK structured output (`generateObject`) instead of raw JSON parsing for all structured AI responses
-
-- Status: validated
 - Class: core-capability
+- Status: validated
 - Source: inferred
 - Validation: M001-S02 — generateStructured wrapping generateObject with Zod schema; M001-S03 — orchestrator usage
 
-System uses AI SDK structured output (`generateObject`) instead of raw JSON parsing for all structured AI responses
+### AI-06 — System properly cleans up AI streams on abort/unmount
 
-### AI-06 — System properly cleans up AI streams on abort/unmount with AbortController to prevent memory leaks
-
+- Class: quality-attribute
 - Status: validated
-- Class: core-capability
 - Source: inferred
 - Validation: M001-S02 — streamWithAbort with AbortController lifecycle; M001-S05 — useResearch AbortController cleanup
 
-System properly cleans up AI streams on abort/unmount with AbortController to prevent memory leaks
+### SRC-01 through SRC-08 — Search provider integrations (Tavily, Firecrawl, Exa, Brave, SearXNG, model-native, domain filter, citation images)
 
-### SRC-01 — User can configure and use Tavily as a search provider
-
-- Status: validated
 - Class: core-capability
-- Source: inferred
-- Validation: M001-S04 — TavilyProvider with Bearer auth, tested
-
-User can configure and use Tavily as a search provider
-
-### SRC-02 — User can configure and use Firecrawl as a search provider
-
 - Status: validated
-- Class: core-capability
 - Source: inferred
-- Validation: M001-S04 — FirecrawlProvider with markdown scrape, tested
+- Validation: M001-S04 — All providers implemented and tested
 
-User can configure and use Firecrawl as a search provider
+### KB-01 through KB-06 — Knowledge base (PDF, Office, text, URL crawling, local-only, chunking)
 
-### SRC-03 — User can configure and use Exa as a search provider
-
+- Class: core-capability
 - Status: validated
-- Class: core-capability
 - Source: inferred
-- Validation: M001-S04 — ExaProvider with text+summary content, tested
+- Validation: M001-S07 — All features implemented and tested
 
-User can configure and use Exa as a search provider
+### SET-01 through SET-05 — Settings management (tabbed dialog, Zod validation, prompt overrides, persistence, sub-components)
 
-### SRC-04 — User can configure and use Brave Search as a search provider
-
+- Class: core-capability
 - Status: validated
-- Class: core-capability
 - Source: inferred
-- Validation: M001-S04 — BraveProvider with dual web+image parallel requests, tested
+- Validation: M001-S06 — All features implemented and tested
 
-User can configure and use Brave Search as a search provider
+### HIST-01 through HIST-04 — Research history (list, view, delete, quota management)
 
-### SRC-05 — User can configure and use SearXNG as a self-hosted search provider
-
+- Class: core-capability
 - Status: validated
-- Class: core-capability
 - Source: inferred
-- Validation: M001-S04 — SearXNGProvider with score-based filtering, tested
+- Validation: M001-S06 — All features implemented and tested
 
-User can configure and use SearXNG as a self-hosted search provider
+### SEC-01 through SEC-04 — CORS proxy mode and middleware
 
-### SRC-06 — System uses model-native search (Gemini grounding, OpenAI web_search_preview) when available for the selected provider
-
+- Class: core-capability
 - Status: validated
-- Class: core-capability
 - Source: inferred
-- Validation: M001-S04 — ModelNativeSearchProvider for Google, OpenAI, OpenRouter, xAI, tested
+- Validation: M001-S08 — All features implemented and tested
 
-System uses model-native search (Gemini grounding, OpenAI web_search_preview) when available for the selected provider
+### PWA-01 through PWA-02 — PWA support
 
-### SRC-07 — User can restrict search to specific domains (include) or exclude domains with wildcard subdomain matching
-
+- Class: core-capability
 - Status: validated
-- Class: core-capability
 - Source: inferred
-- Validation: M001-S04 — domain-filter.ts with normalizeDomain, parseDomainList, matchDomain, isUrlAllowed, applyDomainFilters
+- Validation: M001-S09 — All features implemented
 
-User can restrict search to specific domains (include) or exclude domains with wildcard subdomain matching
+### I18N-01 through I18N-03 — Internationalization
 
-### SRC-08 — User can toggle citation images to embed relevant images from search results into the final report
-
+- Class: core-capability
 - Status: validated
-- Class: core-capability
 - Source: inferred
-- Validation: M001-S04 — citation-images.ts toggle, FilteringSearchProvider decorator in S05
-
-User can toggle citation images to embed relevant images from search results into the final report
-
-### KB-01 — User can upload PDF files and have them parsed via LLM-based OCR
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S07 — PDF parsing via pdfjs-dist in server-side API route
-
-User can upload PDF files and have them parsed via LLM-based OCR
-
-### KB-02 — User can upload Office documents (DOCX, PPTX, XLSX, ODT, ODP, ODS, RTF) and have them parsed via officeparser
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S07 — officeparser v6 for Office documents, tested
-
-User can upload Office documents (DOCX, PPTX, XLSX, ODT, ODP, ODS, RTF) and have them parsed via officeparser
-
-### KB-03 — User can upload plain text files (TXT, JSON, XML, YAML, code) and have them parsed
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S07 — FileReader for plain text formats, tested
-
-User can upload plain text files (TXT, JSON, XML, YAML, code) and have them parsed
-
-### KB-04 — User can crawl URLs for content via Jina Reader or local crawler
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S07 — Jina Reader + local server-side URL crawler, tested
-
-User can crawl URLs for content via Jina Reader or local crawler
-
-### KB-05 — User can toggle local-only mode to research using only uploaded knowledge base documents without web search
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S07 — Local-only mode toggle in ReportConfig with Switch and amber badge
-
-User can toggle local-only mode to research using only uploaded knowledge base documents without web search
-
-### KB-06 — System chunks uploaded content at 10K character boundaries and rewrites non-plain-text content via AI
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S07 — Chunker with 10K char boundaries and 500-char overlap implemented. AI rewriting deferred per D002 — basic text extraction sufficient for most documents.
-
-System chunks uploaded content at 10K character boundaries and rewrites non-plain-text content via AI
-
-### SET-01 — User can configure all settings through a tabbed settings dialog (AI Models, Search, Research Preferences, General, Advanced)
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S06 — 4-tab SettingsDialog (AIModelsTab, SearchTab, GeneralTab, AdvancedTab)
-
-User can configure all settings through a tabbed settings dialog (AI Models, Search, Research Preferences, General, Advanced)
-
-### SET-02 — System validates all settings input via Zod schemas with clear error messages
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S01/S02/S06 — env.ts, provider Zod schemas, all settings fields Zod-validated
-
-System validates all settings input via Zod schemas with clear error messages
-
-### SET-03 — User can override any prompt in the research pipeline (system instruction, questions, plan, SERP generation, review, report, rewriting)
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S03 — resolvePrompt() override support; M001-S06 — AdvancedTab with 8 prompt override textareas
-
-User can override any prompt in the research pipeline (system instruction, questions, plan, SERP generation, review, report, rewriting)
-
-### SET-04 — Settings persist across sessions via localforage (IndexedDB)
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S01 — storage.ts abstraction; M001-S05/S06 — settings store + history store with localforage + Zod
-
-Settings persist across sessions via localforage (IndexedDB)
-
-### SET-05 — Settings sub-components are each under 300 lines, replacing the monolithic settings component
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S06 — All 6 settings components verified ≤300 lines (max: HistoryDialog at 300)
-
-Settings sub-components are each under 300 lines, replacing the monolithic settings component
-
-### HIST-01 — User can view a list of past research sessions with topic, date, and status
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S06 — HistoryDialog with session cards, topic, date, status badges, source counts
-
-User can view a list of past research sessions with topic, date, and status
-
-### HIST-02 — User can open a past research session and view the full report and sources
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S06 — view-report action loads past session into research store
-
-User can open a past research session and view the full report and sources
-
-### HIST-03 — User can delete individual research sessions
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S06 — delete button with confirmation dialog
-
-User can delete individual research sessions
-
-### HIST-04 — System persists research sessions to localforage (IndexedDB) with quota management and cleanup policies
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S06 — useHistoryStore with 100-session FIFO quota, Zod validation, localforage persistence
-
-System persists research sessions to localforage (IndexedDB) with quota management and cleanup policies
-
-### SEC-01 — User can switch between local mode (browser calls APIs directly) and proxy mode (server-side API key injection)
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S08 — Proxy/local mode toggle in GeneralTab with persistence
-
-User can switch between local mode (browser calls APIs directly) and proxy mode (server-side API key injection)
-
-### SEC-02 — Proxy mode verifies access via HMAC signature from configured access password
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S08 — HMAC signature generation/verification (ts-md5, 30s clock skew tolerance)
-
-Proxy mode verifies access via HMAC signature from configured access password
-
-### SEC-03 — Proxy mode supports provider disabling and model filtering via environment variables
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S08 — check-disabled and check-model-filter handlers
-
-Proxy mode supports provider disabling and model filtering via environment variables
-
-### SEC-04 — Middleware is decomposed into composable route handlers (replacing monolithic if-else chain)
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S08 — compose() with 4 independent handlers, runMiddleware() entry point
-
-Middleware is decomposed into composable route handlers (replacing monolithic if-else chain)
-
-### PWA-01 — User can install the app as a PWA on desktop and mobile
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S09 — Serwist PWA with manifest (standalone display, Obsidian Deep colors), service worker
-
-User can install the app as a PWA on desktop and mobile
-
-### PWA-02 — Service worker caches assets for offline access via Serwist
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S09 — Service worker with defaultCache, skipWaiting, clientsClaim
-
-Service worker caches assets for offline access via Serwist
-
-### I18N-01 — User can switch UI language between English (en-US) and Vietnamese (vi-VN)
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S09 — next-intl with en/vi, useTranslations in 16 components, language selector in GeneralTab
-
-User can switch UI language between English (en-US) and Vietnamese (vi-VN)
-
-### I18N-02 — User can set research output language, which controls AI response language via system prompt
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S09 — uiLocale field separate from language field; language wired to system prompt
-
-User can set research output language, which controls AI response language via system prompt
-
-### I18N-03 — Locale files are lazy-loaded for performance
-
-- Status: validated
-- Class: core-capability
-- Source: inferred
-- Validation: M001-S09 — Lazy-loaded locale files via dynamic import() in getRequestConfig()
-
-Locale files are lazy-loaded for performance
+- Validation: M001-S09 — All features implemented
 
 ## Deferred
 
 ### KB-06-partial — AI rewriting of non-plain-text content for knowledge base
 
-- Status: deferred
 - Class: enhancement
+- Status: deferred
 - Source: M001-S07 decision D002
 - Notes: Chunking implemented; AI rewriting deferred — basic text extraction sufficient for most documents. Revisit when user feedback indicates content quality issues.
 
-AI rewriting of non-plain-text content deferred per D002 — basic text extraction sufficient for v1.0.
+### Word (.docx) export
+
+- Class: enhancement
+- Status: deferred
+- Source: M003 discussion
+- Notes: User selected MD + PDF only for M003. Can add docx export in a future milestone if needed.
 
 ## Out of Scope
+
+### Inline report text editing
+
+- Class: anti-feature
+- Status: out-of-scope
+- Source: M003 discussion
+- Notes: Report workspace uses feedback + regeneration model instead. User writes comments, AI regenerates entire report. Simpler and more predictable than freeform editing.
+
+### Multi-user collaboration
+
+- Class: anti-feature
+- Status: out-of-scope
+- Source: M001
+- Notes: Single-user tool, no backend auth system needed.
+
+### Real-time chat
+
+- Class: anti-feature
+- Status: out-of-scope
+- Source: M001
+- Notes: Not core to research workflow.
+
+### Mobile native app
+
+- Class: anti-feature
+- Status: out-of-scope
+- Source: M001
+- Notes: Web-first, PWA is sufficient.
+
+### MCP server integration
+
+- Class: anti-feature
+- Status: out-of-scope
+- Source: M001
+- Notes: Focus on web app only; programmatic access via API is not needed for v1.0.
+
+## Traceability
+
+| ID | Class | Status | Primary owner | Supporting | Proof |
+|---|---|---|---|---|---|
+| R050 | core-capability | active | M003/S01 | none | unmapped |
+| R051 | continuity | active | M003/S01 | M003/S02 | unmapped |
+| R052 | primary-user-loop | active | M003/S03 | none | unmapped |
+| R053 | primary-user-loop | active | M003/S03 | none | unmapped |
+| R054 | core-capability | active | M003/S03 | none | unmapped |
+| R055 | core-capability | active | M003/S02 | none | unmapped |
+| R056 | core-capability | active | M003/S02 | none | unmapped |
+| R057 | primary-user-loop | active | M003/S04 | none | unmapped |
+| R058 | core-capability | active | M003/S05 | none | unmapped |
+| R059 | core-capability | active | M003/S05 | none | unmapped |
+| R060 | core-capability | active | M003/S05 | M003/S03 | unmapped |
+| R061 | integration | active | M003/S05 | M003/S03 | unmapped |
+| R062 | core-capability | active | M003/S02 | none | unmapped |
+
+## Coverage Summary
+
+- Active requirements: 13
+- Mapped to slices: 13
+- Validated: 45
+- Unmapped active requirements: 0

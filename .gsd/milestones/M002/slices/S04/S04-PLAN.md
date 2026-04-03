@@ -18,7 +18,7 @@ This may involve:
   - Estimate: 1.5 hours
   - Files: src/stores/research-store.ts, src/hooks/use-research.ts, src/components/research/ActiveResearch.tsx
   - Verify: pnpm vitest run
-- [ ] **T13: Browser verification of complete interactive flow** — Start dev server and walk through the complete interactive research flow in the browser:
+- [x] **T13: Browser verification of complete interactive research flow confirmed by user** — Start dev server and walk through the complete interactive research flow in the browser:
 
 1. Enter topic → click Start
 2. Verify clarification questions stream and appear
