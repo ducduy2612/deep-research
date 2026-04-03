@@ -10,7 +10,7 @@
  * SearchProvider interface for search execution (NoOp in S03).
  */
 
-import type { LanguageModel, CoreMessage } from "ai";
+import type { LanguageModel, ModelMessage } from "ai";
 
 import { AppError, toAppError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
@@ -224,10 +224,10 @@ export class ResearchOrchestrator {
         if (this.isAborted()) return null;
 
         if (part.type === "text-delta") {
-          this.emit("step-delta", { step, text: part.textDelta });
-          planText += part.textDelta;
-        } else if (part.type === "reasoning") {
-          this.emit("step-reasoning", { step, text: part.textDelta });
+          this.emit("step-delta", { step, text: part.delta });
+          planText += part.delta;
+        } else if (part.type === "reasoning-delta") {
+          this.emit("step-reasoning", { step, text: part.delta });
         }
       }
 
@@ -441,10 +441,10 @@ export class ResearchOrchestrator {
         if (this.isAborted()) return "";
 
         if (part.type === "text-delta") {
-          this.emit("step-delta", { step, text: part.textDelta });
-          questionsText += part.textDelta;
-        } else if (part.type === "reasoning") {
-          this.emit("step-reasoning", { step, text: part.textDelta });
+          this.emit("step-delta", { step, text: part.delta });
+          questionsText += part.delta;
+        } else if (part.type === "reasoning-delta") {
+          this.emit("step-reasoning", { step, text: part.delta });
         }
       }
 
@@ -488,10 +488,10 @@ export class ResearchOrchestrator {
         if (this.isAborted()) return "";
 
         if (part.type === "text-delta") {
-          this.emit("step-delta", { step, text: part.textDelta });
-          planText += part.textDelta;
-        } else if (part.type === "reasoning") {
-          this.emit("step-reasoning", { step, text: part.textDelta });
+          this.emit("step-delta", { step, text: part.delta });
+          planText += part.delta;
+        } else if (part.type === "reasoning-delta") {
+          this.emit("step-reasoning", { step, text: part.delta });
         }
       }
 
@@ -625,10 +625,10 @@ export class ResearchOrchestrator {
         }
 
         if (part.type === "text-delta") {
-          this.emit("step-delta", { step, text: part.textDelta });
-          learning += part.textDelta;
-        } else if (part.type === "reasoning") {
-          this.emit("step-reasoning", { step, text: part.textDelta });
+          this.emit("step-delta", { step, text: part.delta });
+          learning += part.delta;
+        } else if (part.type === "reasoning-delta") {
+          this.emit("step-reasoning", { step, text: part.delta });
         }
       }
 
@@ -790,10 +790,10 @@ export class ResearchOrchestrator {
         if (this.isAborted()) return "";
 
         if (part.type === "text-delta") {
-          this.emit("step-delta", { step, text: part.textDelta });
-          reportText += part.textDelta;
-        } else if (part.type === "reasoning") {
-          this.emit("step-reasoning", { step, text: part.textDelta });
+          this.emit("step-delta", { step, text: part.delta });
+          reportText += part.delta;
+        } else if (part.type === "reasoning-delta") {
+          this.emit("step-reasoning", { step, text: part.delta });
         }
       }
 
@@ -882,7 +882,7 @@ export class ResearchOrchestrator {
     throw appError;
   }
 
-  private buildMessages(userPrompt: string): CoreMessage[] {
+  private buildMessages(userPrompt: string): ModelMessage[] {
     const systemPrompt = resolvePrompt(
       "system",
       this.config.promptOverrides ?? {},

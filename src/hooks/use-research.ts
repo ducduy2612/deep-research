@@ -48,6 +48,7 @@ export interface UseResearchReturn {
   approvePlanAndResearch: () => void;
   requestMoreResearch: () => void;
   generateReport: () => void;
+  finalizeFindings: () => void;
   // Backward-compatible full pipeline
   start: (options: StartOptions) => void;
   // Lifecycle
@@ -448,16 +449,45 @@ export function useResearch(): UseResearchReturn {
     [connectSSE],
   );
 
-  /** Phase 3b: More Research — iterative deepening with a suggestion. */
+  /** Phase 3b: More Research — iterative deepening with retries + manual queries + suggestion. */
   const requestMoreResearch = useCallback(
     async () => {
-      const { plan, suggestion } = useResearchStore.getState();
+      const {
+        plan,
+        suggestion,
+        manualQueries,
+        pendingRetryQueries,
+      } = useResearchStore.getState();
+
+      // Build enhanced plan string with all pending inputs
+      const sections: string[] = [plan];
+
+      if (pendingRetryQueries.length > 0) {
+        sections.push(
+          "Retry queries:\n" + pendingRetryQueries.map((q) => `- ${q}`).join("\n"),
+        );
+      }
+
+      if (manualQueries.length > 0) {
+        sections.push(
+          "Manual queries:\n" + manualQueries.map((q) => `- ${q}`).join("\n"),
+        );
+      }
+
+      if (suggestion.trim()) {
+        sections.push(`Additional direction:\n${suggestion.trim()}`);
+      }
+
+      const planString = sections.join("\n\n");
+
+      // Clear pending inputs BEFORE connecting to avoid race
+      useResearchStore.getState().setManualQueries([]);
+      useResearchStore.setState({ pendingRetryQueries: [] });
+      useResearchStore.getState().clearSuggestion();
 
       await connectSSE({
         phase: "research",
-        plan: suggestion
-          ? `${plan}\n\nAdditional direction from user:\n${suggestion}`
-          : plan,
+        plan: planString,
         ...buildBaseBody(),
       });
     },
@@ -488,6 +518,15 @@ export function useResearch(): UseResearchReturn {
       }, true); // isReportPhase = true → auto-save on done
     },
     [connectSSE],
+  );
+
+  /** Freeze research then generate report — single action for "Finalize Findings". */
+  const finalizeFindings = useCallback(
+    async () => {
+      useResearchStore.getState().freeze("research");
+      await generateReport();
+    },
+    [generateReport],
   );
 
   // -----------------------------------------------------------------------
@@ -590,6 +629,7 @@ export function useResearch(): UseResearchReturn {
     approvePlanAndResearch,
     requestMoreResearch,
     generateReport,
+    finalizeFindings,
     // Full pipeline
     start,
     // Lifecycle

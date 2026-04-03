@@ -21,7 +21,7 @@ interface ActiveResearchProps {
   onSubmitFeedbackAndPlan: () => void;
   onApprovePlanAndResearch: () => void;
   onRequestMoreResearch: () => void;
-  onGenerateReport: () => void;
+  onFinalizeFindings: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -33,7 +33,7 @@ export function ActiveResearch({
   onSubmitFeedbackAndPlan,
   onApprovePlanAndResearch,
   onRequestMoreResearch,
-  onGenerateReport,
+  onFinalizeFindings,
 }: ActiveResearchProps) {
   const state = useResearchStore((s) => s.state);
 
@@ -54,7 +54,7 @@ export function ActiveResearch({
             onSubmitFeedbackAndPlan={onSubmitFeedbackAndPlan}
             onApprovePlanAndResearch={onApprovePlanAndResearch}
             onRequestMoreResearch={onRequestMoreResearch}
-            onGenerateReport={onGenerateReport}
+            onFinalizeFindings={onFinalizeFindings}
           />
         </ResizablePanel>
         <ResizableHandle withHandle />

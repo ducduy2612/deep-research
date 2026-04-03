@@ -30,7 +30,7 @@ export default function Home() {
     submitFeedbackAndPlan,
     approvePlanAndResearch,
     requestMoreResearch,
-    generateReport,
+    finalizeFindings,
   } = useResearch();
 
   // Show error toast when connection errors occur
@@ -78,7 +78,7 @@ export default function Home() {
             onSubmitFeedbackAndPlan={submitFeedbackAndPlan}
             onApprovePlanAndResearch={approvePlanAndResearch}
             onRequestMoreResearch={requestMoreResearch}
-            onGenerateReport={generateReport}
+            onFinalizeFindings={finalizeFindings}
           />
         )}
 

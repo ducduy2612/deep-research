@@ -117,7 +117,7 @@ function makeConfig(): ResearchConfig {
 function setupStreamMock(text = "mock response text"): void {
   streamFn.mockResolvedValue({
     fullStream: (async function* () {
-      yield { type: "text-delta", textDelta: text };
+      yield { type: "text-delta", delta: text };
     })(),
   });
 }

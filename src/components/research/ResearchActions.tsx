@@ -8,11 +8,12 @@ import {
   Globe,
   Lightbulb,
   ArrowRight,
-  FileText,
+  CheckCircle2,
 } from "lucide-react";
 
 import { cn } from "@/utils/style";
 import { useResearchStore } from "@/stores/research-store";
+import { ManualQueryInput } from "./ManualQueryInput";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -21,7 +22,7 @@ import { useResearchStore } from "@/stores/research-store";
 interface ResearchActionsProps {
   className?: string;
   onRequestMoreResearch: () => void;
-  onGenerateReport: () => void;
+  onFinalizeFindings: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -31,7 +32,7 @@ interface ResearchActionsProps {
 export function ResearchActions({
   className,
   onRequestMoreResearch,
-  onGenerateReport,
+  onFinalizeFindings,
 }: ResearchActionsProps) {
   const t = useTranslations("ResearchActions");
 
@@ -39,6 +40,8 @@ export function ResearchActions({
   const result = useResearchStore((s) => s.result);
   const suggestion = useResearchStore((s) => s.suggestion);
   const setSuggestion = useResearchStore((s) => s.setSuggestion);
+  const pendingRetryQueries = useResearchStore((s) => s.pendingRetryQueries);
+  const manualQueries = useResearchStore((s) => s.manualQueries);
 
   const isResearching =
     state === "searching" ||
@@ -48,6 +51,7 @@ export function ResearchActions({
 
   const learningsCount = result?.learnings?.length ?? 0;
   const sourcesCount = result?.sources?.length ?? 0;
+  const pendingCount = pendingRetryQueries.length + manualQueries.length;
 
   const handleSuggestionChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -56,13 +60,13 @@ export function ResearchActions({
     [setSuggestion],
   );
 
-  const handleContinueResearch = useCallback(() => {
+  const handleMoreResearch = useCallback(() => {
     onRequestMoreResearch();
   }, [onRequestMoreResearch]);
 
-  const handleGenerateReport = useCallback(() => {
-    onGenerateReport();
-  }, [onGenerateReport]);
+  const handleFinalizeFindings = useCallback(() => {
+    onFinalizeFindings();
+  }, [onFinalizeFindings]);
 
   // Only show during research or awaiting review states
   if (!isResearching && !isAwaitingReview) {
@@ -104,6 +108,9 @@ export function ResearchActions({
         />
       </div>
 
+      {/* Manual query input */}
+      <ManualQueryInput />
+
       {/* Suggestion textarea */}
       <div className="space-y-3">
         <div className="flex items-center gap-2">
@@ -130,7 +137,7 @@ export function ResearchActions({
       <div className="flex items-center justify-end gap-3 pt-2">
         <button
           type="button"
-          onClick={handleContinueResearch}
+          onClick={handleMoreResearch}
           className={cn(
             "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
             "bg-obsidian-surface-raised text-obsidian-on-surface-var",
@@ -139,12 +146,17 @@ export function ResearchActions({
           )}
         >
           <ArrowRight className="h-3.5 w-3.5" />
-          <span>{t("continueResearch")}</span>
+          <span>{t("moreResearch")}</span>
+          {pendingCount > 0 && (
+            <span className="ml-1 rounded-full bg-obsidian-primary/20 px-2 py-0.5 font-mono text-[10px] font-bold text-obsidian-primary-deep">
+              {t("pendingQueries", { count: pendingCount })}
+            </span>
+          )}
         </button>
 
         <button
           type="button"
-          onClick={handleGenerateReport}
+          onClick={handleFinalizeFindings}
           className={cn(
             "flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold shadow-lg transition-all",
             "bg-gradient-to-br from-obsidian-primary to-obsidian-primary-deep",
@@ -153,8 +165,8 @@ export function ResearchActions({
             "active:scale-[0.98]",
           )}
         >
-          <FileText className="h-4 w-4" />
-          <span>{t("generateReport")}</span>
+          <CheckCircle2 className="h-4 w-4" />
+          <span>{t("finalizeFindings")}</span>
         </button>
       </div>
     </div>

@@ -12,7 +12,7 @@
   - Estimate: 1h
   - Files: src/components/research/SearchResultCard.tsx, src/components/research/ManualQueryInput.tsx, messages/en.json, messages/vi.json
   - Verify: pnpm build 2>&1 | tail -5
-- [ ] **T03: Hook extension + ResearchActions + ActiveResearchCenter wiring** — Extend requestMoreResearch to consume pending retries + manual queries + suggestion. Add finalizeFindings to hook. Update ResearchActions: rename button, add Finalize Findings, show pending count. Wire SearchResultCard + ManualQueryInput into ActiveResearchCenter. Add i18n keys.
+- [x] **T03: Wired requestMoreResearch with retry/manual/suggestion merging, added finalizeFindings (freeze + report), updated ResearchActions with ManualQueryInput + Finalize Findings button, replaced plain divs with SearchResultCard components** — Extend requestMoreResearch to consume pending retries + manual queries + suggestion. Add finalizeFindings to hook. Update ResearchActions: rename button, add Finalize Findings, show pending count. Wire SearchResultCard + ManualQueryInput into ActiveResearchCenter. Add i18n keys.
   - Estimate: 1.5h
   - Files: src/hooks/use-research.ts, src/components/research/ResearchActions.tsx, src/components/research/ActiveResearchCenter.tsx, messages/en.json, messages/vi.json
   - Verify: pnpm vitest run --reporter=verbose 2>&1 | tail -20 && pnpm build 2>&1 | tail -5

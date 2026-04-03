@@ -258,6 +258,9 @@
     "suggestionLabel": "ĐỀ XUẤT",
     "suggestionPlaceholder": "Đề xuất hướng nghiên cứu bổ sung hoặc phân tích sâu hơn...",
     "continueResearch": "Tiếp tục nghiên cứu",
+    "moreResearch": "Nghiên cứu thêm",
+    "finalizeFindings": "Chốt phát hiện",
+    "pendingQueries": "{count} đang chờ",
     "generateReport": "Tạo báo cáo",
     "loading": "Đang nghiên cứu..."
   },

@@ -9,6 +9,7 @@ import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { ClarifyPanel } from "./ClarifyPanel";
 import { PlanPanel } from "./PlanPanel";
 import { ResearchActions } from "./ResearchActions";
+import { SearchResultCard } from "./SearchResultCard";
 import { PhaseAccordion } from "./PhaseAccordion";
 import type { ResearchStep } from "@/engine/provider/types";
 
@@ -21,7 +22,7 @@ interface ActiveResearchCenterProps {
   onSubmitFeedbackAndPlan: () => void;
   onApprovePlanAndResearch: () => void;
   onRequestMoreResearch: () => void;
-  onGenerateReport: () => void;
+  onFinalizeFindings: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -41,7 +42,7 @@ export function ActiveResearchCenter({
   onSubmitFeedbackAndPlan,
   onApprovePlanAndResearch,
   onRequestMoreResearch,
-  onGenerateReport,
+  onFinalizeFindings,
 }: ActiveResearchCenterProps) {
   const t = useTranslations("Research");
   const steps = useResearchStore((s) => s.steps);
@@ -75,16 +76,9 @@ export function ActiveResearchCenter({
       <>
         {/* Accumulated search rounds (completed analyze steps) */}
         {searchResults.length > 0 && (
-          <div className="mb-8 space-y-6">
+          <div className="mb-8 space-y-4">
             {searchResults.map((result, idx) => (
-              <div key={idx} className="rounded-lg bg-obsidian-surface-sheet p-6">
-                <div className="mb-3 flex items-center gap-2">
-                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-obsidian-on-surface-var">
-                    {t("steps.analyze")} — Round {idx + 1}
-                  </span>
-                </div>
-                <MarkdownRenderer content={result.learning} />
-              </div>
+              <SearchResultCard key={`${result.query}-${idx}`} result={result} index={idx} />
             ))}
           </div>
         )}
@@ -158,7 +152,7 @@ export function ActiveResearchCenter({
             onRenderResearchActions={() => (
               <ResearchActions
                 onRequestMoreResearch={onRequestMoreResearch}
-                onGenerateReport={onGenerateReport}
+                onFinalizeFindings={onFinalizeFindings}
               />
             )}
           />

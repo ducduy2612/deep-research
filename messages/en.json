@@ -258,6 +258,9 @@
     "suggestionLabel": "SUGGESTION",
     "suggestionPlaceholder": "Suggest additional research directions or deeper analysis...",
     "continueResearch": "Continue Research",
+    "moreResearch": "More Research",
+    "finalizeFindings": "Finalize Findings",
+    "pendingQueries": "{count} pending",
     "generateReport": "Generate Report",
     "loading": "Researching..."
   },
