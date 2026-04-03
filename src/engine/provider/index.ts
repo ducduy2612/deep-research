@@ -39,4 +39,5 @@ export type { StreamOptions, GenerateStructuredOptions } from "./streaming";
 export {
   streamWithAbort,
   generateStructured,
+  extractAndParseJSON,
 } from "./streaming";

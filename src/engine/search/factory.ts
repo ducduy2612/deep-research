@@ -102,7 +102,11 @@ function createExternalProvider(
   id: SearchProviderId,
   config: SearchProviderConfig,
 ): SearchProvider {
-  logger.info("Creating external search provider", { id });
+  const maskedKey = config.apiKey
+    ? `${config.apiKey.slice(0, 6)}...${config.apiKey.slice(-4)}`
+    : "<none>";
+
+  logger.info("Creating external search provider", { id, maskedKey, baseURL: config.baseURL ?? "default" });
 
   switch (id) {
     case "tavily":

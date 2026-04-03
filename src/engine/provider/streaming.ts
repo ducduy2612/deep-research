@@ -166,16 +166,21 @@ export async function generateTextWithAbort(
 
 /**
  * Wraps AI SDK `generateObject` with typed Zod schema output and error
- * recovery.
+ * recovery. Falls back to plain text generation + JSON extraction when
+ * the model does not support structured output (e.g. GLM, DeepSeek).
  *
  * - **Abort** → throws `AppError('AI_STREAM_ABORTED')`
+ * - **Structured output fails** → falls back to `generateText` + JSON parse
  * - **Other errors** → throws `AppError('AI_INVALID_RESPONSE')`
  */
 export async function generateStructured<T>(
   options: GenerateStructuredOptions<T>,
 ): Promise<T> {
   const { model, schema, prompt, abortSignal } = options;
+  const schemaLabel =
+    (schema as unknown as { description?: string }).description ?? "unknown";
 
+  // --- Try structured output first ---
   try {
     const result = await generateText({
       model,
@@ -184,32 +189,157 @@ export async function generateStructured<T>(
       abortSignal,
     });
 
-    logger.info("Structured output generated", {
-      schemaType: (schema as unknown as { description?: string }).description ?? "unknown",
-    });
-
+    logger.info("Structured output generated", { schemaType: schemaLabel });
     return result.experimental_output as T;
-  } catch (cause) {
+  } catch (structuredError) {
     const isAbort =
-      cause instanceof DOMException && cause.name === "AbortError";
+      structuredError instanceof DOMException &&
+      structuredError.name === "AbortError";
 
     if (isAbort) {
-      throw new AppError("AI_STREAM_ABORTED", "Structured generation aborted", {
-        category: "ai",
-        cause: cause instanceof Error ? cause : new Error(String(cause)),
-      });
+      throw new AppError(
+        "AI_STREAM_ABORTED",
+        "Structured generation aborted",
+        {
+          category: "ai",
+          cause:
+            structuredError instanceof Error
+              ? structuredError
+              : new Error(String(structuredError)),
+        },
+      );
     }
 
+    // --- Fallback: generateText + manual JSON extraction ---
+    logger.info("Structured output not supported, falling back to text+parse", {
+      schemaType: schemaLabel,
+      originalError:
+        structuredError instanceof Error
+          ? structuredError.message
+          : String(structuredError),
+    });
+
+    try {
+      const result = await generateText({
+        model,
+        prompt: `${prompt}\n\nRespond with valid JSON only. No markdown fences, no commentary — just the JSON.`,
+        abortSignal,
+      });
+
+      const parsed = extractAndParseJSON<T>(result.text, schema);
+      logger.info("Structured output generated via text fallback", {
+        schemaType: schemaLabel,
+      });
+      return parsed;
+    } catch (fallbackError) {
+      const isFallbackAbort =
+        fallbackError instanceof DOMException &&
+        fallbackError.name === "AbortError";
+
+      if (isFallbackAbort) {
+        throw new AppError(
+          "AI_STREAM_ABORTED",
+          "Structured generation aborted",
+          {
+            category: "ai",
+            cause:
+              fallbackError instanceof Error
+                ? fallbackError
+                : new Error(String(fallbackError)),
+          },
+        );
+      }
+
+      throw new AppError(
+        "AI_INVALID_RESPONSE",
+        `Structured generation failed: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
+        {
+          category: "ai",
+          context: { schemaType: schemaLabel },
+          cause:
+            fallbackError instanceof Error
+              ? fallbackError
+              : new Error(String(fallbackError)),
+        },
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// extractAndParseJSON — robust JSON extraction from LLM text output
+// ---------------------------------------------------------------------------
+
+/**
+ * Extracts and validates JSON from a model's text response.
+ *
+ * Handles common LLM artifacts:
+ * - Markdown code fences (```json ... ```)
+ * - Leading/trailing prose around the JSON
+ * - Trailing commas (best-effort)
+ */
+export function extractAndParseJSON<T>(
+  text: string,
+  schema: import("zod").ZodType<T>,
+): T {
+  let jsonStr = text.trim();
+
+  // Strip markdown code fences
+  const fenceMatch = jsonStr.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+  if (fenceMatch) {
+    jsonStr = fenceMatch[1].trim();
+  }
+
+  // Try direct parse first
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch {
+    // Try to find JSON array or object in the text
+    const arrayMatch = jsonStr.match(/\[[\s\S]*\]/);
+    const objectMatch = jsonStr.match(/\{[\s\S]*\}/);
+
+    if (arrayMatch) {
+      try {
+        parsed = JSON.parse(arrayMatch[0]);
+      } catch {
+        throw new AppError(
+          "AI_INVALID_RESPONSE",
+          "Could not parse JSON from model response",
+          { category: "ai" },
+        );
+      }
+    } else if (objectMatch) {
+      try {
+        parsed = JSON.parse(objectMatch[0]);
+      } catch {
+        throw new AppError(
+          "AI_INVALID_RESPONSE",
+          "Could not parse JSON from model response",
+          { category: "ai" },
+        );
+      }
+    } else {
+      throw new AppError(
+        "AI_INVALID_RESPONSE",
+        "No JSON found in model response",
+        { category: "ai" },
+      );
+    }
+  }
+
+  // Validate against schema
+  const result = schema.safeParse(parsed);
+  if (!result.success) {
     throw new AppError(
       "AI_INVALID_RESPONSE",
-      `Structured generation failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+      `Model response did not match expected schema: ${result.error.message}`,
       {
         category: "ai",
-        context: {
-          schemaType: (schema as unknown as { description?: string }).description ?? "unknown",
-        },
-        cause: cause instanceof Error ? cause : new Error(String(cause)),
+        context: { zodErrors: result.error.issues.map((i) => i.message) },
       },
     );
   }
+
+  return result.data;
 }

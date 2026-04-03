@@ -7,7 +7,9 @@
     "knowledge": "Knowledge",
     "history": "History",
     "settings": "Settings",
-    "github": "GitHub"
+    "github": "GitHub",
+    "abandon": "Abandon",
+    "abandonConfirm": "This will discard all research progress. Continue?"
   },
   "Research": {
     "steps": {

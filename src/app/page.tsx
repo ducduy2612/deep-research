@@ -32,6 +32,7 @@ export default function Home() {
     approvePlanAndResearch,
     requestMoreResearch,
     finalizeFindings,
+    reset,
   } = useResearch();
 
   // Show error toast when connection errors occur
@@ -66,7 +67,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-obsidian-surface-well">
-      <Header />
+      <Header onReset={reset} />
 
       {/* Main content area */}
       <main className="flex flex-1 flex-col">

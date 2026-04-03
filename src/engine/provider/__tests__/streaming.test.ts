@@ -283,4 +283,165 @@ describe("generateStructured", () => {
       expect(err.message).toContain("string error");
     }
   });
+
+  // -------------------------------------------------------------------------
+  // Fallback path — when structured output fails, falls back to text + parse
+  // -------------------------------------------------------------------------
+
+  it("falls back to generateText + JSON parse when structured output fails", async () => {
+    const model = createMockModel();
+
+    // First call (structured) fails, second call (text fallback) succeeds
+    mockGenerateText
+      .mockRejectedValueOnce(new Error("could not parse the response"))
+      .mockResolvedValueOnce({
+        text: '{"name": "fallback-value"}',
+      });
+
+    const result = await generateStructured({
+      model,
+      schema: testSchema,
+      prompt: "Generate something",
+    });
+
+    expect(result).toEqual({ name: "fallback-value" });
+
+    // Second call should have the JSON instruction appended to prompt
+    const fallbackCall = mockGenerateText.mock.calls[1][0] as Record<string, unknown>;
+    expect((fallbackCall.prompt as string)).toContain("Respond with valid JSON only");
+    expect(logger.info).toHaveBeenCalledWith(
+      "Structured output not supported, falling back to text+parse",
+      expect.objectContaining({ schemaType: "unknown" }),
+    );
+  });
+
+  it("falls back and handles markdown code fences in response", async () => {
+    mockGenerateText
+      .mockRejectedValueOnce(new Error("no structured output"))
+      .mockResolvedValueOnce({
+        text: '```json\n{"name": "fenced"}\n```',
+      });
+
+    const result = await generateStructured({
+      model: createMockModel(),
+      schema: testSchema,
+      prompt: "test",
+    });
+
+    expect(result).toEqual({ name: "fenced" });
+  });
+
+  it("falls back and throws AI_INVALID_RESPONSE when JSON is unparseable", async () => {
+    mockGenerateText
+      .mockRejectedValueOnce(new Error("no structured output"))
+      .mockResolvedValueOnce({
+        text: "This is not JSON at all",
+      });
+
+    try {
+      await generateStructured({
+        model: createMockModel(),
+        schema: testSchema,
+        prompt: "test",
+      });
+      expect.unreachable("Should have thrown");
+    } catch (e) {
+      const err = e as AppError;
+      expect(err.code).toBe("AI_INVALID_RESPONSE");
+    }
+  });
+
+  it("falls back and throws AI_INVALID_RESPONSE when JSON fails schema validation", async () => {
+    mockGenerateText
+      .mockRejectedValueOnce(new Error("no structured output"))
+      .mockResolvedValueOnce({
+        text: '{"wrongKey": 123}',
+      });
+
+    try {
+      await generateStructured({
+        model: createMockModel(),
+        schema: testSchema,
+        prompt: "test",
+      });
+      expect.unreachable("Should have thrown");
+    } catch (e) {
+      const err = e as AppError;
+      expect(err.code).toBe("AI_INVALID_RESPONSE");
+      expect(err.message).toContain("did not match expected schema");
+    }
+  });
+
+  it("re-throws AI_STREAM_ABORTED from fallback path on abort", async () => {
+    mockGenerateText
+      .mockRejectedValueOnce(new Error("no structured output"))
+      .mockRejectedValueOnce(new DOMException("Aborted", "AbortError"));
+
+    try {
+      await generateStructured({
+        model: createMockModel(),
+        schema: testSchema,
+        prompt: "test",
+      });
+      expect.unreachable("Should have thrown");
+    } catch (e) {
+      const err = e as AppError;
+      expect(err.code).toBe("AI_STREAM_ABORTED");
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// extractAndParseJSON
+// ---------------------------------------------------------------------------
+
+import { extractAndParseJSON } from "../streaming";
+
+describe("extractAndParseJSON", () => {
+  const arraySchema = z.array(
+    z.object({ query: z.string(), researchGoal: z.string() }),
+  );
+
+  it("parses clean JSON directly", () => {
+    const input = '[{"query":"test","researchGoal":"learn"}]';
+    const result = extractAndParseJSON(input, arraySchema);
+    expect(result).toEqual([{ query: "test", researchGoal: "learn" }]);
+  });
+
+  it("strips markdown code fences", () => {
+    const input = '```json\n[{"query":"q","researchGoal":"g"}]\n```';
+    const result = extractAndParseJSON(input, arraySchema);
+    expect(result).toEqual([{ query: "q", researchGoal: "g" }]);
+  });
+
+  it("strips code fences without json label", () => {
+    const input = '```\n[{"query":"q","researchGoal":"g"}]\n```';
+    const result = extractAndParseJSON(input, arraySchema);
+    expect(result).toEqual([{ query: "q", researchGoal: "g" }]);
+  });
+
+  it("extracts JSON array from surrounding text", () => {
+    const input =
+      'Here are the queries:\n[{"query":"q","researchGoal":"g"}]\nLet me know if you need more.';
+    const result = extractAndParseJSON(input, arraySchema);
+    expect(result).toEqual([{ query: "q", researchGoal: "g" }]);
+  });
+
+  it("throws on no JSON found", () => {
+    expect(() => extractAndParseJSON("no json here", arraySchema)).toThrow(
+      AppError,
+    );
+  });
+
+  it("throws on invalid JSON", () => {
+    expect(() =>
+      extractAndParseJSON("[not valid json]", arraySchema),
+    ).toThrow(AppError);
+  });
+
+  it("throws on valid JSON that fails schema validation", () => {
+    expect(() =>
+      extractAndParseJSON('[{"wrong":"field"}]', arraySchema),
+    ).toThrow(AppError);
+  });
 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { parseFile } from "@/engine/knowledge/file-parser";
 import { chunkContent } from "@/engine/knowledge/chunker";
 import { isTextMime, isOfficeMime, isPdfMime } from "@/engine/knowledge/types";
+import { enforceKnowledgeAuth } from "@/lib/proxy-auth";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,15 @@ export const runtime = "nodejs";
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 export async function POST(request: Request): Promise<NextResponse> {
+  // Enforce auth when ACCESS_PASSWORD is set
+  const authError = enforceKnowledgeAuth(request);
+  if (authError) {
+    return NextResponse.json(
+      { error: authError.error, message: authError.message },
+      { status: authError.status },
+    );
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get("file");

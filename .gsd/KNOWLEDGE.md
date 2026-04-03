@@ -385,3 +385,27 @@ The research store's persistence schemas (Zod schemas for saved state) were extr
 - The auto-navigation effect in page.tsx uses `checkpoints?.report` to guard navigation to FinalReport
 - Optional chaining handles the case where checkpoints hasn't been hydrated yet
 - This ensures users stay in the accordion workspace until they explicitly click Done (which freezes the report)
+
+## M003/S05 — Export + Knowledge Base Integration
+
+### Click-outside dropdown pattern for action menus
+- Both FinalReport (export menu) and SearchResultCard (export + KB menu) use the same click-outside-to-close pattern
+- Pattern: `useRef` on dropdown container, `useEffect` with `document.addEventListener("mousedown", ...)` that checks `!ref.current.contains(e.target)`
+- Clean up the listener on unmount. Set dropdown open state to false on outside click.
+- Reusable across any component that needs a popup action menu without pulling in a full dropdown library
+
+### downloadBlob utility for browser-initiated file downloads
+- `src/utils/download.ts` provides a shared `downloadBlob(filename, content, mimeType)` helper
+- Creates Blob → `URL.createObjectURL` → hidden `<a>` element → `.click()` → cleanup. Revokes URL async via `setTimeout(0)`.
+- Used by all three export flows: MD report, PDF report, and search result export. No server round-trip needed.
+- Always sanitize filenames via `sanitizeFilename()` from `export-pdf.ts` — replaces non-alphanumeric chars with `-`, trims to 80 chars.
+
+### html2pdf.js requires type declaration and DOM container
+- html2pdf.js has no built-in TypeScript types — added `src/types/html2pdf.d.ts` with a minimal declaration
+- PDF generation renders markdown→HTML via `marked`, appends to a hidden DOM container, then captures via html2pdf.js
+- Container must be added to `document.body` for html2pdf.js to render correctly. Clean up (removeChild) in a `finally` block.
+
+### KnowledgeItem "file" type as generic container for search results
+- `searchResultToKnowledgeItem()` maps SearchResult to KnowledgeItem with `type: "file"` — no "research" type exists in the KnowledgeItem union
+- Content field combines learning + formatted source list. `nanoid()` generates the ID, matching the pattern from FileUpload and UrlCrawler.
+- Single chunk (`chunkCount: 1`) since the content is typically under 10K characters — below the chunking threshold

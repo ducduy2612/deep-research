@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { crawlJina, crawlLocal } from "@/engine/knowledge/url-crawler";
 import { chunkContent } from "@/engine/knowledge/chunker";
+import { enforceKnowledgeAuth } from "@/lib/proxy-auth";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,15 @@ const crawlRequestSchema = z.object({
 });
 
 export async function POST(request: Request): Promise<NextResponse> {
+  // Enforce auth when ACCESS_PASSWORD is set
+  const authError = enforceKnowledgeAuth(request);
+  if (authError) {
+    return NextResponse.json(
+      { error: authError.error, message: authError.message },
+      { status: authError.status },
+    );
+  }
+
   try {
     const body = await request.json();
     const parsed = crawlRequestSchema.safeParse(body);

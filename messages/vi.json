@@ -7,7 +7,9 @@
     "knowledge": "Kiến thức",
     "history": "Lịch sử",
     "settings": "Cài đặt",
-    "github": "GitHub"
+    "github": "GitHub",
+    "abandon": "Hủy bỏ",
+    "abandonConfirm": "Điều này sẽ loại bỏ toàn bộ tiến trình nghiên cứu. Tiếp tục?"
   },
   "Research": {
     "steps": {

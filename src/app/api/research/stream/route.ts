@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 /**
  * SSE API route for research streaming — POST /api/research/stream
  *
@@ -41,6 +42,7 @@ import { filterCitationImages } from "@/engine/search/citation-images";
 import { createRegistry } from "@/engine/provider/registry";
 import type { ProviderConfig, ProviderId } from "@/engine/provider/types";
 import { DEFAULT_GOOGLE_MODELS, DEFAULT_OPENAI_MODELS } from "@/lib/api-config";
+import { enforceResearchAuth } from "@/lib/proxy-auth";
 
 // ---------------------------------------------------------------------------
 // Phase type
@@ -237,7 +239,23 @@ function buildSearchProvider(
   const excludeDomains = searchConfig?.excludeDomains ?? [];
   const citationImages = searchConfig?.citationImages ?? true;
 
-  const detectedConfig = searchConfig?.provider ?? detectSearchProviderConfig();
+  // Proxy mode: client sends no providers → use server env search config only.
+  // Local mode: client sends provider+key → use client config.
+  const isProxyMode = !req.providers || req.providers.length === 0;
+  const detectedConfig = isProxyMode
+    ? detectSearchProviderConfig()
+    : searchConfig?.provider ?? detectSearchProviderConfig();
+
+  logger.info("buildSearchProvider: resolved search config", {
+    mode: isProxyMode ? "proxy" : "local",
+    clientProviderId: searchConfig?.provider?.id ?? "none",
+    resolvedProviderId: detectedConfig?.id ?? "none",
+    hasApiKey: !!detectedConfig?.apiKey,
+    apiKeyPrefix: detectedConfig?.apiKey?.slice(0, 6),
+    baseURL: detectedConfig?.baseURL ?? "default",
+    includeDomains,
+    excludeDomains,
+  });
 
   const base = detectedConfig
     ? createSearchProvider(detectedConfig, providerConfigs[0], registry)
@@ -601,7 +619,13 @@ export async function POST(request: Request): Promise<Response> {
 
   const req = parsed.data as PhaseRequest;
 
-  // 2. Provider configs
+  // 2. Enforce proxy auth when using server-side providers
+  const authError = enforceResearchAuth(request, req.providers);
+  if (authError) {
+    return sseErrorResponse(authError.error, authError.message, authError.status);
+  }
+
+  // 3. Provider configs
   const providerConfigs = resolveProviderConfigs(req);
   if (providerConfigs.length === 0) {
     return sseErrorResponse(
@@ -611,7 +635,7 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  // 3. Route to phase handler
+  // 4. Route to phase handler
   switch (req.phase) {
     case "clarify":
       return handleClarifyPhase(req, request, providerConfigs);

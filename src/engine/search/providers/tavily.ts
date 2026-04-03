@@ -40,7 +40,11 @@ export class TavilyProvider implements SearchProvider {
 
     const url = `${this.baseURL}/search`;
 
-    logger.info("TavilyProvider: searching", { query, maxResults, scope });
+    const maskedKey = this.config.apiKey
+      ? `${this.config.apiKey.slice(0, 6)}...${this.config.apiKey.slice(-4)}`
+      : "<empty>";
+
+    logger.info("TavilyProvider: searching", { query, maxResults, scope, baseURL: this.baseURL, maskedKey });
 
     const response = await fetch(url, {
       method: "POST",
@@ -61,6 +65,17 @@ export class TavilyProvider implements SearchProvider {
         include_raw_content: "markdown",
       }),
     });
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "<unreadable>");
+      logger.error("TavilyProvider: API error", {
+        status: response.status,
+        statusText: response.statusText,
+        errorBody: errorBody.slice(0, 500),
+        maskedKey,
+      });
+      return { sources: [], images: [] };
+    }
 
     const data: TavilyResponse = await response.json();
     const results = data.results ?? [];

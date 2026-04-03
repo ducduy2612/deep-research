@@ -9,6 +9,7 @@ import {
   Database,
   Github,
   Sparkles,
+  OctagonX,
 } from "lucide-react";
 
 import { cn } from "@/utils/style";
@@ -21,6 +22,7 @@ import { useUIStore } from "@/stores/ui-store";
 
 interface HeaderProps {
   className?: string;
+  onReset?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,9 +61,10 @@ function useElapsedMs(): number | null {
 // Component
 // ---------------------------------------------------------------------------
 
-export function Header({ className }: HeaderProps) {
+export function Header({ className, onReset }: HeaderProps) {
   const t = useTranslations("Header");
   const isActive = useResearchStore(selectIsActive);
+  const isNonIdle = useResearchStore((s) => s.state !== "idle");
   const topic = useResearchStore((s) => s.topic);
   const elapsedMs = useElapsedMs();
   const navigate = useUIStore((s) => s.navigate);
@@ -115,6 +118,19 @@ export function Header({ className }: HeaderProps) {
 
       {/* Right: Nav actions */}
       <div className="flex items-center gap-1">
+        {/* Abandon/reset research button — visible whenever state is not idle */}
+        {isNonIdle && onReset && (
+          <NavButton
+            icon={<OctagonX className="h-[18px] w-[18px]" />}
+            label={t("abandon")}
+            onClick={() => {
+              if (window.confirm(t("abandonConfirm"))) {
+                onReset();
+                navigate("hub");
+              }
+            }}
+          />
+        )}
         <NavButton
           icon={<Sparkles className="h-[18px] w-[18px]" />}
           label={isActive ? t("research") : t("hub")}
