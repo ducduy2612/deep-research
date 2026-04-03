@@ -8,7 +8,7 @@
   - Estimate: 1h
   - Files: src/engine/research/types.ts, src/stores/research-store-persist.ts, src/stores/research-store.ts, src/stores/index.ts
   - Verify: pnpm vitest run && pnpm build
-- [ ] **T02: Write tests for freeze semantics, persist round-trip, and backward compat** — Create a new test file covering the checkpoint/freeze/persist surface: freeze() for all 4 phases, freeze() idempotency, freeze() overwrite (regeneration), reset() clearing checkpoints, persist+hydrate round-trip with checkpoints, hydrate with old state missing checkpoints, manualQueries state and setter.
+- [x] **T02: Add 31 tests for freeze semantics, persist round-trip, backward compat, and manualQueries** — Create a new test file covering the checkpoint/freeze/persist surface: freeze() for all 4 phases, freeze() idempotency, freeze() overwrite (regeneration), reset() clearing checkpoints, persist+hydrate round-trip with checkpoints, hydrate with old state missing checkpoints, manualQueries state and setter.
   - Estimate: 45m
   - Files: src/stores/__tests__/research-store-freeze.test.ts
   - Verify: pnpm vitest run -- src/stores/__tests__/research-store-freeze.test.ts && pnpm vitest run
