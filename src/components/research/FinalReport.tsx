@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { ExternalLink, Share2, Plus, Download } from "lucide-react";
+import { ExternalLink, Share2, Plus, Download, ChevronDown } from "lucide-react";
 
 import { cn } from "@/utils/style";
+import { downloadBlob } from "@/utils/download";
+import { exportReportAsPdf, sanitizeFilename } from "@/utils/export-pdf";
 import { useResearchStore } from "@/stores/research-store";
 import { useUIStore } from "@/stores/ui-store";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
@@ -44,6 +46,34 @@ export function FinalReport({ className }: FinalReportProps) {
     }
     return entries;
   }, [result?.report]);
+
+  const [exportOpen, setExportOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!exportOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [exportOpen]);
+
+  const handleExportMd = useCallback(() => {
+    if (!result) return;
+    const filename = sanitizeFilename(result.title) + ".md";
+    downloadBlob(filename, result.report, "text/markdown;charset=utf-8");
+    setExportOpen(false);
+  }, [result]);
+
+  const handleExportPdf = useCallback(async () => {
+    if (!result) return;
+    await exportReportAsPdf(result.report, result.title);
+    setExportOpen(false);
+  }, [result]);
 
   const durationSec = startedAt && completedAt
     ? Math.round((completedAt - startedAt) / 1000)
@@ -178,10 +208,35 @@ export function FinalReport({ className }: FinalReportProps) {
               <Share2 className="mr-1 h-4 w-4" />
               {t("share")}
             </Button>
-            <Button size="sm" className="bg-obsidian-primary font-bold text-[#1000a9]">
-              <Download className="mr-1 h-4 w-4" />
-              {t("export")}
-            </Button>
+            <div ref={dropdownRef} className="relative">
+              <Button
+                size="sm"
+                className="bg-obsidian-primary font-bold text-[#1000a9]"
+                onClick={() => setExportOpen((v) => !v)}
+              >
+                <Download className="mr-1 h-4 w-4" />
+                {t("export")}
+                <ChevronDown className="ml-1 h-3 w-3" />
+              </Button>
+              {exportOpen && (
+                <div className="absolute bottom-full right-0 mb-2 w-48 rounded-lg border border-obsidian-outline-ghost/10 bg-obsidian-surface-deck py-1 shadow-lg">
+                  <button
+                    onClick={handleExportMd}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-obsidian-on-surface hover:bg-obsidian-surface-raised"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {t("exportMarkdown")}
+                  </button>
+                  <button
+                    onClick={handleExportPdf}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-obsidian-on-surface hover:bg-obsidian-surface-raised"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {t("exportPdf")}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

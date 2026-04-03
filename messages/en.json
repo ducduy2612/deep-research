@@ -71,6 +71,8 @@
     "newResearch": "New Research",
     "share": "Share",
     "export": "Export",
+    "exportMarkdown": "Download Markdown",
+    "exportPdf": "Download PDF",
     "noReport": "No report available.",
     "verified": "Verified",
     "processTime": "Process Time"

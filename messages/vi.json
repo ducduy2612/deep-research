@@ -71,6 +71,8 @@
     "newResearch": "Nghiên cứu mới",
     "share": "Chia sẻ",
     "export": "Xuất",
+    "exportMarkdown": "Tải Markdown",
+    "exportPdf": "Tải PDF",
     "noReport": "Chưa có báo cáo.",
     "verified": "Đã xác minh",
     "processTime": "Thời gian xử lý"

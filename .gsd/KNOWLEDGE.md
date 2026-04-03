@@ -360,3 +360,28 @@ The research store's persistence schemas (Zod schemas for saved state) were extr
 - "Finalize Findings" both freezes the research checkpoint AND triggers report generation in one action
 - There's no need for a separate Generate Report button — the user's intent is always "I'm done researching, make my report"
 - Removing the separate button eliminated an unnecessary prop chain through 4 components
+
+## M003 S04 — Report Workspace Feedback + Regeneration
+
+### buildReportBody() helper for 500-line compliance
+- When use-research.ts grows near the ESLint 500-line limit, extracting a buildReportBody(plan, learnings, sources, images, feedback?) helper consolidates the shared body-building logic between generateReport and regenerateReport
+- The helper is a pure function that constructs the SSE request body — no store access needed
+
+### Feedback maps to existing prompt parameters — avoid prompt proliferation
+- User report feedback was threaded through to getReportPrompt's existing `requirements` parameter rather than creating a new prompt parameter
+- This avoids adding a parallel feedback path through the prompt system — the AI already knows to treat requirements as user guidance
+
+### Regenerate reads frozen checkpoints, not live state
+- regenerateReport() reads from frozen checkpoints (research, plan) rather than live workspace state
+- This ensures deterministic behavior across browser refresh — the frozen data is immutable and guaranteed complete
+- Pattern: for regeneration/retry flows, always prefer checkpoint data over ephemeral workspace state
+
+### ReportWorkspace reads state directly from stores — no prop threading
+- ReportWorkspace accesses useResearchStore, useUIStore, and useResearch directly instead of receiving props from ActiveResearchCenter
+- The accordion only passes the render callback `() => <ReportWorkspace />` — the component is self-contained
+- This pattern works well when a workspace component needs many store slices but the parent only needs to position it
+
+### Navigation guard requires frozen report checkpoint
+- The auto-navigation effect in page.tsx uses `checkpoints?.report` to guard navigation to FinalReport
+- Optional chaining handles the case where checkpoints hasn't been hydrated yet
+- This ensures users stay in the accordion workspace until they explicitly click Done (which freezes the report)

@@ -10,17 +10,22 @@ Users can input a research question, interactively guide the research process th
 
 ## Current State
 
-M001 (v1.0 Full Rewrite) and M002 (Interactive Multi-Phase Research) are complete. M003 (Frozen Checkpoints + Active Workspace) is in progress — S01 (Store Refactor) and S02 (Phase Freeze UX) are complete. The application has:
-- **135+ source files, ~24K lines, 648 passing tests** (39 pre-existing orchestrator failures from AI SDK v6 upgrade)
+M001 (v1.0 Full Rewrite) and M002 (Interactive Multi-Phase Research) are complete. M003 (Frozen Checkpoints + Active Workspace) is in progress — S01–S04 complete. The application has:
+- **135+ source files, ~24K lines, 711 passing tests**
 - Multi-phase orchestrator with clarify/plan/research/report/full SSE phases
 - Research store with checkpoints{} + workspace{} separation, freeze() action, 31 freeze-specific tests
 - PhaseAccordion: Radix accordion with collapsed frozen phases (summary badges, read-only content) and expanded active workspace (primary glow)
-- Interactive research flow UI with phase-specific panels and actions
+- Interactive research flow UI with phase-specific panels, CRUD actions, and review loops
+- Report workspace with feedback textarea, Regenerate (sends frozen checkpoints + feedback to AI), Done (freezes report → FinalReport view)
 - PWA support, i18n (EN + VI), CORS proxy mode, knowledge base, history
 
 M003 S01 complete: Store has immutable checkpoints (clarify/plan/research/report) and mutable workspace (questions, feedback, plan, suggestion, manualQueries). freeze() creates immutable snapshots. All state persists across refresh with backward compatibility.
 
 M003 S02 complete: PhaseAccordion replaces ActiveResearchCenter's switch-based routing with a 4-phase Radix accordion. Frozen phases show summary badges (question count, query count, learnings/sources, report status) and read-only MarkdownRenderer. Active phase shows primary-color glow. ClarifyPanel Submit → freeze('clarify'), PlanPanel Approve → freeze('plan'). 9 unit tests cover all rendering states.
+
+M003 S03 complete: Research workspace with per-task CRUD. Delete removes query+learning+sources from accumulated data. Retry re-searches a single query. Manual queries queue for next batch. Suggestion textarea steers review prompt. One review round per "More Research". "Finalize Findings" freezes research and triggers report generation.
+
+M003 S04 complete: Report workspace with streamed report display, feedback textarea (persisted), Regenerate button (reads frozen checkpoints + feedback → sends to AI for new report), Done button (freezes report → navigates to FinalReport). Navigation guard prevents auto-redirect until report is frozen. 17 new tests (4 orchestrator + 6 store + 7 component).
 
 ## Architecture / Key Patterns
 
@@ -45,4 +50,4 @@ See `.gsd/REQUIREMENTS.md` for the explicit capability contract, requirement sta
 - [ ] M003: Frozen Checkpoints + Active Workspace — Immutable phase checkpoints, editable research/report workspaces, export
 
 ---
-*Last updated: 2026-04-03 — M003 planning.*
+*Last updated: 2026-04-03 — M003 S04 complete.*
