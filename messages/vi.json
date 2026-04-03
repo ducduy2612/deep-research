@@ -296,5 +296,13 @@
   "ManualQueryInput": {
     "placeholder": "Thêm truy vấn tìm kiếm...",
     "add": "Thêm"
+  },
+  "ReportWorkspace": {
+    "feedbackLabel": "PHẢN HỒI",
+    "feedbackPlaceholder": "Viết nhận xét về báo cáo hiện tại. Phản hồi của bạn sẽ được sử dụng để tạo lại phiên bản cải thiện...",
+    "regenerate": "Tạo lại",
+    "regenerating": "Đang tạo lại...",
+    "done": "Hoàn thành",
+    "emptyReport": "Báo cáo sẽ xuất hiện tại đây khi được tạo..."
   }
 }

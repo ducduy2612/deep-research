@@ -296,5 +296,13 @@
   "ManualQueryInput": {
     "placeholder": "Add a search query...",
     "add": "Add"
+  },
+  "ReportWorkspace": {
+    "feedbackLabel": "FEEDBACK",
+    "feedbackPlaceholder": "Write comments on the current report. Your feedback will be used to regenerate an improved version...",
+    "regenerate": "Regenerate",
+    "regenerating": "Regenerating...",
+    "done": "Done",
+    "emptyReport": "Report will appear here as it is generated..."
   }
 }

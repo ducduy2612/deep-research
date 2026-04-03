@@ -11,6 +11,7 @@ import { PlanPanel } from "./PlanPanel";
 import { ResearchActions } from "./ResearchActions";
 import { SearchResultCard } from "./SearchResultCard";
 import { PhaseAccordion } from "./PhaseAccordion";
+import { ReportWorkspace } from "./ReportWorkspace";
 import type { ResearchStep } from "@/engine/provider/types";
 
 // ---------------------------------------------------------------------------
@@ -155,6 +156,7 @@ export function ActiveResearchCenter({
                 onFinalizeFindings={onFinalizeFindings}
               />
             )}
+            onRenderReport={() => <ReportWorkspace />}
           />
         )}
 

@@ -24,6 +24,7 @@ export default function Home() {
   const navigate = useUIStore((s) => s.navigate);
   const result = useResearchStore((s) => s.result);
   const state = useResearchStore((s) => s.state);
+  const checkpoints = useResearchStore((s) => s.checkpoints);
   const {
     connectionError,
     clarify,
@@ -51,16 +52,17 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount-only check
   }, []);
 
-  // Auto-navigate to report when research completes with a result
+  // Auto-navigate to report only when report checkpoint is frozen (user clicked Done)
   useEffect(() => {
     if (
       (state === "completed" || state === "failed" || state === "aborted") &&
       result &&
-      activeView === "active"
+      activeView === "active" &&
+      checkpoints?.report
     ) {
       navigate("report");
     }
-  }, [state, result, activeView, navigate]);
+  }, [state, result, activeView, navigate, checkpoints]);
 
   return (
     <div className="flex min-h-screen flex-col bg-obsidian-surface-well">
