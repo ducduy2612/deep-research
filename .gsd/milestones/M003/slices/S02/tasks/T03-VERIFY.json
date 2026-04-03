@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T03",
+  "unitId": "M003/S02/T03",
+  "timestamp": 1775231748534,
+  "passed": false,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "pnpm vitest run src/components/research/__tests__/phase-accordion.test.tsx — all tests pass. pnpm vitest run — all tests pass (no regressions)",
+      "exitCode": 2,
+      "durationMs": 2,
+      "verdict": "fail"
+    }
+  ],
+  "retryAttempt": 1,
+  "maxRetries": 2
+}

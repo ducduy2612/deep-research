@@ -10,14 +10,17 @@ Users can input a research question, interactively guide the research process th
 
 ## Current State
 
-M001 (v1.0 Full Rewrite) and M002 (Interactive Multi-Phase Research) are complete. M003 (Frozen Checkpoints + Active Workspace) is in progress — S01 (Store Refactor) is complete. The application has:
-- **132+ source files, ~23K lines, 669 passing tests**
+M001 (v1.0 Full Rewrite) and M002 (Interactive Multi-Phase Research) are complete. M003 (Frozen Checkpoints + Active Workspace) is in progress — S01 (Store Refactor) and S02 (Phase Freeze UX) are complete. The application has:
+- **135+ source files, ~24K lines, 648 passing tests** (39 pre-existing orchestrator failures from AI SDK v6 upgrade)
 - Multi-phase orchestrator with clarify/plan/research/report/full SSE phases
 - Research store with checkpoints{} + workspace{} separation, freeze() action, 31 freeze-specific tests
+- PhaseAccordion: Radix accordion with collapsed frozen phases (summary badges, read-only content) and expanded active workspace (primary glow)
 - Interactive research flow UI with phase-specific panels and actions
 - PWA support, i18n (EN + VI), CORS proxy mode, knowledge base, history
 
 M003 S01 complete: Store has immutable checkpoints (clarify/plan/research/report) and mutable workspace (questions, feedback, plan, suggestion, manualQueries). freeze() creates immutable snapshots. All state persists across refresh with backward compatibility.
+
+M003 S02 complete: PhaseAccordion replaces ActiveResearchCenter's switch-based routing with a 4-phase Radix accordion. Frozen phases show summary badges (question count, query count, learnings/sources, report status) and read-only MarkdownRenderer. Active phase shows primary-color glow. ClarifyPanel Submit → freeze('clarify'), PlanPanel Approve → freeze('plan'). 9 unit tests cover all rendering states.
 
 ## Architecture / Key Patterns
 

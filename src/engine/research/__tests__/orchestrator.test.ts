@@ -60,7 +60,7 @@ import { ResearchOrchestrator } from "../orchestrator";
 import type { ResearchConfig, ResearchState } from "../types";
 import type { SearchProvider } from "../search-provider";
 import type { ProviderConfig } from "@/engine/provider/types";
-import { MockLanguageModelV1 } from "ai/test";
+import { MockLanguageModelV3 } from "ai/test";
 import { simulateReadableStream } from "ai";
 
 // ---------------------------------------------------------------------------
@@ -149,7 +149,7 @@ describe("ResearchOrchestrator", () => {
     vi.clearAllMocks();
 
     // Default mock model
-    mockContainer.model = new MockLanguageModelV1({
+    mockContainer.model = new MockLanguageModelV3({
       doStream: async () => ({
         stream: simulateReadableStream({
           chunks: [

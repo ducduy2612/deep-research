@@ -315,3 +315,26 @@ When testing freeze() by checking the activity log for frozen events, use the sp
 ### Persist schema extracted to separate file
 
 The research store's persistence schemas (Zod schemas for saved state) were extracted to `research-store-persist.ts` to keep the main store file under 500 lines (ESLint max-lines rule). This is a pattern worth repeating for other stores that grow large.
+
+## M003 S02 — Phase Freeze UX
+
+### PHASE_CONFIG array pattern for declarative phase metadata
+- PhaseAccordion uses a PHASE_CONFIG array mapping each phase to its activeStates[], summary getter, and frozen content getter
+- This single-source-of-truth pattern avoids scattered if/else chains for phase detection
+- Reusable for any component that needs to know phase state (e.g., future workflow progress bar)
+
+### Render props over direct imports for accordion layout components
+- PhaseAccordion accepts onRenderClarify, onRenderPlan, onRenderStreaming, onRenderResearchActions, onRenderReport render props
+- This keeps the accordion as a pure layout shell — it owns visual state (frozen/active/pending) but not workspace content
+- The parent (ActiveResearchCenter) owns which panels render and passes them in
+
+### vi.hoisted() for Zustand store mocking in React component tests
+- When mocking useResearchStore with vi.mock(), the factory is hoisted above all imports
+- Mutable mock state must use vi.hoisted() so the factory can reference it at hoist time
+- Pattern: `const { mockState } = vi.hoisted(() => ({ mockState: { ... } }))` then `vi.mock('@/stores/research-store', () => ({ useResearchStore: (sel) => sel(mockState) }))`
+- Without hoisting, the mockState reference is undefined when the factory executes
+
+### @vitejs/plugin-react needed for .test.tsx files in vitest
+- vitest.config.ts must include `.test.tsx` in the include pattern for React component tests
+- @vitejs/plugin-react provides the JSX transform needed for TSX compilation in test files
+- @testing-library/jest-dom/vitest extends expect with DOM matchers (toBeInTheDocument, etc.)
