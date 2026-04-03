@@ -1,12 +1,29 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { ChevronDown, ChevronRight, X, RotateCw, ExternalLink } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  X,
+  RotateCw,
+  ExternalLink,
+  Download,
+  Database,
+} from "lucide-react";
+import { toast } from "sonner";
 
 import { cn } from "@/utils/style";
 import { useResearchStore } from "@/stores/research-store";
+import { useKnowledgeStore } from "@/stores/knowledge-store";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import { downloadBlob } from "@/utils/download";
+import { sanitizeFilename } from "@/utils/export-pdf";
+import {
+  serializeSearchResultAsMd,
+  serializeSearchResultsAsJson,
+  searchResultToKnowledgeItem,
+} from "@/utils/export-search";
 import type { SearchResult } from "@/engine/research/types";
 
 // ---------------------------------------------------------------------------
@@ -26,6 +43,25 @@ export function SearchResultCard({ result, index }: SearchResultCardProps) {
   const t = useTranslations("SearchResultCard");
   const [expanded, setExpanded] = useState(false);
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Click-outside handler for export dropdown
+  useEffect(() => {
+    if (!exportOpen) return;
+
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setExportOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [exportOpen]);
 
   const handleDelete = useCallback(() => {
     useResearchStore.getState().removeSearchResult(index);
@@ -34,6 +70,32 @@ export function SearchResultCard({ result, index }: SearchResultCardProps) {
   const handleRetry = useCallback(() => {
     useResearchStore.getState().retrySearchResult(index);
   }, [index]);
+
+  const safeName = sanitizeFilename(result.query);
+
+  const handleExportMd = useCallback(() => {
+    downloadBlob(
+      safeName + ".md",
+      serializeSearchResultAsMd(result),
+      "text/markdown;charset=utf-8",
+    );
+    setExportOpen(false);
+  }, [result, safeName]);
+
+  const handleExportJson = useCallback(() => {
+    downloadBlob(
+      safeName + ".json",
+      serializeSearchResultsAsJson([result]),
+      "application/json;charset=utf-8",
+    );
+    setExportOpen(false);
+  }, [result, safeName]);
+
+  const handleAddToKb = useCallback(() => {
+    const item = searchResultToKnowledgeItem(result);
+    useKnowledgeStore.getState().add(item);
+    toast.success(t("addedToKb"));
+  }, [result, t]);
 
   return (
     <div
@@ -52,6 +114,46 @@ export function SearchResultCard({ result, index }: SearchResultCardProps) {
             {t("sources", { count: result.sources.length })}
           </span>
         </div>
+
+        {/* Export dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            type="button"
+            onClick={() => setExportOpen((prev) => !prev)}
+            title={t("exportMarkdown")}
+            className="shrink-0 rounded p-1 text-obsidian-on-surface-var transition-colors hover:text-obsidian-primary-deep"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+          {exportOpen && (
+            <div className="absolute right-0 top-full z-10 mt-1 w-44 rounded-md border border-obsidian-outline-ghost/20 bg-obsidian-surface-raised py-1 shadow-lg">
+              <button
+                type="button"
+                onClick={handleExportMd}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-obsidian-on-surface transition-colors hover:bg-obsidian-surface-well"
+              >
+                {t("exportMarkdown")}
+              </button>
+              <button
+                type="button"
+                onClick={handleExportJson}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-obsidian-on-surface transition-colors hover:bg-obsidian-surface-well"
+              >
+                {t("exportJson")}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Add to KB */}
+        <button
+          type="button"
+          onClick={handleAddToKb}
+          title={t("addToKb")}
+          className="shrink-0 rounded p-1 text-obsidian-on-surface-var transition-colors hover:text-obsidian-primary-deep"
+        >
+          <Database className="h-3.5 w-3.5" />
+        </button>
 
         <button
           type="button"

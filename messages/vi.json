@@ -293,7 +293,11 @@
     "delete": "Xóa kết quả",
     "retry": "Tìm kiếm lại",
     "sources": "{count} nguồn",
-    "learning": "Phát hiện"
+    "learning": "Phát hiện",
+    "exportMarkdown": "Xuất Markdown",
+    "exportJson": "Xuất JSON",
+    "addToKb": "Thêm vào Cơ sở tri thức",
+    "addedToKb": "Đã thêm vào cơ sở tri thức"
   },
   "ManualQueryInput": {
     "placeholder": "Thêm truy vấn tìm kiếm...",

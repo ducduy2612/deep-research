@@ -293,7 +293,11 @@
     "delete": "Delete result",
     "retry": "Retry search",
     "sources": "{count} sources",
-    "learning": "Learning"
+    "learning": "Learning",
+    "exportMarkdown": "Export as Markdown",
+    "exportJson": "Export as JSON",
+    "addToKb": "Add to Knowledge Base",
+    "addedToKb": "Added to knowledge base"
   },
   "ManualQueryInput": {
     "placeholder": "Add a search query...",

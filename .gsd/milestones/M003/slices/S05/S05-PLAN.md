@@ -8,7 +8,7 @@
   - Estimate: 1h
   - Files: src/utils/download.ts, src/utils/export-pdf.ts, src/components/research/FinalReport.tsx, messages/en.json, messages/vi.json, package.json
   - Verify: pnpm vitest run src/utils/__tests__/download.test.ts src/utils/__tests__/export-pdf.test.ts && pnpm build && pnpm lint
-- [ ] **T02: Add search result export (MD/JSON) and add-to-KB buttons to SearchResultCard** — Create serialization helpers (`serializeSearchResultAsMd`, `serializeSearchResultsAsJson`) and `searchResultToKnowledgeItem` converter. Add export dropdown (MD/JSON) and 'Add to KB' icon button to each SearchResultCard. Wire Add-to-KB to call `knowledgeStore.add()` with a success toast. Add i18n keys. Write unit tests for serialization and KB conversion.
+- [x] **T02: Added per-card export dropdown (MD/JSON) and Add-to-Knowledge-Base button to each SearchResultCard with serialization helpers and unit tests** — Create serialization helpers (`serializeSearchResultAsMd`, `serializeSearchResultsAsJson`) and `searchResultToKnowledgeItem` converter. Add export dropdown (MD/JSON) and 'Add to KB' icon button to each SearchResultCard. Wire Add-to-KB to call `knowledgeStore.add()` with a success toast. Add i18n keys. Write unit tests for serialization and KB conversion.
   - Estimate: 1h
   - Files: src/utils/export-search.ts, src/components/research/SearchResultCard.tsx, src/stores/knowledge-store.ts, src/engine/knowledge/types.ts, src/engine/research/types.ts, messages/en.json, messages/vi.json
   - Verify: pnpm vitest run src/utils/__tests__/export-search.test.ts && pnpm build && pnpm lint

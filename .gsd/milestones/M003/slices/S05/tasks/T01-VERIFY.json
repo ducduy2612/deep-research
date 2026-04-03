@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T01",
+  "unitId": "M003/S05/T01",
+  "timestamp": 1775239168293,
+  "passed": true,
+  "discoverySource": "task-plan",
+  "checks": [
+    {
+      "command": "pnpm vitest run src/utils/__tests__/download.test.ts src/utils/__tests__/export-pdf.test.ts",
+      "exitCode": 0,
+      "durationMs": 712,
+      "verdict": "pass"
+    },
+    {
+      "command": "pnpm build",
+      "exitCode": 0,
+      "durationMs": 13726,
+      "verdict": "pass"
+    },
+    {
+      "command": "pnpm lint",
+      "exitCode": 0,
+      "durationMs": 1159,
+      "verdict": "pass"
+    }
+  ]
+}
