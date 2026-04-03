@@ -338,3 +338,25 @@ The research store's persistence schemas (Zod schemas for saved state) were extr
 - vitest.config.ts must include `.test.tsx` in the include pattern for React component tests
 - @vitejs/plugin-react provides the JSX transform needed for TSX compilation in test files
 - @testing-library/jest-dom/vitest extends expect with DOM matchers (toBeInTheDocument, etc.)
+
+## M003 S03 — Research Workspace CRUD + Review Loop
+
+### handleEvent extraction pattern for 500-line compliance
+- When a Zustand store grows beyond 500 lines, extracting handleEvent to a separate module (research-store-events.ts) keeps the main store clean
+- The events module imports types from the store; the store imports the handleEvent function
+- This circular-ish dependency is fine because TypeScript resolves types at compile time and the actual runtime functions don't circular-call
+
+### stripResultData helper for delete/retry symmetry
+- removeSearchResult and retrySearchResult both need to strip a result's learning, sources, and images from accumulated data
+- A shared `stripResultData(state, index)` helper avoids duplicating this logic
+- The helper preserves sources/images that are also referenced by remaining results (intersection check)
+
+### Clear pending queues BEFORE connectSSE to avoid race conditions
+- When requestMoreResearch consumes pendingRetryQueries, manualQueries, and suggestion, all three must be cleared BEFORE calling connectSSE
+- If cleared after, the SSE stream's initial events could trigger re-reads of the now-stale pending state
+- This is a general pattern: clear input state before initiating the async operation that consumes it
+
+### finalizeFindings subsumes generateReport
+- "Finalize Findings" both freezes the research checkpoint AND triggers report generation in one action
+- There's no need for a separate Generate Report button — the user's intent is always "I'm done researching, make my report"
+- Removing the separate button eliminated an unnecessary prop chain through 4 components

@@ -59,6 +59,7 @@ export interface ResearchStoreState {
   readonly suggestion: string;
   readonly manualQueries: readonly string[];
   readonly pendingRetryQueries: readonly string[];
+  readonly reportFeedback: string;
   // Immutable phase checkpoints
   readonly checkpoints: ResearchCheckpoints;
   // Persistence
@@ -76,6 +77,7 @@ export interface ResearchStoreActions {
   setPlan: (text: string) => void;
   setSuggestion: (text: string) => void;
   setManualQueries: (queries: string[]) => void;
+  setReportFeedback: (text: string) => void;
   // CRUD actions for research workspace
   removeSearchResult: (index: number) => void;
   retrySearchResult: (index: number) => void;
@@ -110,6 +112,7 @@ const INITIAL_STATE: ResearchStoreState = {
   suggestion: "",
   manualQueries: [],
   pendingRetryQueries: [],
+  reportFeedback: "",
   checkpoints: {},
   connectionInterrupted: false,
 };
@@ -183,6 +186,7 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
   setPlan: (text: string) => set({ plan: text }),
   setSuggestion: (text: string) => set({ suggestion: text }),
   setManualQueries: (queries: string[]) => set({ manualQueries: queries }),
+  setReportFeedback: (text: string) => set({ reportFeedback: text }),
 
   removeSearchResult: (index: number) => {
     set((s) => {
@@ -328,6 +332,7 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
       suggestion: saved.suggestion,
       manualQueries: saved.manualQueries ?? [],
       pendingRetryQueries: saved.pendingRetryQueries ?? [],
+      reportFeedback: saved.reportFeedback ?? "",
       checkpoints: saved.checkpoints ?? {},
       connectionInterrupted,
     });
@@ -365,6 +370,7 @@ useResearchStore.subscribe((state) => {
     suggestion: state.suggestion,
     manualQueries: state.manualQueries,
     pendingRetryQueries: state.pendingRetryQueries,
+    reportFeedback: state.reportFeedback,
     checkpoints: state.checkpoints,
   };
 

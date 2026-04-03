@@ -115,6 +115,7 @@ const reportSchema = baseFieldsSchema.extend({
   learnings: z.array(z.string()),
   sources: z.array(z.object({ url: z.string(), title: z.string().optional() })),
   images: z.array(z.object({ url: z.string(), description: z.string().optional() })),
+  feedback: z.string().optional(),
 });
 
 const requestSchema = z.union([
@@ -495,6 +496,7 @@ async function handleReportPhase(
         req.learnings,
         req.sources as Source[],
         req.images as ImageSource[],
+        req.feedback,
       );
       const events: string[] = [];
       if (result) {

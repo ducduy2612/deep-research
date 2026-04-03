@@ -292,11 +292,12 @@ export class ResearchOrchestrator {
     learnings: string[],
     sources: Source[],
     images: ImageSource[],
+    feedback?: string,
   ): Promise<ReportResult | null> {
     this.abortController = new AbortController();
 
     try {
-      const report = await this.runReport(plan, learnings, sources, images);
+      const report = await this.runReport(plan, learnings, sources, images, feedback);
       if (this.isAborted()) return null;
 
       const title = this.extractTitle(report);
@@ -761,6 +762,7 @@ export class ResearchOrchestrator {
     learnings: string[],
     sources: Source[],
     images: ImageSource[],
+    feedback?: string,
   ): Promise<string> {
     const step: ResearchStep = "report";
     this.transitionTo("reporting");
@@ -777,6 +779,7 @@ export class ResearchOrchestrator {
         learnings,
         sources,
         images,
+        feedback,
       );
 
       const result = await streamWithAbort({

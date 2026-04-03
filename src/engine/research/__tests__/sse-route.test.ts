@@ -715,6 +715,7 @@ describe("SSE Research Stream Route", () => {
         ["L1", "L2"],
         [{ url: "https://example.com", title: "Example" }],
         [{ url: "https://img.com/a.jpg", description: "Diagram" }],
+        undefined, // feedback — not provided in basic report request
       );
     });
 

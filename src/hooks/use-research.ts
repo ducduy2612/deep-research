@@ -30,10 +30,7 @@ async function getKS() {
   return _ks;
 }
 
-// ---------------------------------------------------------------------------
 // Types
-// ---------------------------------------------------------------------------
-
 export interface StartOptions {
   topic: string;
   reportStyle?: ReportStyle;
@@ -49,6 +46,7 @@ export interface UseResearchReturn {
   requestMoreResearch: () => void;
   generateReport: () => void;
   finalizeFindings: () => void;
+  regenerateReport: () => void;
   // Backward-compatible full pipeline
   start: (options: StartOptions) => void;
   // Lifecycle
@@ -61,10 +59,7 @@ export interface UseResearchReturn {
   connectionError: string | null;
 }
 
-// ---------------------------------------------------------------------------
 // SSE parser — splits on double-newlines, extracts event/data pairs.
-// ---------------------------------------------------------------------------
-
 export function parseSSEChunk(
   chunk: string,
   onEvent: (eventType: string, data: unknown) => void,
@@ -93,10 +88,7 @@ export function parseSSEChunk(
   }
 }
 
-// ---------------------------------------------------------------------------
 // SSE buffer — handles events split across chunks.
-// ---------------------------------------------------------------------------
-
 export function createSSEBuffer(
   onEvent: (eventType: string, data: unknown) => void,
 ): (chunk: string) => void {
@@ -130,57 +122,36 @@ export function createSSEBuffer(
   };
 }
 
-// ---------------------------------------------------------------------------
 // Shared base body builder
-// ---------------------------------------------------------------------------
 
 /** Fields common to every phase request (providers, search, etc.). */
 function buildBaseBody() {
-  const settings = useSettingsStore.getState();
-  const { searchProvider, includeDomains, excludeDomains, citationImages,
-    promptOverrides, autoReviewRounds, maxSearchQueries, localOnlyMode,
-    proxyMode, accessPassword, providers } = settings;
-
+  const s = useSettingsStore.getState();
   return {
-    promptOverrides: Object.keys(promptOverrides).length > 0 ? promptOverrides : undefined,
-    autoReviewRounds,
-    maxSearchQueries,
-    localOnly: localOnlyMode,
-    providers: !proxyMode
-      ? providers.filter((p) => p.enabled && p.apiKey).map((p) => ({
+    promptOverrides: Object.keys(s.promptOverrides).length > 0 ? s.promptOverrides : undefined,
+    autoReviewRounds: s.autoReviewRounds,
+    maxSearchQueries: s.maxSearchQueries,
+    localOnly: s.localOnlyMode,
+    providers: !s.proxyMode
+      ? s.providers.filter((p) => p.enabled && p.apiKey).map((p) => ({
           id: p.id, apiKey: p.apiKey, baseURL: p.baseURL,
           thinkingModelId: p.thinkingModelId, networkingModelId: p.networkingModelId,
         }))
       : undefined,
-    search: {
-      provider: searchProvider ?? undefined,
-      includeDomains,
-      excludeDomains,
-      citationImages,
-    },
-    _auth: proxyMode ? createAuthHeaders(accessPassword) : {},
+    search: { provider: s.searchProvider ?? undefined, includeDomains: s.includeDomains, excludeDomains: s.excludeDomains, citationImages: s.citationImages },
+    _auth: s.proxyMode ? createAuthHeaders(s.accessPassword) : {},
   };
 }
 
 /** Load knowledge content for selected items (defensive: skip deleted). */
-async function loadKnowledgeContent(): Promise<
-  { title: string; content: string }[]
-> {
+async function loadKnowledgeContent(): Promise<{ title: string; content: string }[]> {
   const { selectedKnowledgeIds } = useSettingsStore.getState();
   if (selectedKnowledgeIds.length === 0) return [];
-  const knowledgeStore = await getKS();
-  const allItems = knowledgeStore.getState().items;
+  const ks = (await getKS()).getState().items;
   return selectedKnowledgeIds
-    .map((id) => {
-      const it = allItems.find((k) => k.id === id);
-      return it ? { title: it.title, content: it.content } : null;
-    })
+    .map((id) => { const it = ks.find((k) => k.id === id); return it ? { title: it.title, content: it.content } : null; })
     .filter((x): x is { title: string; content: string } => x !== null);
 }
-
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
 
 export function useResearch(): UseResearchReturn {
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -209,10 +180,7 @@ export function useResearch(): UseResearchReturn {
   // UI navigation
   const navigate = useUIStore((s) => s.navigate);
 
-  // -----------------------------------------------------------------------
   // Timer management
-  // -----------------------------------------------------------------------
-
   const stopTimer = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }, []);
@@ -234,25 +202,16 @@ export function useResearch(): UseResearchReturn {
     if (startedAt && completedAt) setElapsedMs(completedAt - startedAt);
   }, [stopTimer]);
 
-  // -----------------------------------------------------------------------
   // Cleanup
-  // -----------------------------------------------------------------------
-
   const cleanup = useCallback(() => {
     setIsConnected(false);
     // Don't stop timer between phases — only finalize on terminal states
   }, []);
 
-  // -----------------------------------------------------------------------
   // SSE connection — generic phase-aware connector
-  // -----------------------------------------------------------------------
-
   const connectSSE = useCallback(
     async (body: Record<string, unknown>, isReportPhase: boolean = false) => {
-      // Abort any existing connection
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      if (abortControllerRef.current) { abortControllerRef.current.abort(); }
 
       // Create new abort controller
       const controller = new AbortController();
@@ -278,19 +237,10 @@ export function useResearch(): UseResearchReturn {
           const text = await response.text();
           let errorMsg = `HTTP ${response.status}`;
           try {
-            // Try SSE-formatted error first
             const dataMatch = text.match(/data:\s*(.+)/);
-            if (dataMatch) {
-              const errorData = JSON.parse(dataMatch[1]);
-              errorMsg = errorData.message ?? errorMsg;
-            } else {
-              // Fallback: plain JSON error (middleware, etc.)
-              const json = JSON.parse(text);
-              errorMsg = json.message ?? json.error ?? errorMsg;
-            }
-          } catch {
-            // Use default HTTP error
-          }
+            if (dataMatch) { const ed = JSON.parse(dataMatch[1]); errorMsg = ed.message ?? errorMsg; }
+            else { const json = JSON.parse(text); errorMsg = json.message ?? json.error ?? errorMsg; }
+          } catch { /* use default HTTP error */ }
           throw new Error(errorMsg);
         }
 
@@ -318,23 +268,16 @@ export function useResearch(): UseResearchReturn {
               if (rs.result) {
                 useHistoryStore.getState().save({
                   id: rs.topic + "-" + (rs.startedAt ?? Date.now()),
-                  topic: rs.topic,
-                  title: rs.result.title ?? rs.topic,
+                  topic: rs.topic, title: rs.result.title ?? rs.topic,
                   state: rs.state === "failed" ? "failed" : "completed",
-                  startedAt: rs.startedAt ?? Date.now(),
-                  completedAt: rs.completedAt ?? Date.now(),
-                  report: rs.result.report,
-                  learnings: rs.result.learnings,
-                  sources: rs.result.sources,
-                  images: rs.result.images,
+                  startedAt: rs.startedAt ?? Date.now(), completedAt: rs.completedAt ?? Date.now(),
+                  report: rs.result.report, learnings: rs.result.learnings,
+                  sources: rs.result.sources, images: rs.result.images,
                   reportStyle: restBody.reportStyle as ReportStyle ?? "balanced",
                   reportLength: restBody.reportLength as ReportLength ?? "standard",
                 });
-                console.info("[useResearch] Auto-saved session to history");
               }
-            } catch (err) {
-              console.error("[useResearch] Failed to auto-save to history:", err);
-            }
+            } catch (err) { console.error("[useResearch] Failed to auto-save to history:", err); }
           }
         });
 
@@ -373,7 +316,6 @@ export function useResearch(): UseResearchReturn {
         cleanup();
       }
     },
-    // Dependencies: settings selectors that go into request bodies
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       searchProvider, includeDomains, excludeDomains, citationImages,
@@ -383,9 +325,7 @@ export function useResearch(): UseResearchReturn {
     ],
   );
 
-  // -----------------------------------------------------------------------
   // Phase-specific actions
-  // -----------------------------------------------------------------------
 
   /** Phase 1: Clarify — generate clarification questions for the topic. */
   const clarify = useCallback(
@@ -494,28 +434,42 @@ export function useResearch(): UseResearchReturn {
     [connectSSE],
   );
 
+  /** Build the SSE request body common to generateReport / regenerateReport. */
+  function buildReportBody(
+    plan: string,
+    learnings: string[],
+    sources: Source[],
+    images: ImageSource[],
+    feedback?: string,
+  ) {
+    const base = buildBaseBody();
+    const settings = useSettingsStore.getState();
+    return {
+      phase: "report" as const,
+      plan,
+      learnings,
+      sources: sources.map((s) => ({ url: s.url, title: s.title })),
+      images: images.map((i) => ({ url: i.url, description: i.description })),
+      feedback: feedback || undefined,
+      reportStyle: settings.reportStyle ?? undefined,
+      reportLength: settings.reportLength ?? undefined,
+      language: settings.language ?? undefined,
+      promptOverrides: base.promptOverrides,
+      _auth: base._auth,
+    };
+  }
+
   /** Phase 4: Report — generate final report from learnings and sources. */
   const generateReport = useCallback(
     async () => {
       const { plan, result } = useResearchStore.getState();
-      const learnings = result?.learnings ?? [];
-      const sources: Source[] = result?.sources ?? [];
-      const images: ImageSource[] = result?.images ?? [];
-
-      const base = buildBaseBody();
-
-      await connectSSE({
-        phase: "report",
+      const body = buildReportBody(
         plan,
-        learnings,
-        sources: sources.map((s) => ({ url: s.url, title: s.title })),
-        images: images.map((i) => ({ url: i.url, description: i.description })),
-        reportStyle: useSettingsStore.getState().reportStyle ?? undefined,
-        reportLength: useSettingsStore.getState().reportLength ?? undefined,
-        language: useSettingsStore.getState().language ?? undefined,
-        promptOverrides: base.promptOverrides,
-        _auth: base._auth,
-      }, true); // isReportPhase = true → auto-save on done
+        result?.learnings ?? [],
+        result?.sources ?? [],
+        result?.images ?? [],
+      );
+      await connectSSE(body, true);
     },
     [connectSSE],
   );
@@ -529,10 +483,27 @@ export function useResearch(): UseResearchReturn {
     [generateReport],
   );
 
-  // -----------------------------------------------------------------------
-  // Backward-compatible full pipeline
-  // -----------------------------------------------------------------------
+  /** Regenerate report using frozen research checkpoint + user feedback. */
+  const regenerateReport = useCallback(
+    async () => {
+      const { reportFeedback, checkpoints, plan } = useResearchStore.getState();
+      const researchCp = checkpoints.research;
+      const planCp = checkpoints.plan;
 
+      const body = buildReportBody(
+        planCp?.plan ?? plan,
+        researchCp?.result?.learnings ?? [],
+        researchCp?.result?.sources ?? [],
+        researchCp?.result?.images ?? [],
+        reportFeedback || undefined,
+      );
+
+      await connectSSE(body, true);
+    },
+    [connectSSE],
+  );
+
+  // Backward-compatible full pipeline
   const start = useCallback(
     async (options: StartOptions) => {
       // Reset store and start fresh
@@ -565,10 +536,7 @@ export function useResearch(): UseResearchReturn {
     [navigate, connectSSE],
   );
 
-  // -----------------------------------------------------------------------
   // Lifecycle actions
-  // -----------------------------------------------------------------------
-
   const abort = useCallback(() => {
     console.info("[useResearch] Abort triggered");
     if (abortControllerRef.current) {
@@ -592,10 +560,7 @@ export function useResearch(): UseResearchReturn {
     setConnectionError(null);
   }, [stopTimer]);
 
-  // -----------------------------------------------------------------------
   // Cleanup on unmount
-  // -----------------------------------------------------------------------
-
   useEffect(() => {
     return () => {
       console.info("[useResearch] Unmount cleanup");
@@ -610,10 +575,7 @@ export function useResearch(): UseResearchReturn {
     };
   }, []);
 
-  // -----------------------------------------------------------------------
   // Sync elapsed from store timestamps
-  // -----------------------------------------------------------------------
-
   const storeCompletedAt = useResearchStore((s) => s.completedAt);
 
   useEffect(() => {
@@ -630,6 +592,7 @@ export function useResearch(): UseResearchReturn {
     requestMoreResearch,
     generateReport,
     finalizeFindings,
+    regenerateReport,
     // Full pipeline
     start,
     // Lifecycle
