@@ -1,16 +1,1 @@
-[
-  {
-    "id": "0d22227f",
-    "label": "dev server",
-    "command": "cd /home/converter/code/deep-research && pnpm dev",
-    "cwd": "/home/converter/code/deep-research",
-    "ownerSessionFile": "/home/converter/.gsd/sessions/--home-converter-code-deep-research--/2026-04-04T17-37-14-880Z_f2970687-90de-4139-aad9-4b6676f40dab.jsonl",
-    "persistAcrossSessions": false,
-    "startedAt": 1775325106358,
-    "processType": "server",
-    "group": null,
-    "readyPattern": null,
-    "readyPort": 3000,
-    "pid": 159305
-  }
-]
+[]
