@@ -882,25 +882,15 @@ export class ResearchOrchestrator {
         resolvePrompt("outputGuidelines", this.config.promptOverrides ?? {}),
       ].join("\n\n");
 
-      // Build resources context with all learnings/sources/images
-      // Inlined as text content — not all providers support the file part media type
-      const resourcesContent = [
-        `<LEARNINGS>\n${learnings.map((l) => `<learning>\n${l}\n</learning>`).join("\n")}\n</LEARNINGS>`,
-        `<SOURCES>\n${sources.map((s, i) => `<source index="${i + 1}" url="${s.url}">\n${s.title}\n</source>`).join("\n")}\n</SOURCES>`,
-        `<IMAGES>\n${images.map((img, i) => `${i + 1}. ![${img.description}](${img.url})`).join("\n")}\n</IMAGES>`,
-      ].join("\n\n");
+      // NOTE: getReportPrompt() already embeds all learnings, sources, and images
+      // in XML-tagged blocks. No need to duplicate them — sending once keeps the
+      // input token count manageable and avoids Vercel stream timeouts.
 
       const result = await streamWithAbort({
         model,
         messages: [
           { role: "system", content: reportSystemPrompt },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "text", text: resourcesContent },
-            ],
-          },
+          { role: "user", content: prompt },
         ],
         abortSignal: this.abortController?.signal,
       });
