@@ -71,6 +71,23 @@ describe("TavilyProvider", () => {
     expect(result.images[0]).toEqual({ url: "https://img.example.com/1.jpg" });
   });
 
+  it("handles image objects with descriptions (include_image_descriptions)", async () => {
+    mockFetchOnce({
+      results: [],
+      images: [
+        { url: "https://img.example.com/1.jpg", description: "Chart showing e-commerce growth" },
+        { url: "https://img.example.com/2.jpg", description: "Consumer spending breakdown" },
+      ],
+    });
+
+    const provider = new TavilyProvider(config({ id: "tavily" }));
+    const result = await provider.search("test query");
+
+    expect(result.images).toHaveLength(2);
+    expect(result.images[0]).toEqual({ url: "https://img.example.com/1.jpg", description: "Chart showing e-commerce growth" });
+    expect(result.images[1]).toEqual({ url: "https://img.example.com/2.jpg", description: "Consumer spending breakdown" });
+  });
+
   it("uses custom baseURL when provided", async () => {
     mockFetchOnce({ results: [], images: [] });
 

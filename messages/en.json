@@ -75,9 +75,7 @@
     "export": "Export",
     "exportMarkdown": "Download Markdown",
     "exportPdf": "Download PDF",
-    "noReport": "No report available.",
-    "verified": "Verified",
-    "processTime": "Process Time"
+    "noReport": "No report available."
   },
   "Settings": {
     "title": "Settings",
@@ -307,7 +305,8 @@
     "exportMarkdown": "Export as Markdown",
     "exportJson": "Export as JSON",
     "addToKb": "Add to Knowledge Base",
-    "addedToKb": "Added to knowledge base"
+    "addedToKb": "Added to knowledge base",
+    "images": "{count} images"
   },
   "ManualQueryInput": {
     "placeholder": "Add a search query...",

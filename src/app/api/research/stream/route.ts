@@ -117,7 +117,7 @@ const reportSchema = baseFieldsSchema.extend({
   plan: z.string().min(1),
   learnings: z.array(z.string()),
   sources: z.array(z.object({ url: z.string(), title: z.string().optional() })),
-  images: z.array(z.object({ url: z.string(), description: z.string().optional() })),
+  images: z.array(z.object({ url: z.string(), description: z.string().nullable().optional() })),
   feedback: z.string().optional(),
 });
 

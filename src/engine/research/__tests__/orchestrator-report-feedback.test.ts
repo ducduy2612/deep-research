@@ -104,14 +104,16 @@ describe("reportFromLearnings() feedback threading", () => {
     expect(mockContainer.streamFn).toHaveBeenCalledOnce();
 
     // Extract the messages passed to the model and check the prompt contains feedback
-    const callArgs = mockContainer.streamFn.mock.calls[0][0] as { messages: { content: string }[] };
-    const userMessage = callArgs.messages.find((m: { content: string }) =>
-      typeof m.content === "string" && m.content.includes("cost analysis"),
-    );
+    const callArgs = mockContainer.streamFn.mock.calls[0][0] as { messages: { content: string | Array<{ type: string; text?: string }> }[] };
+    const userMessage = callArgs.messages.find((m: { content: string | Array<{ type: string; text?: string }> }) => {
+      const text = typeof m.content === "string" ? m.content : m.content.find((p): p is { type: string; text: string } => p.type === "text")?.text ?? "";
+      return text.includes("cost analysis");
+    });
 
     expect(userMessage).toBeDefined();
-    expect(userMessage!.content).toContain("cost analysis");
-    expect(userMessage!.content).toContain("REQUIREMENT");
+    const content = typeof userMessage!.content === "string" ? userMessage!.content : userMessage!.content.find((p): p is { type: string; text: string } => p.type === "text")!.text;
+    expect(content).toContain("cost analysis");
+    expect(content).toContain("REQUIREMENT");
   });
 
   it("works without feedback (backward compat)", async () => {
@@ -143,8 +145,9 @@ describe("reportFromLearnings() feedback threading", () => {
 
     await orchestrator.reportFromLearnings("plan", ["learning 1"], [], [], feedback);
 
-    const callArgs = mockContainer.streamFn.mock.calls[0][0] as { messages: { content: string }[] };
-    const prompt = callArgs.messages[1].content as string;
+    const callArgs = mockContainer.streamFn.mock.calls[0][0] as { messages: { content: string | Array<{ type: string; text?: string }> }[] };
+    const rawContent = callArgs.messages[1].content;
+    const prompt = typeof rawContent === "string" ? rawContent : rawContent.find((p): p is { type: string; text: string } => p.type === "text")!.text;
 
     // The getReportPrompt template wraps requirements in <REQUIREMENT> tags
     expect(prompt).toContain("<REQUIREMENT>");

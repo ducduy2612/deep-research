@@ -1,6 +1,3 @@
-import { marked } from "marked";
-import html2pdf from "html2pdf.js";
-
 /**
  * Sanitize a string for use as a filesystem filename.
  * Replaces non-alphanumeric characters with `-`, collapses runs, and trims to 80 chars.
@@ -13,43 +10,19 @@ export function sanitizeFilename(name: string): string {
 }
 
 /**
- * Export a markdown report as a PDF file.
+ * Export a report as a PDF file using the browser's native print dialog.
  *
- * Converts markdown → HTML via `marked`, then uses html2pdf.js to capture
- * the rendered HTML as a paginated A4 PDF and trigger a browser download.
+ * Temporarily sets `document.title` to the report title so the browser
+ * suggests a meaningful filename (e.g. "My-Report.pdf") when the user
+ * picks "Save as PDF" in the print dialog. Restores the original title
+ * after the print dialog closes — even if print throws.
  */
-export async function exportReportAsPdf(
-  markdown: string,
-  title: string,
-): Promise<void> {
-  const container = document.createElement("div");
-  container.style.fontFamily = "sans-serif";
-  container.style.color = "#1a1a2e";
-  container.style.padding = "20px";
-  container.style.lineHeight = "1.6";
-  container.style.fontSize = "14px";
-
-  const html = marked.parse(markdown);
-  container.innerHTML = typeof html === "string" ? html : "";
-
-  document.body.appendChild(container);
-
+export function exportReportAsPdf(title: string): void {
+  const originalTitle = document.title;
+  document.title = sanitizeFilename(title);
   try {
-    const filename = `${sanitizeFilename(title)}.pdf`;
-
-    await html2pdf()
-      .set({
-        filename,
-        margin: [10, 10, 10, 10] as number[],
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      })
-      .from(container)
-      .save();
-  } catch (err) {
-    console.error("[exportReportAsPdf] Failed to generate PDF:", err);
+    window.print();
   } finally {
-    document.body.removeChild(container);
+    document.title = originalTitle;
   }
 }

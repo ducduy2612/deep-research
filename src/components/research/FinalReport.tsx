@@ -6,8 +6,7 @@ import { ExternalLink, Share2, Plus, Download, ChevronDown } from "lucide-react"
 
 import { cn } from "@/utils/style";
 import { downloadBlob } from "@/utils/download";
-import { exportReportAsPdf, sanitizeFilename } from "@/utils/export-pdf";
-import { useResearchStore } from "@/stores/research-store";
+import { exportReportAsPdf, sanitizeFilename } from "@/utils/export-pdf";import { useResearchStore } from "@/stores/research-store";
 import { useUIStore } from "@/stores/ui-store";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Button } from "@/components/ui/button";
@@ -47,6 +46,19 @@ export function FinalReport({ className }: FinalReportProps) {
     return entries;
   }, [result?.report]);
 
+  // Append sources section to the report body
+  const fullReportContent = useMemo(() => {
+    if (!result?.report) return "";
+    if (!result.sources || result.sources.length === 0) return result.report;
+
+    const sourcesSection = "\n\n---\n\n## Sources & References\n\n"
+      + result.sources
+        .map((src, i) => `${i + 1}. [${src.title || src.url}](${src.url})`)
+        .join("\n");
+
+    return result.report + sourcesSection;
+  }, [result?.report, result?.sources]);
+
   const [exportOpen, setExportOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -65,13 +77,13 @@ export function FinalReport({ className }: FinalReportProps) {
   const handleExportMd = useCallback(() => {
     if (!result) return;
     const filename = sanitizeFilename(result.title) + ".md";
-    downloadBlob(filename, result.report, "text/markdown;charset=utf-8");
+    downloadBlob(filename, fullReportContent, "text/markdown;charset=utf-8");
     setExportOpen(false);
-  }, [result]);
+  }, [result, fullReportContent]);
 
-  const handleExportPdf = useCallback(async () => {
+  const handleExportPdf = useCallback(() => {
     if (!result) return;
-    await exportReportAsPdf(result.report, result.title);
+    exportReportAsPdf(result.title);
     setExportOpen(false);
   }, [result]);
 
@@ -90,7 +102,7 @@ export function FinalReport({ className }: FinalReportProps) {
   return (
     <div className={cn("flex flex-1 overflow-hidden", className)}>
       {/* Main editorial content */}
-      <article className="flex-1 overflow-y-auto px-6 pb-32 pt-24">
+      <article data-print-area className="flex-1 overflow-y-auto px-6 pb-32 pt-24">
         <div className="mx-auto max-w-[800px]">
           {/* Title */}
           <header className="mb-16">
@@ -101,13 +113,13 @@ export function FinalReport({ className }: FinalReportProps) {
 
           {/* Report body */}
           <div id="report-content">
-            <MarkdownRenderer content={result.report} />
+            <MarkdownRenderer content={fullReportContent} />
           </div>
         </div>
       </article>
 
       {/* Right sidebar */}
-      <aside className="sticky top-24 hidden h-fit w-[320px] shrink-0 space-y-10 p-6 xl:block">
+      <aside data-print-hide className="sticky top-24 hidden h-fit w-[320px] shrink-0 space-y-10 p-6 xl:block">
         {/* Table of Contents */}
         {tocEntries.length > 0 && (
           <section className="rounded-xl bg-obsidian-surface-well p-6">
@@ -180,7 +192,7 @@ export function FinalReport({ className }: FinalReportProps) {
       </aside>
 
       {/* Bottom action bar */}
-      <div className="fixed bottom-0 left-0 z-40 w-full border-t border-obsidian-outline-ghost/5 bg-obsidian-surface/90 p-6 backdrop-blur-md">
+      <div data-print-hide className="fixed bottom-0 left-0 z-40 w-full border-t border-obsidian-outline-ghost/5 bg-obsidian-surface/90 p-6 backdrop-blur-md">
         <div className="mx-auto flex max-w-[800px] items-center justify-between xl:ml-[calc(50%-400px-160px)]">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-obsidian-primary">

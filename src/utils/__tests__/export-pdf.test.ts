@@ -1,31 +1,9 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 import { exportReportAsPdf, sanitizeFilename } from "../export-pdf";
-
-// ---------------------------------------------------------------------------
-// Mocks
-// ---------------------------------------------------------------------------
-
-// Mock html2pdf.js — chainable API
-const saveMock = vi.fn().mockResolvedValue(undefined);
-const fromMock = vi.fn().mockReturnValue({ save: saveMock });
-const setMock = vi.fn().mockReturnValue({ from: fromMock });
-const html2pdfMock = vi.fn().mockReturnValue({ set: setMock });
-
-vi.mock("html2pdf.js", () => ({
-  default: () => html2pdfMock(),
-}));
-
-beforeEach(() => {
-  vi.restoreAllMocks();
-  saveMock.mockResolvedValue(undefined);
-  fromMock.mockReturnValue({ save: saveMock });
-  setMock.mockReturnValue({ from: fromMock });
-  html2pdfMock.mockReturnValue({ set: setMock });
-});
 
 // ---------------------------------------------------------------------------
 // sanitizeFilename
@@ -63,45 +41,48 @@ describe("sanitizeFilename", () => {
 // ---------------------------------------------------------------------------
 
 describe("exportReportAsPdf", () => {
-  it("creates a container, calls html2pdf, and cleans up DOM", async () => {
-    const origCreateElement = document.createElement.bind(document);
-    vi.spyOn(document, "createElement").mockImplementation(
-      (tag: string) => origCreateElement(tag),
-    );
-    vi.spyOn(document.body, "appendChild").mockImplementation(
-      (node: Node) => node,
-    );
-    vi.spyOn(document.body, "removeChild").mockImplementation(
-      (node: Node) => node,
-    );
+  const originalTitle = document.title;
 
-    await exportReportAsPdf("# Hello World", "Test Report");
-
-    expect(html2pdfMock).toHaveBeenCalled();
-    expect(setMock).toHaveBeenCalled();
-    expect(fromMock).toHaveBeenCalled();
-    expect(saveMock).toHaveBeenCalled();
-    // Container was removed from DOM
-    expect(document.body.removeChild).toHaveBeenCalled();
+  beforeEach(() => {
+    document.title = "Original";
   });
 
-  it("handles html2pdf errors gracefully", async () => {
-    saveMock.mockRejectedValue(new Error("PDF engine crashed"));
+  afterEach(() => {
+    document.title = originalTitle;
+    vi.restoreAllMocks();
+  });
 
-    vi.spyOn(document.body, "appendChild").mockImplementation((n) => n);
-    vi.spyOn(document.body, "removeChild").mockImplementation((n) => n);
+  it("calls window.print with title set to sanitized report name", () => {
+    const printSpy = vi.spyOn(window, "print").mockImplementation(() => {
+      // While print is "running", the title should be the sanitized name
+      expect(document.title).toBe("My-Research-Report");
+    });
 
-    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    exportReportAsPdf("My Research Report");
 
-    // Should NOT throw
-    await exportReportAsPdf("# Test", "Error Test");
+    expect(printSpy).toHaveBeenCalledTimes(1);
+    // Title restored after print returns
+    expect(document.title).toBe("Original");
+  });
 
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "[exportReportAsPdf] Failed to generate PDF:",
-      expect.any(Error),
-    );
+  it("sanitizes the title before setting it", () => {
+    const printSpy = vi.spyOn(window, "print").mockImplementation(() => {
+      expect(document.title).toBe("Hello-World-foo-bar");
+    });
 
-    // Container still cleaned up
-    expect(document.body.removeChild).toHaveBeenCalled();
+    exportReportAsPdf("Hello / World? foo=bar");
+
+    expect(printSpy).toHaveBeenCalledTimes(1);
+    expect(document.title).toBe("Original");
+  });
+
+  it("restores title even if print throws", () => {
+    vi.spyOn(window, "print").mockImplementation(() => {
+      throw new Error("User cancelled print");
+    });
+
+    expect(() => exportReportAsPdf("Test")).toThrow("User cancelled print");
+    // Title should still be restored via finally
+    expect(document.title).toBe("Original");
   });
 });

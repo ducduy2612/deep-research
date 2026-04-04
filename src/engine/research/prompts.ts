@@ -214,7 +214,13 @@ You need to think like a human researcher.
 Generate a list of learnings from the contexts.
 Make sure each learning is unique and not similar to each other.
 The learnings should be to the point, as detailed and information dense as possible.
-Make sure to include any entities like people, places, companies, products, things, etc in the learnings, as well as any specific entities, metrics, numbers, and dates when available. The learnings will be used to research the topic further.`;
+Make sure to include any entities like people, places, companies, products, things, etc in the learnings, as well as any specific entities, metrics, numbers, and dates when available. The learnings will be used to research the topic further.
+
+Citation Rules:
+
+- Please cite the context at the end of sentences when appropriate.
+- Please use the format of citation number [number] to reference the context in corresponding parts of your answer.
+- If a sentence comes from multiple contexts, please list all relevant citation numbers, e.g., [1][2]. Remember not to group citations at the end but list them in the corresponding parts of your answer.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -267,23 +273,6 @@ Return an array of objects (or an empty array if no further research is needed).
 // Report prompt
 // ---------------------------------------------------------------------------
 
-/** Citation rules embedded in the report prompt. */
-const REPORT_CITATION_RULES = `Citation Rules:
-
-- Please cite research references at the end of your paragraphs when appropriate.
-- If the citation is from the reference, please **ignore**. Include only references from sources.
-- Please use the reference format [number], to reference the learnings link in corresponding parts of your answer.
-- If a paragraph comes from multiple learnings reference links, please list all relevant citation numbers, e.g., [1][2]. Remember not to group citations at the end but list them in the corresponding parts of your answer. Control the number of footnotes.
-- Do not have more than 3 reference links in a paragraph, and keep only the most relevant ones.
-- **Do not add references at the end of the report.**`;
-
-/** Image rules embedded in the report prompt. */
-const REPORT_IMAGE_RULES = `Image Rules:
-
-- Images related to the paragraph content at the appropriate location in the article according to the image description.
-- Include images using \`![Image Description](image_url)\` in a separate section.
-- **Do not add any images at the end of the article.**`;
-
 /**
  * Write the final research report.
  */
@@ -295,22 +284,51 @@ export function getReportPrompt(
   requirements?: string,
   language?: string,
 ): string {
-  const sourcesBlock =
-    sources.length > 0
-      ? `Here are all the sources from previous research:\n<SOURCES>\n${sources.map((s, i) => `[${i + 1}] ${s.url}${s.title ? ` - ${s.title}` : ""}`).join("\n")}\n</SOURCES>\n`
-      : "";
+  // Wrap learnings in XML tags like v0 — helps model parse each learning
+  const learningsBlock = learnings
+    .map((l) => `<learning>\n${l}\n</learning>`)
+    .join("\n");
 
-  const imagesBlock =
-    images.length > 0
-      ? `Here are all the images from previous research:\n<IMAGES>\n${images.map((img) => `- ${img.url}${img.description ? `: ${img.description}` : ""}`).join("\n")}\n</IMAGES>\n`
-      : "";
+  // Always render sources block (v0 pattern) with XML tags
+  const sourcesBlock = sources
+    .map((s, i) => `<source index="${i + 1}" url="${s.url}">\n${s.title}\n</source>`)
+    .join("\n");
 
-  const requirementsBlock = requirements
-    ? `Please write according to the user's writing requirements:\n<REQUIREMENT>\n${requirements}\n</REQUIREMENT>\n`
-    : "";
+  // Always render images block (v0 pattern) with markdown image syntax
+  const imagesBlock = images
+    .map((img, i) => `${i + 1}. ![${img.description}](${img.url})`)
+    .join("\n");
 
   const langInstruction = language && language !== "English"
     ? `\n\n**IMPORTANT: Write the entire report in ${language}.** All prose, headings, and explanations must be in ${language}.`
+    : "";
+
+  // Citation reference rules — appended when sources are present (v0 pattern)
+  const citationRules = sources.length > 0
+    ? `
+
+Citation Rules:
+
+- Please cite research references at the end of your paragraphs when appropriate.
+- If the citation is from the reference, please **ignore**. Include only references from sources.
+- Please use the reference format [number], to reference the learnings link in corresponding parts of your answer.
+- If a paragraphs comes from multiple learnings reference link, please list all relevant citation numbers, e.g., [1][2]. Remember not to group citations at the end but list them in the corresponding parts of your answer. Control the number of footnotes.
+- Do not have more than 3 reference link in a paragraph, and keep only the most relevant ones.`
+    : "";
+
+  // Image citation rules — appended when images are present (v0 pattern)
+  const imageRules = images.length > 0
+    ? `
+
+**Including meaningful images from the previous research in the report is very helpful. You MUST include images throughout the report.**
+
+Image Rules:
+
+- You MUST include images from the provided image list in the report. Pick the most relevant images for each section.
+- Place images related to the paragraph content at the appropriate location in the article according to the image description.
+- Include images using \`![Image Description](image_url)\` — each image should be on its own line.
+- Do not cluster all images at the end of the article. Distribute them throughout the relevant sections.
+- If an image description matches a section's topic, include that image in that section.`
     : "";
 
   return `This is the report plan after user confirmation:
@@ -320,19 +338,27 @@ ${plan}
 
 Here are all the learnings from previous research:
 <LEARNINGS>
-${learnings.join("\n")}
+${learningsBlock}
 </LEARNINGS>
 
-${sourcesBlock}${imagesBlock}${requirementsBlock}
-${REPORT_CITATION_RULES}
+Here are all the sources from previous research, if any:
+<SOURCES>
+${sourcesBlock}
+</SOURCES>
 
-${REPORT_IMAGE_RULES}
+Here are all the images from previous research, if any:
+<IMAGES>
+${imagesBlock}
+</IMAGES>
 
-${getOutputGuidelinesPrompt()}
+Please write according to the user's writing requirements, if any:
+<REQUIREMENT>
+${requirements ?? ""}
+</REQUIREMENT>
 
 Write a final report based on the report plan using the learnings from research.
 Make it as detailed as possible, aim for 5 pages or more, the more the better, include ALL the learnings from research.
-**Respond only the final report content, and no additional text before or after.**${langInstruction}`;
+**Respond only the final report content, and no additional text before or after.**${citationRules}${imageRules}${langInstruction}`;
 }
 
 // ---------------------------------------------------------------------------

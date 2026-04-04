@@ -75,9 +75,7 @@
     "export": "Xuất",
     "exportMarkdown": "Tải Markdown",
     "exportPdf": "Tải PDF",
-    "noReport": "Chưa có báo cáo.",
-    "verified": "Đã xác minh",
-    "processTime": "Thời gian xử lý"
+    "noReport": "Chưa có báo cáo."
   },
   "Settings": {
     "title": "Cài đặt",
@@ -305,7 +303,8 @@
     "exportMarkdown": "Xuất Markdown",
     "exportJson": "Xuất JSON",
     "addToKb": "Thêm vào Cơ sở tri thức",
-    "addedToKb": "Đã thêm vào cơ sở tri thức"
+    "addedToKb": "Đã thêm vào cơ sở tri thức",
+    "images": "{count} hình ảnh"
   },
   "ManualQueryInput": {
     "placeholder": "Thêm truy vấn tìm kiếm...",

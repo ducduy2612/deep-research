@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Check,
@@ -12,7 +13,7 @@ import {
 import { cn } from "@/utils/style";
 import type { ResearchStep } from "@/engine/provider/types";
 import type { ResearchState } from "@/engine/research/types";
-import { useResearchStore, selectElapsedMs } from "@/stores/research-store";
+import { useResearchStore } from "@/stores/research-store";
 
 // ---------------------------------------------------------------------------
 // Step definitions
@@ -100,8 +101,9 @@ export function WorkflowProgress({ state, className }: WorkflowProgressProps) {
   const isTerminal = TERMINAL_STATES.includes(state);
   const progressIdx = isTerminal ? -1 : STATE_ORDER.indexOf(state);
 
-  // Elapsed timer from store
-  const elapsedMs = useResearchStore(selectElapsedMs);
+  // Elapsed timer — computed locally to avoid Date.now() in a store selector
+  // (which causes useSyncExternalStore infinite loop)
+  const elapsedMs = useElapsedMs();
 
   const isCompleted = state === "completed";
 
@@ -209,6 +211,32 @@ function StepIcon({
       <Circle className="h-4 w-4 text-obsidian-on-surface opacity-30" />
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Elapsed timer hook (avoids Date.now() in store selector)
+// ---------------------------------------------------------------------------
+
+function useElapsedMs(): number | null {
+  const startedAt = useResearchStore((s) => s.startedAt);
+  const completedAt = useResearchStore((s) => s.completedAt);
+  const [now, setNow] = useState(Date.now());
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    // Only tick when research is active (no completedAt yet)
+    if (!startedAt || completedAt) return;
+
+    const tick = () => {
+      setNow(Date.now());
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [startedAt, completedAt]);
+
+  if (!startedAt) return null;
+  return (completedAt ?? now) - startedAt;
 }
 
 // ---------------------------------------------------------------------------

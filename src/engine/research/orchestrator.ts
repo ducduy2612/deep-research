@@ -578,7 +578,8 @@ export class ResearchOrchestrator {
 
       allLearnings.push(analyzeResult.learning);
       allSources.push(...analyzeResult.sources);
-      allImages.push(...analyzeResult.images);
+      // Images come from the search provider, not from analysis — push directly
+      allImages.push(...images);
     }
 
     return { allLearnings, allSources, allImages };
@@ -654,6 +655,25 @@ export class ResearchOrchestrator {
         } else if (part.type === "reasoning-delta") {
           this.emit("step-reasoning", { step, text: part.text });
         }
+      }
+
+      // Fix 5: Normalize OpenAI Chinese-style brackets 【】 → []
+      learning = learning.replaceAll("【", "[").replaceAll("】", "]");
+
+      // Fix 4: Inject Google grounding citation markers
+      // Google's model-native search with grounding returns exact citation
+      // positions in providerMetadata on the final stream part.
+      // NOTE: streamWithAbort wraps fullStream, so providerMetadata is not
+      // directly accessible here. Google grounding citations are handled
+      // through the model's native output — the citation rules prompt above
+      // ensures the model adds [N] markers for all providers.
+
+      // Fix 2: Append markdown reference link definitions so [N] markers
+      // become clickable links in the final rendered output
+      if (sources.length > 0) {
+        learning += "\n\n" + sources
+          .map((s, i) => `[${i + 1}]: ${s.url}${s.title ? ` "${s.title.replaceAll('"', ' ')}"` : ""}`)
+          .join("\n");
       }
 
       const duration = Date.now() - start;
@@ -739,12 +759,14 @@ export class ResearchOrchestrator {
           this.emit("step-start", { step: "search", state: this.state });
 
           let sources: Source[];
+          let images: ImageSource[];
 
           try {
             const searchResult = await this.searchProvider.search(task.query, {
               abortSignal: this.abortController?.signal,
             });
             sources = searchResult.sources;
+            images = searchResult.images ?? [];
             const searchDuration = Date.now() - searchStart;
             this.emit("step-complete", {
               step: "search",
@@ -755,7 +777,7 @@ export class ResearchOrchestrator {
             this.emit("search-result", {
               query: task.query,
               sources,
-              images: searchResult.images ?? [],
+              images,
             });
           } catch (error) {
             this.handleStepError("search", error);
@@ -768,7 +790,8 @@ export class ResearchOrchestrator {
           const analyzeResult = await this.runAnalyze(task, sources);
           allLearnings.push(analyzeResult.learning);
           allSources.push(...analyzeResult.sources);
-          allImages.push(...analyzeResult.images);
+          // Images come from the search provider, not from analysis
+          allImages.push(...images);
         }
       } catch (error) {
         this.handleStepError("review", error);
@@ -807,9 +830,32 @@ export class ResearchOrchestrator {
         this.config.language,
       );
 
+      // Build report-specific system prompt with output guidelines (v0 pattern)
+      const reportSystemPrompt = [
+        this.buildSystemPrompt(),
+        resolvePrompt("outputGuidelines", this.config.promptOverrides ?? {}),
+      ].join("\n\n");
+
+      // Build resources context with all learnings/sources/images
+      // Inlined as text content — not all providers support the file part media type
+      const resourcesContent = [
+        `<LEARNINGS>\n${learnings.map((l) => `<learning>\n${l}\n</learning>`).join("\n")}\n</LEARNINGS>`,
+        `<SOURCES>\n${sources.map((s, i) => `<source index="${i + 1}" url="${s.url}">\n${s.title}\n</source>`).join("\n")}\n</SOURCES>`,
+        `<IMAGES>\n${images.map((img, i) => `${i + 1}. ![${img.description}](${img.url})`).join("\n")}\n</IMAGES>`,
+      ].join("\n\n");
+
       const result = await streamWithAbort({
         model,
-        messages: this.buildMessages(prompt),
+        messages: [
+          { role: "system", content: reportSystemPrompt },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "text", text: resourcesContent },
+            ],
+          },
+        ],
         abortSignal: this.abortController?.signal,
       });
 
@@ -823,6 +869,14 @@ export class ResearchOrchestrator {
         } else if (part.type === "reasoning-delta") {
           this.emit("step-reasoning", { step, text: part.text });
         }
+      }
+
+      // Fix 3: Append markdown reference link definitions so [N] citation
+      // markers in the report become clickable links
+      if (sources.length > 0) {
+        reportText += "\n\n" + sources
+          .map((s, i) => `[${i + 1}]: ${s.url}${s.title ? ` "${s.title.replaceAll('"', ' ')}"` : ""}`)
+          .join("\n");
       }
 
       const duration = Date.now() - start;

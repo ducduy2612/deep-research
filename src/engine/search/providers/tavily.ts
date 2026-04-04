@@ -17,9 +17,14 @@ interface TavilySearchResult {
   publishedDate: string;
 }
 
+interface TavilyImageResult {
+  url: string;
+  description?: string;
+}
+
 interface TavilyResponse {
   results?: TavilySearchResult[];
-  images?: string[];
+  images?: (string | TavilyImageResult)[];
 }
 
 export class TavilyProvider implements SearchProvider {
@@ -89,9 +94,12 @@ export class TavilyProvider implements SearchProvider {
         content: result.rawContent || result.content,
       }));
 
-    const imageSources = images.map((img) => ({
-      url: typeof img === "string" ? img : String(img),
-    }));
+    const imageSources = images.map((img) => {
+      if (typeof img === "string") {
+        return { url: img };
+      }
+      return { url: img.url, description: img.description };
+    });
 
     logger.info("TavilyProvider: results", {
       sourceCount: sources.length,

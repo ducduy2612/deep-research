@@ -43,6 +43,7 @@ export function SearchResultCard({ result, index }: SearchResultCardProps) {
   const t = useTranslations("SearchResultCard");
   const [expanded, setExpanded] = useState(false);
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
+  const [imagesExpanded, setImagesExpanded] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -232,6 +233,45 @@ export function SearchResultCard({ result, index }: SearchResultCardProps) {
                 </li>
               ))}
             </ul>
+          )}
+        </div>
+      )}
+
+      {/* Related images */}
+      {result.images.length > 0 && (
+        <div className="border-t border-obsidian-outline-ghost/10">
+          <button
+            type="button"
+            onClick={() => setImagesExpanded(!imagesExpanded)}
+            className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-obsidian-on-surface-var transition-colors hover:text-obsidian-on-surface"
+          >
+            {imagesExpanded ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+            <span className="font-mono text-[10px]">
+              {t("images", { count: result.images.length })}
+            </span>
+          </button>
+          {imagesExpanded && (
+            <div className="flex flex-wrap gap-3 px-4 pb-3">
+              {result.images.map((img, i) => (
+                <picture
+                  key={i}
+                  className="h-28 w-28"
+                >
+                  <img
+                    className="h-full w-full rounded object-cover"
+                    src={img.url}
+                    title={img.description ?? undefined}
+                    alt={img.description ?? undefined}
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                  />
+                </picture>
+              ))}
+            </div>
           )}
         </div>
       )}

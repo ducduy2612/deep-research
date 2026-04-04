@@ -284,9 +284,9 @@ describe("getReportPrompt", () => {
     expect(result).toContain("Focus on economic impact");
   });
 
-  it("omits requirements block when not provided", () => {
+  it("always includes requirements block", () => {
     const result = getReportPrompt("plan", ["l"], [], []);
-    expect(result).not.toContain("REQUIREMENT");
+    expect(result).toContain("REQUIREMENT");
   });
 
   it("includes citation rules", () => {

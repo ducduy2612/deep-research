@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { RefreshCw, Check, MessageSquare, Loader2 } from "lucide-react";
 
@@ -28,6 +28,16 @@ export function ReportWorkspace() {
 
   const isReporting = state === "reporting";
   const reportContent = result?.report ?? "";
+
+  // Append sources section to report preview
+  const fullReportContent = useMemo(() => {
+    if (!reportContent || !result?.sources?.length) return reportContent;
+    const sourcesSection = "\n\n---\n\n## Sources & References\n\n"
+      + result.sources
+        .map((src, i) => `${i + 1}. [${src.title || src.url}](${src.url})`)
+        .join("\n");
+    return reportContent + sourcesSection;
+  }, [reportContent, result?.sources]);
 
   // -----------------------------------------------------------------------
   // Handlers
@@ -58,7 +68,7 @@ export function ReportWorkspace() {
       {/* Report content */}
       {reportContent ? (
         <div className="rounded-lg bg-obsidian-surface-sheet p-6">
-          <MarkdownRenderer content={reportContent} />
+          <MarkdownRenderer content={fullReportContent} />
         </div>
       ) : (
         <div className="flex items-center justify-center rounded-lg bg-obsidian-surface-sheet/50 px-6 py-16">

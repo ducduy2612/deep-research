@@ -47,7 +47,7 @@ export interface Source {
 /** An image source referenced in research results. */
 export interface ImageSource {
   url: string;
-  description?: string;
+  description?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -186,7 +186,7 @@ export const sourceSchema = z.object({
 
 export const imageSourceSchema = z.object({
   url: z.string(),
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
 });
 
 export const searchTaskSchema = z.object({

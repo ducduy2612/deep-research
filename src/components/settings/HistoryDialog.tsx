@@ -119,15 +119,18 @@ function SessionCard({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <div className="flex items-start justify-between gap-3 rounded-lg border border-obsidian-outline-ghost/30 bg-obsidian-surface-sheet p-3">
-      <div className="min-w-0 flex-1">
+    <div className="flex gap-3 rounded-lg border border-obsidian-outline-ghost/30 bg-obsidian-surface-sheet p-3">
+      <div className="min-w-0 flex-1 overflow-hidden">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium text-obsidian-on-surface">
+          <span
+            className="line-clamp-2 text-sm font-medium text-obsidian-on-surface"
+            title={session.title}
+          >
             {session.title}
           </span>
-          <StatusBadge state={session.state} />
         </div>
-        <div className="mt-1 flex items-center gap-3 text-xs text-obsidian-on-surface/50">
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-obsidian-on-surface/50">
+          <StatusBadge state={session.state} />
           <span>{relativeTime(session.startedAt)}</span>
           <span>{session.sources.length} sources</span>
         </div>

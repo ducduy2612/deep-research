@@ -419,7 +419,7 @@ export function useResearch(): UseResearchReturn {
       plan,
       learnings,
       sources: sources.map((s) => ({ url: s.url, title: s.title })),
-      images: images.map((i) => ({ url: i.url, description: i.description })),
+      images: images.map((i) => ({ url: i.url, description: i.description ?? undefined })),
       feedback: feedback || undefined,
       reportStyle: settings.reportStyle ?? undefined,
       reportLength: settings.reportLength ?? undefined,
