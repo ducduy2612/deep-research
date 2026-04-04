@@ -535,8 +535,8 @@ export class ResearchOrchestrator {
     const allImages: ImageSource[] = [];
 
     const phaseStart = Date.now();
-    // Default 280s budget — leaves 20s headroom under Vercel's 300s limit
-    const timeBudgetMs = this.config.timeBudgetMs ?? 280_000;
+    // Default 780s budget — leaves 20s headroom under Vercel Pro's 800s limit
+    const timeBudgetMs = this.config.timeBudgetMs ?? 780_000;
     // Estimate per-cycle cost (search + analyze). If less than this remains, skip.
     const CYCLE_COST_ESTIMATE_MS = 80_000;
 

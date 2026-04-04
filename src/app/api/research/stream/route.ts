@@ -16,7 +16,7 @@
 
 // Route config — max out Vercel serverless function duration.
 // Hobby: 10s, Pro: 60s, Enterprise: 300s. This requests the plan maximum.
-export const maxDuration = 300;
+export const maxDuration = 800;
 export const runtime = "nodejs";
 
 import { z } from "zod";

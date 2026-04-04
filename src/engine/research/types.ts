@@ -120,8 +120,8 @@ export interface ResearchConfig {
    * Maximum time budget in ms for the search+analyze phase.
    * When approaching this limit, remaining queries are skipped and
    * partial results are returned so the client can continue via
-   * requestMoreResearch(). Defaults to 240000 (4 minutes) to stay
-   * under Vercel's 300s serverless function timeout.
+   * requestMoreResearch(). Defaults to 780000 (13 minutes) to stay
+   * under Vercel Pro's 800s serverless function timeout.
    */
   timeBudgetMs?: number;
 }
