@@ -111,18 +111,26 @@ export class ResearchOrchestrator {
       if (this.isAborted()) return null;
 
       // Step 3-4: Search + Analyze
-      const { allLearnings, allSources, allImages } =
+      const { allLearnings, allSources, allImages, remainingQueries } =
         await this.runSearchPhase(plan);
       if (this.isAborted()) return null;
 
-      // Step 5: Review loop
-      await this.runReviewLoop(
-        plan,
-        allLearnings,
-        allSources,
-        allImages,
-      );
-      if (this.isAborted()) return null;
+      if (remainingQueries.length > 0) {
+        logger.warn("Full pipeline hit time budget with remaining queries — returning partial results", {
+          remaining: remainingQueries.length,
+        });
+      }
+
+      // Step 5: Review loop (only when all queries completed)
+      if (remainingQueries.length === 0) {
+        await this.runReviewLoop(
+          plan,
+          allLearnings,
+          allSources,
+          allImages,
+        );
+        if (this.isAborted()) return null;
+      }
 
       // Step 6: Report
       const report = await this.runReport(
@@ -252,24 +260,29 @@ export class ResearchOrchestrator {
     this.abortController = new AbortController();
 
     try {
-      const { allLearnings, allSources, allImages } =
+      const { allLearnings, allSources, allImages, remainingQueries } =
         await this.runSearchPhase(plan);
       if (this.isAborted()) return null;
 
-      await this.runReviewLoop(plan, allLearnings, allSources, allImages);
-      if (this.isAborted()) return null;
+      // Only run review loop if no remaining queries (completed all in budget)
+      if (remainingQueries.length === 0) {
+        await this.runReviewLoop(plan, allLearnings, allSources, allImages);
+        if (this.isAborted()) return null;
+      }
 
       this.transitionTo("awaiting_results_review");
       logger.info("ResearchFromPlan completed, awaiting results review", {
         learnings: allLearnings.length,
         sources: allSources.length,
         images: allImages.length,
+        remainingQueries: remainingQueries.length,
       });
 
       return {
         learnings: allLearnings,
         sources: allSources,
         images: allImages,
+        ...(remainingQueries.length > 0 && { remainingQueries }),
       };
     } catch (error) {
       if (this.state !== "aborted") {
@@ -515,10 +528,17 @@ export class ResearchOrchestrator {
     allLearnings: string[];
     allSources: Source[];
     allImages: ImageSource[];
+    remainingQueries: SearchTask[];
   }> {
     const allLearnings: string[] = [];
     const allSources: Source[] = [];
     const allImages: ImageSource[] = [];
+
+    const phaseStart = Date.now();
+    // Default 280s budget — leaves 20s headroom under Vercel's 300s limit
+    const timeBudgetMs = this.config.timeBudgetMs ?? 280_000;
+    // Estimate per-cycle cost (search + analyze). If less than this remains, skip.
+    const CYCLE_COST_ESTIMATE_MS = 80_000;
 
     // Signal search phase immediately so the client sees progress
     // (generateSerpQueries can take 10-20s with no intermediate events)
@@ -530,16 +550,32 @@ export class ResearchOrchestrator {
     const queries = await this.generateSerpQueries(plan, maxQueries);
 
     if (queries.length === 0) {
-      return { allLearnings, allSources, allImages };
+      return { allLearnings, allSources, allImages, remainingQueries: [] };
     }
 
     // Emit search tasks so the UI can show what queries will be researched
     this.emit("search-task", { tasks: queries });
 
-    // Execute each search task
-    for (const task of queries) {
+    // Execute each search task, respecting time budget
+    for (let i = 0; i < queries.length; i++) {
       if (this.isAborted())
-        return { allLearnings, allSources, allImages };
+        return { allLearnings, allSources, allImages, remainingQueries: queries.slice(i) };
+
+      // Check time budget before starting a new cycle
+      const elapsed = Date.now() - phaseStart;
+      const remaining = timeBudgetMs - elapsed;
+      if (remaining < CYCLE_COST_ESTIMATE_MS) {
+        const skipped = queries.slice(i);
+        logger.info("Search phase time budget exhausted, returning partial results", {
+          completedQueries: i,
+          remainingQueries: skipped.length,
+          elapsedMs: elapsed,
+          budgetMs: timeBudgetMs,
+        });
+        return { allLearnings, allSources, allImages, remainingQueries: skipped };
+      }
+
+      const task = queries[i];
 
       // Search
       this.transitionTo("searching");
@@ -571,7 +607,7 @@ export class ResearchOrchestrator {
       }
 
       if (this.isAborted())
-        return { allLearnings, allSources, allImages };
+        return { allLearnings, allSources, allImages, remainingQueries: queries.slice(i + 1) };
 
       // Analyze
       const analyzeResult = await this.runAnalyze(task, sources);
@@ -582,7 +618,7 @@ export class ResearchOrchestrator {
       allImages.push(...images);
     }
 
-    return { allLearnings, allSources, allImages };
+    return { allLearnings, allSources, allImages, remainingQueries: [] };
   }
 
   // -------------------------------------------------------------------------

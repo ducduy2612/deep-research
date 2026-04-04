@@ -336,13 +336,24 @@ export function createEventHandler(set: StoreSet) {
         break;
       }
       case "research-result": {
-        const d = data as { learnings: string[]; sources: Source[]; images: ImageSource[] };
+        const d = data as {
+          learnings: string[];
+          sources: Source[];
+          images: ImageSource[];
+          remainingQueries?: SearchTask[];
+        };
         set((s) => ({
           state: "awaiting_results_review" as ResearchState,
           result: s.result
             ? s.result
             : { title: "", report: "", learnings: d.learnings, sources: d.sources, images: d.images },
-          activityLog: [...s.activityLog, makeActivity("info", "Research phase complete — awaiting review")],
+          pendingRemainingQueries: d.remainingQueries ?? [],
+          activityLog: [
+            ...s.activityLog,
+            ...(d.remainingQueries && d.remainingQueries.length > 0
+              ? [makeActivity("warn", `Time budget reached — ${d.remainingQueries.length} queries pending, auto-continuing...`)]
+              : [makeActivity("info", "Research phase complete — awaiting review")]),
+          ],
         }));
         break;
       }

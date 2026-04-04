@@ -578,6 +578,36 @@ export function useResearch(): UseResearchReturn {
     });
   }, [immediateRetryQuery, connectSSE]);
 
+  // Auto-reconnect: when research phase returns partial results due to time
+  // budget, automatically continue with remaining queries in a new SSE connection.
+  const pendingRemainingQueries = useResearchStore((s) => s.pendingRemainingQueries);
+
+  useEffect(() => {
+    if (pendingRemainingQueries.length === 0) return;
+
+    const queries = [...pendingRemainingQueries];
+    // Clear immediately to prevent re-triggers
+    useResearchStore.setState({ pendingRemainingQueries: [] });
+
+    // Build a plan string from the remaining queries
+    const plan = useResearchStore.getState().plan;
+    const remainingPlan = queries
+      .map((q) => `- query: ${q.query}\n  goal: ${q.researchGoal}`)
+      .join("\n");
+    const planString = `${plan}\n\nContinuing remaining queries:\n${remainingPlan}`;
+
+    console.info("[useResearch] Auto-reconnecting with remaining queries", {
+      count: queries.length,
+    });
+
+    connectSSE({
+      phase: "research",
+      plan: planString,
+      language: useSettingsStore.getState().language ?? undefined,
+      ...buildBaseBody(),
+    });
+  }, [pendingRemainingQueries, connectSSE]);
+
   return {
     // Phase-specific
     clarify,

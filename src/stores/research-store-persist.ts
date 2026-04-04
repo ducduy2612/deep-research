@@ -129,6 +129,7 @@ export const persistedStateSchema = z.object({
   checkpoints: checkpointsSchema.optional().default({}),
   manualQueries: z.array(z.string()).optional().default([]),
   reportFeedback: z.string().optional().default(""),
+  pendingRemainingQueries: z.array(searchTaskPersistSchema).optional().default([]),
 });
 
 /** Storage key for research state persistence. */

@@ -116,6 +116,14 @@ export interface ResearchConfig {
   maxSearchQueries?: number;
   /** Custom prompt templates. */
   promptOverrides?: PromptOverrides;
+  /**
+   * Maximum time budget in ms for the search+analyze phase.
+   * When approaching this limit, remaining queries are skipped and
+   * partial results are returned so the client can continue via
+   * requestMoreResearch(). Defaults to 240000 (4 minutes) to stay
+   * under Vercel's 300s serverless function timeout.
+   */
+  timeBudgetMs?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -169,6 +177,8 @@ export interface ResearchPhaseResult {
   learnings: string[];
   sources: Source[];
   images: ImageSource[];
+  /** Queries not yet executed due to time budget. Client should auto-reconnect. */
+  remainingQueries?: SearchTask[];
 }
 
 /** Result of the report phase (same shape as full ResearchResult). */
