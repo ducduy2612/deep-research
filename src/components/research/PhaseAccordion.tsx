@@ -145,16 +145,28 @@ export function PhaseAccordion({
   // Determine which accordion items are open by default — active phase expanded
   const defaultValue = activePhaseId ? [activePhaseId] : [];
 
-  // Helper: check if a phase is frozen
+  // Phase ordering — used to infer "done" state when checkpoint hasn't landed yet
+  const phaseOrder: CheckpointPhase[] = ["clarify", "plan", "research", "report"];
+
+  // Helper: check if a phase is frozen (has a checkpoint)
   const isFrozen = (phaseId: CheckpointPhase) =>
     checkpoints[phaseId] !== undefined;
 
   // Helper: check if a phase is active
   const isActive = (phaseId: CheckpointPhase) => activePhaseId === phaseId;
 
-  // Helper: check if a phase is pending (not frozen, not active)
+  // Helper: check if a phase is done (frozen, or a later phase is active/frozen)
+  const isDone = (phaseId: CheckpointPhase) => {
+    if (isFrozen(phaseId)) return true;
+    const idx = phaseOrder.indexOf(phaseId);
+    return phaseOrder.slice(idx + 1).some(
+      (later) => isFrozen(later) || isActive(later),
+    );
+  };
+
+  // Helper: check if a phase is pending (not done, not active)
   const isPending = (phaseId: CheckpointPhase) =>
-    !isFrozen(phaseId) && !isActive(phaseId);
+    !isDone(phaseId) && !isActive(phaseId);
 
   // Helper: get summary badge text
   const getSummary = (phase: PhaseConfig) =>
@@ -200,6 +212,7 @@ export function PhaseAccordion({
       {PHASE_CONFIG.map((phase) => {
         const frozen = isFrozen(phase.id);
         const active = isActive(phase.id);
+        const done = isDone(phase.id);
         const pending = isPending(phase.id);
 
         return (
@@ -210,22 +223,21 @@ export function PhaseAccordion({
             className={cn(
               "rounded-lg border-0",
               // Obsidian Deep tonal layering
-              frozen && "bg-obsidian-surface-well/40",
+              done && !active && "bg-obsidian-surface-well/40",
               active && "bg-obsidian-surface-deck ring-1 ring-obsidian-primary-deep/20",
               pending && "bg-obsidian-surface-well/20 opacity-40",
-              !frozen && !active && !pending && "bg-obsidian-surface-well/40",
             )}
           >
             <AccordionTrigger
               className={cn(
                 "px-5 py-3.5 hover:no-underline",
-                // Frozen header styling
-                frozen && !active && "[&>svg]:text-obsidian-on-surface-var/40",
+                // Done header styling
+                done && !active && "[&>svg]:text-obsidian-on-surface-var/40",
               )}
             >
               <div className="flex flex-1 items-center gap-3">
                 {/* Status icon */}
-                {frozen && !active && (
+                {done && !active && (
                   <Check className="h-3.5 w-3.5 text-obsidian-primary-deep" />
                 )}
                 {active && (
@@ -238,7 +250,7 @@ export function PhaseAccordion({
                 {/* Phase title */}
                 <span
                   className={cn(
-                    frozen &&
+                    done &&
                       !active &&
                       "font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var/60",
                     active &&
@@ -250,7 +262,7 @@ export function PhaseAccordion({
                   {t(phase.titleKey)}
                 </span>
 
-                {/* Summary badge for frozen phases */}
+                {/* Summary badge for frozen phases (needs checkpoint data) */}
                 {frozen && !active && (
                   <span className="rounded-full bg-obsidian-surface-raised px-2.5 py-0.5 font-mono text-[10px] text-obsidian-on-surface-var/60">
                     {getSummary(phase)}

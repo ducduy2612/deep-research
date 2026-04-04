@@ -27,6 +27,8 @@ export interface GenerateStructuredOptions<T> {
   model: LanguageModel;
   schema: import("zod").ZodType<T>;
   prompt: string;
+  /** Optional system prompt (e.g. for language instructions). */
+  system?: string;
   abortSignal?: AbortSignal;
 }
 
@@ -39,15 +41,19 @@ export interface GenerateStructuredOptions<T> {
  * structured logging, and error recovery.
  *
  * - **Abort** → logs + calls `onAbort` (no error thrown; abort is expected)
- * - **Error** → logs + calls `onError`
+ * - **Error** → logs + calls `onError`. The AI SDK fires `onError` as a
+ *   notification but does NOT always throw from `fullStream` (e.g. auth
+ *   failures just end the stream empty). We capture the error and re-throw
+ *   it when `fullStream` exhausts so callers see it in their try/catch.
  * - **Finish** → logs usage + calls `onFinish`
  *
- * Returns the `StreamTextResult` for the caller to consume the stream.
+ * Returns an object with `fullStream` (the only property callers use).
  */
 export async function streamWithAbort(options: StreamOptions) {
   const { model, messages, abortSignal, onAbort, onError, onFinish } = options;
 
   let stepCount = 0;
+  let capturedError: Error | null = null;
 
   const result = streamText({
     model,
@@ -67,6 +73,7 @@ export async function streamWithAbort(options: StreamOptions) {
       } else {
         const err =
           error instanceof Error ? error : new Error(String(error));
+        capturedError = err;
         logger.error("Stream error", {
           message: err.message,
           steps: stepCount,
@@ -88,7 +95,21 @@ export async function streamWithAbort(options: StreamOptions) {
     },
   });
 
-  return result;
+  // Wrap fullStream to re-throw any error captured by onError.
+  // The AI SDK calls onError as a side-channel notification but the stream
+  // itself may complete without throwing (e.g. HTTP 401 auth failures).
+  // Without this wrapper, callers treat the empty stream as success.
+  const originalFullStream = result.fullStream;
+  const wrappedFullStream = (async function* () {
+    for await (const part of originalFullStream) {
+      yield part;
+    }
+    if (capturedError) {
+      throw capturedError;
+    }
+  })();
+
+  return { fullStream: wrappedFullStream };
 }
 
 // ---------------------------------------------------------------------------
@@ -176,7 +197,7 @@ export async function generateTextWithAbort(
 export async function generateStructured<T>(
   options: GenerateStructuredOptions<T>,
 ): Promise<T> {
-  const { model, schema, prompt, abortSignal } = options;
+  const { model, schema, prompt, system, abortSignal } = options;
   const schemaLabel =
     (schema as unknown as { description?: string }).description ?? "unknown";
 
@@ -185,6 +206,7 @@ export async function generateStructured<T>(
     const result = await generateText({
       model,
       experimental_output: Output.object({ schema }),
+      ...(system && { system }),
       prompt,
       abortSignal,
     });
@@ -222,6 +244,7 @@ export async function generateStructured<T>(
     try {
       const result = await generateText({
         model,
+        ...(system && { system }),
         prompt: `${prompt}\n\nRespond with valid JSON only. No markdown fences, no commentary — just the JSON.`,
         abortSignal,
       });

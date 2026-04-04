@@ -18,6 +18,7 @@ import {
 
 interface ActiveResearchProps {
   className?: string;
+  onRetryClarify: () => void;
   onSubmitFeedbackAndPlan: () => void;
   onApprovePlanAndResearch: () => void;
   onRequestMoreResearch: () => void;
@@ -30,6 +31,7 @@ interface ActiveResearchProps {
 
 export function ActiveResearch({
   className,
+  onRetryClarify,
   onSubmitFeedbackAndPlan,
   onApprovePlanAndResearch,
   onRequestMoreResearch,
@@ -51,6 +53,7 @@ export function ActiveResearch({
         <ResizableHandle withHandle />
         <ResizablePanel id="center" minSize="30%">
           <ActiveResearchCenter
+            onRetryClarify={onRetryClarify}
             onSubmitFeedbackAndPlan={onSubmitFeedbackAndPlan}
             onApprovePlanAndResearch={onApprovePlanAndResearch}
             onRequestMoreResearch={onRequestMoreResearch}

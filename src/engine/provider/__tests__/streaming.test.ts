@@ -154,16 +154,72 @@ describe("streamWithAbort", () => {
     });
   });
 
-  it("returns the streamText result", async () => {
-    const mockResult = { textStream: (async function* () {})(), usage: Promise.resolve({}) };
-    mockStreamText.mockReturnValue(mockResult);
+  it("wraps fullStream — throws captured error after stream exhausts", async () => {
+    const authError = new Error("Authentication Failed");
+
+    // Simulate: stream yields no parts, onError fires with auth error
+    const asyncIter = (async function* () {
+      // no parts — stream exhausts immediately (auth failure scenario)
+    })();
+    mockStreamText.mockReturnValue({
+      fullStream: asyncIter,
+      usage: Promise.resolve({ promptTokens: 0, completionTokens: 0 }),
+    });
+
+    const result = await streamWithAbort({
+      model: createMockModel(),
+      messages: createMockMessages(),
+      onError: vi.fn(),
+    });
+
+    // Trigger the onError callback
+    captureCallback("onError")({ error: authError });
+
+    // Consuming fullStream should throw the captured error
+    await expect(async () => {
+      for await (const _part of result.fullStream) {
+        void _part;
+      }
+    }).rejects.toThrow("Authentication Failed");
+  });
+
+  it("wraps fullStream — does NOT throw when no error was captured", async () => {
+    const asyncIter = (async function* () {
+      yield { type: "text-delta", text: "hello" };
+    })();
+    mockStreamText.mockReturnValue({
+      fullStream: asyncIter,
+      usage: Promise.resolve({ promptTokens: 0, completionTokens: 0 }),
+    });
 
     const result = await streamWithAbort({
       model: createMockModel(),
       messages: createMockMessages(),
     });
 
-    expect(result).toBe(mockResult);
+    const parts: unknown[] = [];
+    for await (const part of result.fullStream) {
+      parts.push(part);
+    }
+    expect(parts).toHaveLength(1);
+  });
+
+  it("returns a wrapper with fullStream (not the raw streamText result)", async () => {
+    const mockFullStream = (async function* () {
+      yield { type: "text-delta", text: "hi" };
+    })();
+    mockStreamText.mockReturnValue({
+      fullStream: mockFullStream,
+      usage: Promise.resolve({ promptTokens: 0, completionTokens: 0 }),
+    });
+
+    const result = await streamWithAbort({
+      model: createMockModel(),
+      messages: createMockMessages(),
+    });
+
+    expect(result).toHaveProperty("fullStream");
+    expect(result.fullStream).not.toBe(mockFullStream);
   });
 });
 

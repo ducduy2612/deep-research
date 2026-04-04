@@ -37,8 +37,10 @@ export function enforceResearchAuth(
   const password = env.ACCESS_PASSWORD;
   if (!password) return null; // No password configured — open server
 
-  // Client sent providers — local mode, no auth needed
-  if (clientProviders && clientProviders.length > 0) return null;
+  // Client sent providers field (even empty array) — local mode, no auth needed.
+  // An empty array means "no keys configured" which is caught downstream with
+  // a clearer "No AI providers configured" error instead of a misleading auth error.
+  if (clientProviders !== undefined) return null;
 
   // Client using server providers (proxy mode) — require auth
   return verifyHeaders(request, password);

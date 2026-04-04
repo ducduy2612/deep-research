@@ -130,7 +130,11 @@ Before submitting, review your structure to ensure it has no redundant sections 
  * Generate SERP search queries from the report plan.
  * Instructs the model to return a JSON array of { query, researchGoal } objects.
  */
-export function getSerpQueriesPrompt(plan: string, maxQueries: number): string {
+export function getSerpQueriesPrompt(plan: string, maxQueries: number, language?: string): string {
+  const langInstruction = language && language !== "English"
+    ? `\n\nGenerate search queries in ${language} to find sources in that language.`
+    : "";
+
   return `This is the report plan after user confirmation:
 <PLAN>
 ${plan}
@@ -149,7 +153,7 @@ You MUST respond in **JSON** matching this format:
 ]
 \`\`\`
 
-Return an array of objects, each with a "query" string and a "researchGoal" string. Do not include any other text outside the JSON array.`;
+Return an array of objects, each with a "query" string and a "researchGoal" string. Do not include any other text outside the JSON array.${langInstruction}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -289,6 +293,7 @@ export function getReportPrompt(
   sources: Source[],
   images: ImageSource[],
   requirements?: string,
+  language?: string,
 ): string {
   const sourcesBlock =
     sources.length > 0
@@ -302,6 +307,10 @@ export function getReportPrompt(
 
   const requirementsBlock = requirements
     ? `Please write according to the user's writing requirements:\n<REQUIREMENT>\n${requirements}\n</REQUIREMENT>\n`
+    : "";
+
+  const langInstruction = language && language !== "English"
+    ? `\n\n**IMPORTANT: Write the entire report in ${language}.** All prose, headings, and explanations must be in ${language}.`
     : "";
 
   return `This is the report plan after user confirmation:
@@ -323,7 +332,7 @@ ${getOutputGuidelinesPrompt()}
 
 Write a final report based on the report plan using the learnings from research.
 Make it as detailed as possible, aim for 5 pages or more, the more the better, include ALL the learnings from research.
-**Respond only the final report content, and no additional text before or after.**`;
+**Respond only the final report content, and no additional text before or after.**${langInstruction}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -393,6 +402,9 @@ export const DEFAULT_PROMPTS: Record<
 /**
  * Resolve a prompt value. Returns the override string when provided,
  * otherwise calls the default prompt function with the supplied args.
+ *
+ * Special handling: when the "system" prompt is overridden, the language
+ * instruction is still appended so overrides don't silently drop language.
  */
 export function resolvePrompt(
   key: PromptOverrideKey,
@@ -400,7 +412,15 @@ export function resolvePrompt(
   ...args: Parameters<(typeof DEFAULT_PROMPTS)[typeof key]>
 ): string {
   if (overrides[key] !== undefined) {
-    return overrides[key] as string;
+    let result = overrides[key] as string;
+    // Preserve language instruction even when system prompt is overridden
+    if (key === "system") {
+      const language = args[0] as string | undefined;
+      if (language) {
+        result += `\n\nRespond in ${language}.`;
+      }
+    }
+    return result;
   }
   return DEFAULT_PROMPTS[key](...args);
 }

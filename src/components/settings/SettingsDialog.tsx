@@ -20,9 +20,9 @@ export function SettingsDialog() {
   const open = activeDialog === "settings";
 
   const TABS = [
+    { value: "general", label: t("tabs.general") },
     { value: "ai-models", label: t("tabs.ai") },
     { value: "search", label: t("tabs.search") },
-    { value: "general", label: t("tabs.general") },
     { value: "advanced", label: t("tabs.advanced") },
   ] as const;
 
@@ -67,7 +67,7 @@ export function SettingsDialog() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="ai-models" className="flex flex-col">
+        <Tabs defaultValue="general" className="flex flex-col">
           <div className="border-b border-obsidian-surface-raised px-5">
             <TabsList className="h-9 bg-transparent p-0 gap-1">
               {TABS.map((tab) => (
@@ -84,14 +84,14 @@ export function SettingsDialog() {
 
           {/* Content */}
           <div className="overflow-y-auto px-5 py-4" style={{ maxHeight: "calc(85vh - 100px)" }}>
+            <TabsContent value="general" className="mt-0">
+              <GeneralTab />
+            </TabsContent>
             <TabsContent value="ai-models" className="mt-0">
               <AIModelsTab />
             </TabsContent>
             <TabsContent value="search" className="mt-0">
               <SearchTab />
-            </TabsContent>
-            <TabsContent value="general" className="mt-0">
-              <GeneralTab />
             </TabsContent>
             <TabsContent value="advanced" className="mt-0">
               <AdvancedTab />

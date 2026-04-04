@@ -147,6 +147,21 @@ describe("getSerpQueriesPrompt", () => {
     expect(result).toContain("query");
     expect(result).toContain("researchGoal");
   });
+
+  it("appends language instruction for non-English language", () => {
+    const result = getSerpQueriesPrompt("plan", 5, "Japanese");
+    expect(result).toContain("Generate search queries in Japanese");
+  });
+
+  it("omits language instruction for English", () => {
+    const result = getSerpQueriesPrompt("plan", 5, "English");
+    expect(result).not.toContain("Generate search queries in");
+  });
+
+  it("omits language instruction when not provided", () => {
+    const result = getSerpQueriesPrompt("plan", 5);
+    expect(result).not.toContain("Generate search queries in");
+  });
 });
 
 describe("getAnalyzePrompt", () => {
@@ -278,6 +293,21 @@ describe("getReportPrompt", () => {
     const result = getReportPrompt("plan", ["l"], sources, []);
     expect(result).toContain("Citation Rules");
   });
+
+  it("appends language instruction for non-English language", () => {
+    const result = getReportPrompt("plan", ["l"], sources, [], undefined, "German");
+    expect(result).toContain("Write the entire report in German");
+  });
+
+  it("omits language instruction for English", () => {
+    const result = getReportPrompt("plan", ["l"], sources, [], undefined, "English");
+    expect(result).not.toContain("Write the entire report in");
+  });
+
+  it("omits language instruction when not provided", () => {
+    const result = getReportPrompt("plan", ["l"], sources, []);
+    expect(result).not.toContain("Write the entire report in");
+  });
 });
 
 describe("getOutputGuidelinesPrompt", () => {
@@ -328,6 +358,17 @@ describe("resolvePrompt", () => {
     );
     expect(result).toContain("plan text");
     expect(result).toContain("7");
+  });
+
+  it("appends language to overridden system prompt", () => {
+    const result = resolvePrompt("system", { system: "custom system" }, "French");
+    expect(result).toContain("custom system");
+    expect(result).toContain("Respond in French");
+  });
+
+  it("does not append language to overridden system prompt when language is undefined", () => {
+    const result = resolvePrompt("system", { system: "custom system" });
+    expect(result).toBe("custom system");
   });
 });
 

@@ -89,10 +89,14 @@
     }
   },
   "General": {
-    "connection": "Connection",
-    "proxyMode": "Proxy Mode",
-    "proxy": "Proxy",
-    "local": "Local",
+    "connection": "API Key Configuration",
+    "connectionServerTitle": "Server-Side Keys",
+    "connectionServerDesc": "API keys are configured on the server. All requests go through your backend.",
+    "connectionClientTitle": "Client-Side Keys",
+    "connectionClientDesc": "Bring your own keys — requests are sent directly to AI providers from your browser.",
+    "proxyMode": "Connection Mode",
+    "proxy": "BYOK",
+    "local": "Server",
     "accessPassword": "Access Password",
     "accessPasswordPlaceholder": "Enter access password",
     "accessPasswordHint": "Required when connecting through a CORS proxy server.",
@@ -244,7 +248,9 @@
     "preview": "Preview",
     "submitPlan": "Write Report Plan",
     "loading": "Generating questions...",
-    "editHint": "Click to edit questions"
+    "editHint": "Click to edit questions",
+    "interrupted": "The clarification phase was interrupted before questions could be generated. Click retry to try again.",
+    "retry": "Retry Clarification"
   },
   "PlanPanel": {
     "title": "Research Plan",

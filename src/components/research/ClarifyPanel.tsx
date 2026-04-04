@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { Loader2, PenLine, MessageSquare, ArrowRight } from "lucide-react";
+import { Loader2, PenLine, MessageSquare, ArrowRight, RotateCcw } from "lucide-react";
 
 import { cn } from "@/utils/style";
 import { useResearchStore } from "@/stores/research-store";
@@ -14,6 +14,7 @@ import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 
 interface ClarifyPanelProps {
   className?: string;
+  onRetryClarify: () => void;
   onSubmitFeedbackAndPlan: () => void;
 }
 
@@ -23,6 +24,7 @@ interface ClarifyPanelProps {
 
 export function ClarifyPanel({
   className,
+  onRetryClarify,
   onSubmitFeedbackAndPlan,
 }: ClarifyPanelProps) {
   const t = useTranslations("ClarifyPanel");
@@ -32,6 +34,7 @@ export function ClarifyPanel({
   const setQuestions = useResearchStore((s) => s.setQuestions);
   const feedback = useResearchStore((s) => s.feedback);
   const setFeedback = useResearchStore((s) => s.setFeedback);
+  const connectionInterrupted = useResearchStore((s) => s.connectionInterrupted);
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -41,6 +44,9 @@ export function ClarifyPanel({
   // Display the step-streamed text while clarifying, then the finalized
   // questions once they arrive via clarify-result event
   const displayText = isClarifying ? clarifyText : questions;
+
+  // Detect interrupted clarify: awaiting_feedback with no questions and interrupted flag
+  const isInterrupted = isAwaitingFeedback && connectionInterrupted && !displayText;
 
   const handleToggleEdit = useCallback(() => {
     setIsEditing((prev) => !prev);
@@ -94,6 +100,29 @@ export function ClarifyPanel({
         </p>
       </div>
 
+      {/* Interrupted state — offer retry */}
+      {isInterrupted ? (
+        <div className="flex flex-col items-center gap-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-8">
+          <p className="text-center text-sm text-amber-200">
+            {t("interrupted")}
+          </p>
+          <button
+            type="button"
+            onClick={onRetryClarify}
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold shadow-lg transition-all",
+              "bg-gradient-to-br from-obsidian-primary to-obsidian-primary-deep",
+              "text-[#1000a9]",
+              "shadow-obsidian-primary/10",
+              "active:scale-[0.98]",
+            )}
+          >
+            <RotateCcw className="h-4 w-4" />
+            <span>{t("retry")}</span>
+          </button>
+        </div>
+      ) : (
+      <>
       {/* Questions section */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -186,6 +215,8 @@ export function ClarifyPanel({
             </button>
           </div>
         </>
+      )}
+      </>
       )}
     </div>
   );

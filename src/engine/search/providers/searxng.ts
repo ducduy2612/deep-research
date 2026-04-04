@@ -6,6 +6,8 @@ import type {
 } from "@/engine/search/types";
 import { logger } from "@/lib/logger";
 
+import { sanitizeImageUrl } from "@/engine/search/utils";
+
 const DEFAULT_BASE_URL = "http://localhost:8080";
 
 interface SearXNGResult {
@@ -86,7 +88,7 @@ export class SearXNGProvider implements SearchProvider {
       .slice(0, maxResults)
       .filter((item) => item.img_src)
       .map((result) => ({
-        url: result.img_src!,
+        url: sanitizeImageUrl(result.img_src!, this.baseURL),
         description: result.title,
       }));
 

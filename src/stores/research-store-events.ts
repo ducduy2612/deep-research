@@ -7,6 +7,7 @@
  */
 
 import type {
+  ResearchCheckpoints,
   ResearchState,
   ResearchResult,
   SearchTask,
@@ -59,6 +60,7 @@ interface HandlerState {
   readonly questions: string;
   readonly plan: string;
   readonly connectionInterrupted: boolean;
+  readonly checkpoints: ResearchCheckpoints;
 }
 
 type StoreSet = (
@@ -208,13 +210,37 @@ export function createEventHandler(set: StoreSet) {
       }
       case "search-task": {
         const d = data as { tasks: SearchTask[] };
-        set((s) => ({
-          searchTasks: d.tasks,
-          activityLog: [
-            ...s.activityLog,
-            makeActivity("info", `Generated ${d.tasks.length} search queries`),
-          ],
-        }));
+        set((s) => {
+          // Auto-freeze plan checkpoint when search tasks are generated.
+          // This ensures the frozen plan has the actual searchTasks populated
+          // rather than an empty array.
+          if (!s.checkpoints.plan) {
+            return {
+              searchTasks: d.tasks,
+              checkpoints: {
+                ...s.checkpoints,
+                plan: {
+                  frozenAt: Date.now(),
+                  plan: s.plan,
+                  searchTasks: d.tasks,
+                },
+              },
+              activityLog: [
+                ...s.activityLog,
+                makeActivity("info", `Generated ${d.tasks.length} search queries`),
+                makeActivity("info", `Checkpoint frozen: plan`),
+              ],
+            };
+          }
+
+          return {
+            searchTasks: d.tasks,
+            activityLog: [
+              ...s.activityLog,
+              makeActivity("info", `Generated ${d.tasks.length} search queries`),
+            ],
+          };
+        });
         break;
       }
       case "search-result": {

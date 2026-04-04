@@ -41,6 +41,7 @@ export interface StartOptions {
 export interface UseResearchReturn {
   // Phase-specific actions
   clarify: (options: StartOptions) => void;
+  retryClarify: () => void;
   submitFeedbackAndPlan: () => void;
   approvePlanAndResearch: () => void;
   requestMoreResearch: () => void;
@@ -127,17 +128,27 @@ export function createSSEBuffer(
 /** Fields common to every phase request (providers, search, etc.). */
 function buildBaseBody() {
   const s = useSettingsStore.getState();
+
+  // proxyMode controls provider key source: client-side keys vs server env.
+  // localOnlyMode only controls whether search happens — irrelevant to provider resolution.
+  let providers: Array<{ id: string; apiKey: string; baseURL?: string; thinkingModelId?: string; networkingModelId?: string }> | undefined;
+  if (!s.proxyMode) {
+    // Non-proxy: always send client keys
+    providers = s.providers
+      .filter((p) => p.enabled && p.apiKey)
+      .map((p) => ({
+        id: p.id, apiKey: p.apiKey, baseURL: p.baseURL,
+        thinkingModelId: p.thinkingModelId, networkingModelId: p.networkingModelId,
+      }));
+  }
+  // else: proxy mode → providers stays undefined (server uses its own keys)
+
   return {
     promptOverrides: Object.keys(s.promptOverrides).length > 0 ? s.promptOverrides : undefined,
     autoReviewRounds: s.autoReviewRounds,
     maxSearchQueries: s.maxSearchQueries,
     localOnly: s.localOnlyMode,
-    providers: !s.proxyMode
-      ? s.providers.filter((p) => p.enabled && p.apiKey).map((p) => ({
-          id: p.id, apiKey: p.apiKey, baseURL: p.baseURL,
-          thinkingModelId: p.thinkingModelId, networkingModelId: p.networkingModelId,
-        }))
-      : undefined,
+    providers,
     search: { provider: s.searchProvider ?? undefined, includeDomains: s.includeDomains, excludeDomains: s.excludeDomains, citationImages: s.citationImages },
     _auth: s.proxyMode ? createAuthHeaders(s.accessPassword) : {},
   };
@@ -359,16 +370,39 @@ export function useResearch(): UseResearchReturn {
     [navigate, connectSSE],
   );
 
+  /** Retry clarify — re-send the same topic when clarify was interrupted. */
+  const retryClarify = useCallback(async () => {
+    const { topic } = useResearchStore.getState();
+    if (!topic) return;
+    useResearchStore.setState({
+      connectionInterrupted: false,
+      questions: "",
+      steps: { ...useResearchStore.getState().steps, clarify: { text: "", reasoning: "", progress: 0, startTime: null, endTime: null, duration: null } },
+    });
+    const base = buildBaseBody();
+    const knowledgeContent = await loadKnowledgeContent();
+    await connectSSE({
+      phase: "clarify", topic, knowledgeContent,
+      promptOverrides: base.promptOverrides, autoReviewRounds: base.autoReviewRounds,
+      maxSearchQueries: base.maxSearchQueries, localOnly: base.localOnly,
+      providers: base.providers, search: base.search, _auth: base._auth,
+    });
+  }, [connectSSE]);
+
   /** Phase 2: Plan — submit Q&A feedback and generate research plan. */
   const submitFeedbackAndPlan = useCallback(
     async () => {
       const { topic, questions, feedback } = useResearchStore.getState();
+      const settings = useSettingsStore.getState();
 
       await connectSSE({
         phase: "plan",
         topic,
         questions,
         feedback,
+        language: settings.language ?? undefined,
+        reportStyle: settings.reportStyle ?? undefined,
+        reportLength: settings.reportLength ?? undefined,
         ...buildBaseBody(),
       });
     },
@@ -379,10 +413,12 @@ export function useResearch(): UseResearchReturn {
   const approvePlanAndResearch = useCallback(
     async () => {
       const { plan } = useResearchStore.getState();
+      const settings = useSettingsStore.getState();
 
       await connectSSE({
         phase: "research",
         plan,
+        language: settings.language ?? undefined,
         ...buildBaseBody(),
       });
     },
@@ -428,6 +464,7 @@ export function useResearch(): UseResearchReturn {
       await connectSSE({
         phase: "research",
         plan: planString,
+        language: useSettingsStore.getState().language ?? undefined,
         ...buildBaseBody(),
       });
     },
@@ -455,6 +492,8 @@ export function useResearch(): UseResearchReturn {
       reportLength: settings.reportLength ?? undefined,
       language: settings.language ?? undefined,
       promptOverrides: base.promptOverrides,
+      localOnly: base.localOnly,
+      providers: base.providers,
       _auth: base._auth,
     };
   }
@@ -587,6 +626,7 @@ export function useResearch(): UseResearchReturn {
   return {
     // Phase-specific
     clarify,
+    retryClarify,
     submitFeedbackAndPlan,
     approvePlanAndResearch,
     requestMoreResearch,

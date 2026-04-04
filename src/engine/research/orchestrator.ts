@@ -687,6 +687,7 @@ export class ResearchOrchestrator {
         const followUpQueries = await generateStructured({
           model,
           schema: reviewQueryArraySchema,
+          system: this.buildSystemPrompt(),
           prompt,
           abortSignal: this.abortController?.signal,
         });
@@ -780,6 +781,7 @@ export class ResearchOrchestrator {
         sources,
         images,
         feedback,
+        this.config.language,
       );
 
       const result = await streamWithAbort({
@@ -826,11 +828,13 @@ export class ResearchOrchestrator {
       this.config.promptOverrides ?? {},
       plan,
       maxQueries,
+      this.config.language,
     );
 
     const queries = await generateStructured({
       model,
       schema: searchTaskArraySchema,
+      system: this.buildSystemPrompt(),
       prompt,
       abortSignal: this.abortController?.signal,
     });
@@ -885,12 +889,16 @@ export class ResearchOrchestrator {
     throw appError;
   }
 
-  private buildMessages(userPrompt: string): ModelMessage[] {
-    const systemPrompt = resolvePrompt(
+  private buildSystemPrompt(): string {
+    return resolvePrompt(
       "system",
       this.config.promptOverrides ?? {},
       this.config.language,
     );
+  }
+
+  private buildMessages(userPrompt: string): ModelMessage[] {
+    const systemPrompt = this.buildSystemPrompt();
 
     return [
       { role: "system", content: systemPrompt },

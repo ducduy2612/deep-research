@@ -3,7 +3,6 @@
 import { useTranslations } from "next-intl";
 import { cn } from "@/utils/style";
 import { useSettingsStore } from "@/stores/settings-store";
-import { Switch } from "@/components/ui/switch";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
 
 // ---------------------------------------------------------------------------
@@ -82,36 +81,76 @@ export function GeneralTab() {
 
   return (
     <div className="space-y-6">
-      {/* Connection / Proxy Mode */}
+      {/* Connection / API Key Configuration */}
       <div>
         <h4 className="mb-2 font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
           {t("connection")}
         </h4>
         <div className="space-y-3 rounded-lg border border-obsidian-outline-ghost/20 bg-obsidian-surface-deck p-3">
-          {/* Mode indicator + toggle */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-obsidian-on-surface">{t("proxyMode")}</span>
-              <span
+          {/* Server-Side Keys option */}
+          <button
+            type="button"
+            onClick={() => setProxyMode(true)}
+            className={cn(
+              "flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+              proxyMode
+                ? "border border-obsidian-primary/40 bg-obsidian-surface-raised"
+                : "border border-transparent hover:bg-obsidian-surface-sheet",
+            )}
+          >
+            <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center">
+              <div
                 className={cn(
-                  "rounded px-1.5 py-0.5 font-mono text-[9px] uppercase",
-                  proxyMode
-                    ? "bg-obsidian-primary/20 text-obsidian-primary"
-                    : "bg-obsidian-surface-well text-obsidian-on-surface-var/50",
+                  "h-2.5 w-2.5 rounded-full",
+                  proxyMode ? "bg-obsidian-primary" : "border border-obsidian-on-surface-var/30",
                 )}
-              >
-                {proxyMode ? t("proxy") : t("local")}
+              />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-medium text-obsidian-on-surface">
+                {t("connectionServerTitle")}
+              </span>
+              <span className="text-[10px] text-obsidian-on-surface-var/50">
+                {t("connectionServerDesc")}
               </span>
             </div>
-            <Switch
-              checked={proxyMode}
-              onCheckedChange={setProxyMode}
-            />
-          </div>
+          </button>
 
-          {/* Access password (visible when proxy mode enabled) */}
+          {/* Client-Side Keys / BYOK option */}
+          <button
+            type="button"
+            onClick={() => setProxyMode(false)}
+            className={cn(
+              "flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+              !proxyMode
+                ? "border border-obsidian-primary/40 bg-obsidian-surface-raised"
+                : "border border-transparent hover:bg-obsidian-surface-sheet",
+            )}
+          >
+            <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center">
+              <div
+                className={cn(
+                  "h-2.5 w-2.5 rounded-full",
+                  !proxyMode ? "bg-obsidian-primary" : "border border-obsidian-on-surface-var/30",
+                )}
+              />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-medium text-obsidian-on-surface">
+                {t("connectionClientTitle")}
+                <span className="ml-1.5 rounded bg-obsidian-primary/15 px-1.5 py-0.5 font-mono text-[9px] uppercase text-obsidian-primary">
+                  BYOK
+                </span>
+              </span>
+              <span className="text-[10px] text-obsidian-on-surface-var/50">
+                {t("connectionClientDesc")}
+              </span>
+            </div>
+          </button>
+
+          {/* Access password (visible when server-side keys selected) */}
           {proxyMode && (
-            <div>
+            <div className="pt-1">
               <label className="mb-1 block font-mono text-[10px] text-obsidian-on-surface-var/60">
                 {t("accessPassword")}
               </label>

@@ -89,10 +89,14 @@
     }
   },
   "General": {
-    "connection": "Kết nối",
-    "proxyMode": "Chế độ Proxy",
-    "proxy": "Proxy",
-    "local": "Cục bộ",
+    "connection": "Cấu hình API Key",
+    "connectionServerTitle": "Key phía máy chủ",
+    "connectionServerDesc": "API key được cấu hình trên máy chủ. Yêu cầu đi qua backend của bạn.",
+    "connectionClientTitle": "Key phía client",
+    "connectionClientDesc": "Mang key của bạn — yêu cầu được gửi trực tiếp đến nhà cung cấp AI từ trình duyệt.",
+    "proxyMode": "Chế độ kết nối",
+    "proxy": "BYOK",
+    "local": "Máy chủ",
     "accessPassword": "Mật khẩu truy cập",
     "accessPasswordPlaceholder": "Nhập mật khẩu truy cập",
     "accessPasswordHint": "Bắt buộc khi kết nối qua máy chủ proxy CORS.",

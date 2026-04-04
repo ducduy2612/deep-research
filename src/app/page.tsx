@@ -28,6 +28,7 @@ export default function Home() {
   const {
     connectionError,
     clarify,
+    retryClarify,
     submitFeedbackAndPlan,
     approvePlanAndResearch,
     requestMoreResearch,
@@ -78,6 +79,7 @@ export default function Home() {
         {activeView === "active" && (
           <ActiveResearch
             className="flex-1"
+            onRetryClarify={retryClarify}
             onSubmitFeedbackAndPlan={submitFeedbackAndPlan}
             onApprovePlanAndResearch={approvePlanAndResearch}
             onRequestMoreResearch={requestMoreResearch}

@@ -20,6 +20,7 @@ import type { ResearchStep } from "@/engine/provider/types";
 
 interface ActiveResearchCenterProps {
   className?: string;
+  onRetryClarify: () => void;
   onSubmitFeedbackAndPlan: () => void;
   onApprovePlanAndResearch: () => void;
   onRequestMoreResearch: () => void;
@@ -40,6 +41,7 @@ const STEP_ORDER: ResearchStep[] = [
 
 export function ActiveResearchCenter({
   className,
+  onRetryClarify,
   onSubmitFeedbackAndPlan,
   onApprovePlanAndResearch,
   onRequestMoreResearch,
@@ -144,7 +146,10 @@ export function ActiveResearchCenter({
         {!isIdle && (
           <PhaseAccordion
             onRenderClarify={() => (
-              <ClarifyPanel onSubmitFeedbackAndPlan={onSubmitFeedbackAndPlan} />
+              <ClarifyPanel
+                onRetryClarify={onRetryClarify}
+                onSubmitFeedbackAndPlan={onSubmitFeedbackAndPlan}
+              />
             )}
             onRenderPlan={() => (
               <PlanPanel onApprovePlanAndResearch={onApprovePlanAndResearch} />

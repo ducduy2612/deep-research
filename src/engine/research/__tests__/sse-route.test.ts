@@ -293,9 +293,12 @@ describe("SSE Research Stream Route", () => {
       expect(createSearchProvider).toHaveBeenCalled();
     });
 
-    it("uses client-provided search config", async () => {
+    it("uses client-provided search config in local mode", async () => {
+      // In local mode (providers sent), client search config takes priority
+      // over server env search config.
       setupHappyPath();
       await POST(createRequest(validBody({
+        providers: [{ id: "google", apiKey: "key" }],
         search: { provider: { id: "brave", apiKey: "key" } },
       })));
       expect(createSearchProvider).toHaveBeenCalledWith(
@@ -314,6 +317,77 @@ describe("SSE Research Stream Route", () => {
         expect.anything(),
         expect.objectContaining({ search: expect.any(Function) }),
       );
+    });
+
+    // --- Local-only mode ---
+    describe("localOnly mode", () => {
+      it("does NOT block server env providers — localOnly only gates search", async () => {
+        // localOnly is about search, not provider keys. Proxy mode without
+        // providers should still use server env keys regardless of localOnly.
+        setupHappyPath();
+        await POST(createRequest(validBody({
+          localOnly: true,
+          // No providers field → proxy mode → server env keys
+        })));
+        expect(ResearchOrchestrator).toHaveBeenCalledWith(
+          expect.objectContaining({
+            providerConfigs: expect.arrayContaining([
+              expect.objectContaining({ id: "google" }),
+            ]),
+          }),
+          expect.anything(),
+        );
+      });
+
+      it("blocks server env providers when client sends empty providers array (local mode, no keys)", async () => {
+        // Regression: proxy OFF, localOnly OFF, but no API keys configured.
+        // Client sends providers: [] — should NOT fall through to server env.
+        setupHappyPath();
+        const res = await POST(createRequest(validBody({
+          providers: [],
+        })));
+        const events = await collectSSEEvents(res);
+        expect(events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              event: "error",
+              data: expect.objectContaining({
+                code: "CONFIG_MISSING_KEY",
+                message: expect.stringContaining("Add an API key in Settings"),
+              }),
+            }),
+          ]),
+        );
+      });
+
+      it("uses client providers when localOnly is true and client sends them", async () => {
+        setupHappyPath();
+        await POST(createRequest(validBody({
+          localOnly: true,
+          providers: [{ id: "google", apiKey: "client-key" }],
+        })));
+        expect(ResearchOrchestrator).toHaveBeenCalledWith(
+          expect.objectContaining({
+            providerConfigs: expect.arrayContaining([
+              expect.objectContaining({ id: "google", apiKey: "client-key" }),
+            ]),
+          }),
+          expect.anything(),
+        );
+      });
+
+      it("returns no-op search provider when localOnly is true — no search calls made", async () => {
+        // localOnly means no web search at all. The search provider should
+        // be a no-op returning empty results, regardless of configured providers.
+        setupHappyPath();
+        await POST(createRequest(validBody({
+          localOnly: true,
+          providers: [{ id: "google", apiKey: "key" }],
+          search: { provider: { id: "brave", apiKey: "brave-key" } },
+        })));
+        // Should NOT call createSearchProvider — localOnly bypasses search entirely
+        expect(createSearchProvider).not.toHaveBeenCalled();
+      });
     });
 
     // --- Abort ---

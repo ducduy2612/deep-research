@@ -343,16 +343,68 @@ describe("PhaseAccordion", () => {
   });
 
   // -------------------------------------------------------------------------
-  // Plan checkpoint with no searchTasks
+  // Plan done but not frozen yet (between approve and search-task arrival)
   // -------------------------------------------------------------------------
-  it("handles plan checkpoint with empty searchTasks", () => {
+  it("shows plan as done (checkmark, no summary badge) when research is active but plan checkpoint not yet set", () => {
+    mockState.state = "searching";
+    mockState.checkpoints = {
+      clarify: { frozenAt: Date.now(), questions: "1. What?" },
+      // plan checkpoint NOT set yet — research started but search-tasks not received
+    };
+
+    renderAccordion({
+      onRenderStreaming: () => <div data-testid="streaming">Streaming...</div>,
+    });
+
+    // Plan should show as done (checkmark) not pending
+    // No summary badge for plan since it's not frozen yet
+    expect(screen.queryByText(/queries planned/)).not.toBeInTheDocument();
+    // Research is active
+    expect(screen.getAllByText("Active").length).toBeGreaterThanOrEqual(1);
+    // Streaming content rendered
+    expect(screen.getByTestId("streaming")).toBeInTheDocument();
+  });
+
+  // -------------------------------------------------------------------------
+  // Plan checkpoint with searchTasks (auto-frozen when search-tasks arrive)
+  // -------------------------------------------------------------------------
+  it("shows correct query count when plan is auto-frozen with searchTasks", () => {
     mockState.state = "searching";
     mockState.checkpoints = {
       clarify: { frozenAt: Date.now(), questions: "Q?" },
       plan: {
         frozenAt: Date.now(),
         plan: "Plan text",
+        searchTasks: [
+          { query: "quantum computing", researchGoal: "overview" },
+          { query: "AI safety", researchGoal: "alignment" },
+        ],
+      },
+    };
+
+    renderAccordion({
+      onRenderStreaming: () => <div>Streaming</div>,
+    });
+
+    expect(screen.getByText("2 queries planned")).toBeInTheDocument();
+  });
+
+  // -------------------------------------------------------------------------
+  // Plan checkpoint with no searchTasks (edge case)
+  // -------------------------------------------------------------------------
+  it("handles plan checkpoint with empty searchTasks", () => {
+    mockState.state = "reporting";
+    mockState.checkpoints = {
+      clarify: { frozenAt: Date.now(), questions: "Q?" },
+      plan: {
+        frozenAt: Date.now(),
+        plan: "Plan text",
         searchTasks: [],
+      },
+      research: {
+        frozenAt: Date.now(),
+        searchResults: [],
+        result: null,
       },
     };
 

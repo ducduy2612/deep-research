@@ -174,12 +174,12 @@ export type ReportResult = ResearchResult;
 // ---------------------------------------------------------------------------
 
 export const sourceSchema = z.object({
-  url: z.string().url(),
+  url: z.string(),
   title: z.string().optional(),
 });
 
 export const imageSourceSchema = z.object({
-  url: z.string().url(),
+  url: z.string(),
   description: z.string().optional(),
 });
 

@@ -82,6 +82,7 @@ const baseFieldsSchema = z.object({
   maxSearchQueries: z.number().int().min(1).optional(),
   stepModelMap: z.record(z.string(), z.unknown()).optional(),
   promptOverrides: z.record(z.string(), z.string()).optional(),
+  localOnly: z.boolean().optional(),
 });
 
 /** Full schema: when `phase` is absent or "full". */
@@ -222,9 +223,19 @@ function buildClientProviderConfigs(
 function resolveProviderConfigs(
   req: PhaseRequest,
 ): ProviderConfig[] {
-  if (req.providers && req.providers.length > 0) {
-    return buildClientProviderConfigs(req.providers);
+  // Client explicitly sent providers array (local mode) — use client keys only.
+  // An empty array means local mode with no keys configured → return [] to trigger
+  // the "no providers" error rather than silently falling back to server env keys.
+  if (req.providers !== undefined) {
+    if (req.providers.length > 0) {
+      return buildClientProviderConfigs(req.providers);
+    }
+    logger.warn("resolveProviderConfigs: local mode with no client keys, blocking server env fallback");
+    return [];
   }
+
+  // Proxy mode: no providers sent → use server env keys.
+  // localOnly does NOT affect provider resolution — it only gates search.
   return buildProviderConfigs();
 }
 
@@ -239,12 +250,26 @@ function buildSearchProvider(
   const excludeDomains = searchConfig?.excludeDomains ?? [];
   const citationImages = searchConfig?.citationImages ?? true;
 
-  // Proxy mode: client sends no providers → use server env search config only.
-  // Local mode: client sends provider+key → use client config.
-  const isProxyMode = !req.providers || req.providers.length === 0;
-  const detectedConfig = isProxyMode
-    ? detectSearchProviderConfig()
-    : searchConfig?.provider ?? detectSearchProviderConfig();
+  // localOnlyMode = no web search at all. Return no-op immediately.
+  const localOnly = "localOnly" in req && req.localOnly === true;
+  if (localOnly) {
+    logger.info("buildSearchProvider: localOnly mode — no-op search provider");
+    return new FilteringSearchProvider(
+      { search: async () => ({ sources: [], images: [] }) },
+      includeDomains,
+      excludeDomains,
+      citationImages,
+    );
+  }
+
+  // Resolve search provider config based on connection mode.
+  // Proxy mode (no providers sent): use server env search config.
+  // Local mode (providers sent): prefer client config, fall back to server env.
+  const isProxyMode = req.providers === undefined;
+  const detectedConfig: import("@/engine/search/types").SearchProviderConfig | undefined =
+    isProxyMode
+      ? detectSearchProviderConfig()
+      : (searchConfig?.provider ?? detectSearchProviderConfig());
 
   logger.info("buildSearchProvider: resolved search config", {
     mode: isProxyMode ? "proxy" : "local",
@@ -361,6 +386,7 @@ async function handleClarifyPhase(
     topic: req.topic,
     providerConfigs,
     stepModelMap: {},
+    language: req.language,
   };
 
   const { stream, controller, encoder } = createSSEStream();
@@ -403,6 +429,7 @@ async function handlePlanPhase(
     topic: req.topic,
     providerConfigs,
     stepModelMap: {},
+    language: req.language,
     promptOverrides: req.promptOverrides as ResearchConfig["promptOverrides"],
   };
 
@@ -449,6 +476,7 @@ async function handleResearchPhase(
     topic: "", // not needed for research-only phase
     providerConfigs,
     stepModelMap: {},
+    language: req.language,
     maxSearchQueries: req.maxSearchQueries,
     promptOverrides: req.promptOverrides as ResearchConfig["promptOverrides"],
   };
@@ -628,11 +656,8 @@ export async function POST(request: Request): Promise<Response> {
   // 3. Provider configs
   const providerConfigs = resolveProviderConfigs(req);
   if (providerConfigs.length === 0) {
-    return sseErrorResponse(
-      "CONFIG_MISSING_KEY",
-      "No AI providers configured. Add an API key in Settings (local mode) or set GOOGLE_GENERATIVE_AI_API_KEY / OPENAI_API_KEY on the server (proxy mode).",
-      500,
-    );
+    const message = "No AI providers configured. Add an API key in Settings (local mode) or set GOOGLE_GENERATIVE_AI_API_KEY / OPENAI_API_KEY on the server (proxy mode).";
+    return sseErrorResponse("CONFIG_MISSING_KEY", message, 500);
   }
 
   // 4. Route to phase handler
