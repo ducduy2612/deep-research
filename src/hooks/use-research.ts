@@ -589,12 +589,7 @@ export function useResearch(): UseResearchReturn {
     // Clear immediately to prevent re-triggers
     useResearchStore.setState({ pendingRemainingQueries: [] });
 
-    // Build a plan string from the remaining queries
     const plan = useResearchStore.getState().plan;
-    const remainingPlan = queries
-      .map((q) => `- query: ${q.query}\n  goal: ${q.researchGoal}`)
-      .join("\n");
-    const planString = `${plan}\n\nContinuing remaining queries:\n${remainingPlan}`;
 
     console.info("[useResearch] Auto-reconnecting with remaining queries", {
       count: queries.length,
@@ -602,7 +597,8 @@ export function useResearch(): UseResearchReturn {
 
     connectSSE({
       phase: "research",
-      plan: planString,
+      plan,
+      queries,
       language: useSettingsStore.getState().language ?? undefined,
       ...buildBaseBody(),
     });

@@ -342,19 +342,31 @@ export function createEventHandler(set: StoreSet) {
           images: ImageSource[];
           remainingQueries?: SearchTask[];
         };
-        set((s) => ({
-          state: "awaiting_results_review" as ResearchState,
-          result: s.result
-            ? s.result
-            : { title: "", report: "", learnings: d.learnings, sources: d.sources, images: d.images },
-          pendingRemainingQueries: d.remainingQueries ?? [],
-          activityLog: [
-            ...s.activityLog,
-            ...(d.remainingQueries && d.remainingQueries.length > 0
-              ? [makeActivity("warn", `Time budget reached — ${d.remainingQueries.length} queries pending, auto-continuing...`)]
-              : [makeActivity("info", "Research phase complete — awaiting review")]),
-          ],
-        }));
+        set((s) => {
+          // Accumulate learnings/sources/images across continuation rounds
+          const prevResult = s.result;
+          const mergedLearnings = [...(prevResult?.learnings ?? []), ...d.learnings];
+          const mergedSources = [...(prevResult?.sources ?? []), ...d.sources];
+          const mergedImages = [...(prevResult?.images ?? []), ...d.images];
+
+          return {
+            state: "awaiting_results_review" as ResearchState,
+            result: {
+              title: prevResult?.title ?? "",
+              report: prevResult?.report ?? "",
+              learnings: mergedLearnings,
+              sources: mergedSources,
+              images: mergedImages,
+            },
+            pendingRemainingQueries: d.remainingQueries ?? [],
+            activityLog: [
+              ...s.activityLog,
+              ...(d.remainingQueries && d.remainingQueries.length > 0
+                ? [makeActivity("warn", `Time budget reached — ${d.remainingQueries.length} queries pending, auto-continuing...`)]
+                : [makeActivity("info", "Research phase complete — awaiting review")]),
+            ],
+          };
+        });
         break;
       }
       default: break;

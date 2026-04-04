@@ -256,12 +256,12 @@ export class ResearchOrchestrator {
    * existing plan. Returns collected learnings, sources, and images, or
    * null on failure/abort. State transitions to awaiting_results_review.
    */
-  async researchFromPlan(plan: string): Promise<ResearchPhaseResult | null> {
+  async researchFromPlan(plan: string, queries?: SearchTask[]): Promise<ResearchPhaseResult | null> {
     this.abortController = new AbortController();
 
     try {
       const { allLearnings, allSources, allImages, remainingQueries } =
-        await this.runSearchPhase(plan);
+        await this.runSearchPhase(plan, queries);
       if (this.isAborted()) return null;
 
       // Only run review loop if no remaining queries (completed all in budget)
@@ -524,7 +524,7 @@ export class ResearchOrchestrator {
   // Step: Search + Analyze phase
   // -------------------------------------------------------------------------
 
-  private async runSearchPhase(plan: string): Promise<{
+  private async runSearchPhase(plan: string, prebuiltQueries?: SearchTask[]): Promise<{
     allLearnings: string[];
     allSources: Source[];
     allImages: ImageSource[];
@@ -545,9 +545,18 @@ export class ResearchOrchestrator {
     this.transitionTo("searching");
     this.emit("step-start", { step: "search" as ResearchStep, state: this.state });
 
-    // Generate SERP queries via structured output
-    const maxQueries = this.config.maxSearchQueries ?? 4;
-    const queries = await this.generateSerpQueries(plan, maxQueries);
+    // Use pre-built queries when provided (continuation from a previous
+    // time-budgeted run). Otherwise generate fresh queries from the plan.
+    let queries: SearchTask[];
+    if (prebuiltQueries && prebuiltQueries.length > 0) {
+      queries = prebuiltQueries;
+      logger.info("Using pre-built queries, skipping generateSerpQueries", {
+        count: queries.length,
+      });
+    } else {
+      const maxQueries = this.config.maxSearchQueries ?? 4;
+      queries = await this.generateSerpQueries(plan, maxQueries);
+    }
 
     if (queries.length === 0) {
       return { allLearnings, allSources, allImages, remainingQueries: [] };

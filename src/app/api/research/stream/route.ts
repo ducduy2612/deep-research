@@ -111,9 +111,16 @@ const planSchema = baseFieldsSchema.extend({
 });
 
 /** Research phase schema. */
+const searchTaskSchema = z.object({
+  query: z.string().min(1),
+  researchGoal: z.string().min(1),
+});
+
 const researchSchema = baseFieldsSchema.extend({
   phase: z.literal("research"),
   plan: z.string().min(1),
+  /** Pre-generated queries to run directly, skipping generateSerpQueries. */
+  queries: z.array(searchTaskSchema).optional(),
 });
 
 /** Report phase schema. */
@@ -528,7 +535,7 @@ async function handleResearchPhase(
   (async () => {
     try {
       controller.enqueue(encoder.encode(sseEvent("start", { phase: "research" })));
-      const result = await orchestrator.researchFromPlan(req.plan);
+      const result = await orchestrator.researchFromPlan(req.plan, req.queries);
       const events: string[] = [];
       if (result) {
         events.push(sseEvent("research-result", result));
