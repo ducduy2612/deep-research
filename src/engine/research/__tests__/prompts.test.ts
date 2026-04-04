@@ -10,6 +10,7 @@ import {
   getReviewPrompt,
   getReportPrompt,
   getOutputGuidelinesPrompt,
+  getReportPreferenceRequirement,
   resolvePrompt,
   DEFAULT_PROMPTS,
 } from "../prompts";
@@ -325,6 +326,82 @@ describe("getOutputGuidelinesPrompt", () => {
 
   it("includes table instructions", () => {
     expect(getOutputGuidelinesPrompt()).toContain("Table");
+  });
+});
+
+describe("getReportPreferenceRequirement", () => {
+  const styles: Array<import("../types").ReportStyle> = [
+    "balanced",
+    "executive",
+    "technical",
+    "concise",
+  ];
+  const lengths: Array<import("../types").ReportLength> = [
+    "brief",
+    "standard",
+    "comprehensive",
+  ];
+
+  it("includes style and length labels", () => {
+    const result = getReportPreferenceRequirement("balanced", "standard");
+    expect(result).toContain("Style:");
+    expect(result).toContain("Length:");
+    expect(result).toContain("Additional report preferences:");
+  });
+
+  it("includes the balanced style description", () => {
+    const result = getReportPreferenceRequirement("balanced", "standard");
+    expect(result).toContain("balanced writing style");
+  });
+
+  it("includes the executive style description", () => {
+    const result = getReportPreferenceRequirement("executive", "standard");
+    expect(result).toContain("decision-ready insights");
+  });
+
+  it("includes the technical style description", () => {
+    const result = getReportPreferenceRequirement("technical", "standard");
+    expect(result).toContain("technical depth and precision");
+  });
+
+  it("includes the concise style description", () => {
+    const result = getReportPreferenceRequirement("concise", "standard");
+    expect(result).toContain("concise and direct");
+  });
+
+  it("includes the brief length description", () => {
+    const result = getReportPreferenceRequirement("balanced", "brief");
+    expect(result).toContain("compact while preserving critical insights");
+  });
+
+  it("includes the standard length description", () => {
+    const result = getReportPreferenceRequirement("balanced", "standard");
+    expect(result).toContain("standard-length report");
+  });
+
+  it("includes the comprehensive length description", () => {
+    const result = getReportPreferenceRequirement("balanced", "comprehensive");
+    expect(result).toContain("comprehensive report with deep coverage");
+  });
+
+  it("returns different strings for different style+length combos", () => {
+    const results = new Set<string>();
+    for (const style of styles) {
+      for (const length of lengths) {
+        results.add(getReportPreferenceRequirement(style, length));
+      }
+    }
+    // 4 styles * 3 lengths = 12 unique combinations
+    expect(results.size).toBe(12);
+  });
+
+  it("all 12 combinations are non-empty strings", () => {
+    for (const style of styles) {
+      for (const length of lengths) {
+        const result = getReportPreferenceRequirement(style, length);
+        expect(result.length).toBeGreaterThan(0);
+      }
+    }
   });
 });
 

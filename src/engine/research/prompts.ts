@@ -6,7 +6,7 @@
  * onto the defaults.
  */
 
-import type { PromptOverrideKey, PromptOverrides, Source, ImageSource } from "./types";
+import type { PromptOverrideKey, PromptOverrides, Source, ImageSource, ReportStyle, ReportLength } from "./types";
 
 // ---------------------------------------------------------------------------
 // System prompt
@@ -267,6 +267,47 @@ You MUST respond in **JSON** matching this format:
 \`\`\`
 
 Return an array of objects (or an empty array if no further research is needed). Do not include any other text outside the JSON array.`;
+}
+
+// ---------------------------------------------------------------------------
+// Report preference helpers
+// ---------------------------------------------------------------------------
+
+/** Style-specific writing instructions. */
+const STYLE_PROMPTS: Record<ReportStyle, string> = {
+  balanced:
+    "Keep a balanced writing style with clear explanations, practical examples, and moderate technical depth.",
+  executive:
+    "Prioritize decision-ready insights. Begin sections with key findings and focus on business impact, risks, and recommendations.",
+  technical:
+    "Prioritize technical depth and precision. Include implementation details, tradeoffs, assumptions, and limitations.",
+  concise:
+    "Be concise and direct. Eliminate filler and keep each section tightly focused on essential information.",
+};
+
+/** Length-specific scope instructions. */
+const LENGTH_PROMPTS: Record<ReportLength, string> = {
+  brief:
+    "Keep the report compact while preserving critical insights and evidence.",
+  standard:
+    "Write a standard-length report with good depth and practical detail.",
+  comprehensive:
+    "Write a comprehensive report with deep coverage, detailed analysis, and thorough supporting context.",
+};
+
+/**
+ * Generate a requirements string from the user's report style and length
+ * preferences. Ported from v0's `getReportPreferenceRequirement`.
+ */
+export function getReportPreferenceRequirement(
+  reportStyle: ReportStyle,
+  reportLength: ReportLength,
+): string {
+  return [
+    "Additional report preferences:",
+    `- Style: ${STYLE_PROMPTS[reportStyle]}`,
+    `- Length: ${LENGTH_PROMPTS[reportLength]}`,
+  ].join("\n");
 }
 
 // ---------------------------------------------------------------------------

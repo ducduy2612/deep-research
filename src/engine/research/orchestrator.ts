@@ -32,7 +32,7 @@ import type {
 } from "./types";
 import type { SearchProvider } from "./search-provider";
 import { NoOpSearchProvider } from "./search-provider";
-import { resolvePrompt, getPlanWithContextPrompt } from "./prompts";
+import { resolvePrompt, getPlanWithContextPrompt, getReportPreferenceRequirement } from "./prompts";
 import type { ProviderRegistry } from "@/engine/provider/registry";
 import {
   createRegistry,
@@ -819,6 +819,16 @@ export class ResearchOrchestrator {
 
     try {
       const model = this.resolveModelForStep(step);
+
+      // Merge user feedback with style/length preferences (v0 pattern)
+      const preferenceRequirement =
+        this.config.reportStyle && this.config.reportLength
+          ? getReportPreferenceRequirement(this.config.reportStyle, this.config.reportLength)
+          : undefined;
+      const mergedRequirements = [feedback, preferenceRequirement]
+        .filter(Boolean)
+        .join("\n\n") || undefined;
+
       const prompt = resolvePrompt(
         "report",
         this.config.promptOverrides ?? {},
@@ -826,7 +836,7 @@ export class ResearchOrchestrator {
         learnings,
         sources,
         images,
-        feedback,
+        mergedRequirements,
         this.config.language,
       );
 
