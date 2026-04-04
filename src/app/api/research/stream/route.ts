@@ -14,6 +14,11 @@
  * result event before closing.
  */
 
+// Route config — max out Vercel serverless function duration.
+// Hobby: 10s, Pro: 60s, Enterprise: 300s. This requests the plan maximum.
+export const maxDuration = 300;
+export const runtime = "nodejs";
+
 import { z } from "zod";
 
 import { logger } from "@/lib/logger";
@@ -165,6 +170,11 @@ function sseEvent(event: string, data: unknown): string {
   return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
+/** SSE comment line — ignored by clients but keeps the connection alive. */
+function sseHeartbeat(): string {
+  return `: heartbeat ${Date.now()}\n\n`;
+}
+
 function sseError(code: string, message: string): string {
   return sseEvent("error", { code, message });
 }
@@ -178,6 +188,26 @@ function sseErrorResponse(
     status,
     headers: { "Content-Type": "text/event-stream" },
   });
+}
+
+// ---------------------------------------------------------------------------
+// Heartbeat manager — sends periodic SSE comments to keep Vercel function alive
+// ---------------------------------------------------------------------------
+
+const HEARTBEAT_INTERVAL_MS = 15_000; // 15s — well under Vercel's idle detection
+
+function startHeartbeat(
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder,
+): () => void {
+  const id = setInterval(() => {
+    try {
+      controller.enqueue(encoder.encode(sseHeartbeat()));
+    } catch {
+      // Stream already closed
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+  return () => clearInterval(id);
 }
 
 // ---------------------------------------------------------------------------
@@ -312,28 +342,33 @@ function createSSEStream(): {
   stream: ReadableStream<Uint8Array>;
   controller: ReadableStreamDefaultController<Uint8Array>;
   encoder: TextEncoder;
+  stopHeartbeat: () => void;
 } {
   const encoder = new TextEncoder();
   let controller!: ReadableStreamDefaultController<Uint8Array>;
   const stream = new ReadableStream<Uint8Array>({
     start(ctrl) { controller = ctrl; },
   });
-  return { stream, controller, encoder };
+  const stopHeartbeat = startHeartbeat(controller, encoder);
+  return { stream, controller, encoder, stopHeartbeat };
 }
 
-/** Safely send final SSE events and close the stream. No-ops if already closed. */
+/** Safely send final SSE events, stop heartbeat, and close the stream. No-ops if already closed. */
 function finishStream(
   controller: ReadableStreamDefaultController<Uint8Array>,
   encoder: TextEncoder,
   events: string[],
+  stopHeartbeat?: () => void,
 ): void {
   try {
+    stopHeartbeat?.();
     for (const event of events) {
       controller.enqueue(encoder.encode(event));
     }
     controller.close();
   } catch {
     // Stream already closed — client disconnected during research
+    stopHeartbeat?.();
   }
 }
 
@@ -364,7 +399,9 @@ function cleanup(
   orchestrator: ResearchOrchestrator,
   onAbort: () => void,
   request: Request,
+  stopHeartbeat?: () => void,
 ) {
+  stopHeartbeat?.();
   request.signal.removeEventListener("abort", onAbort);
   for (const u of unsubsGetter()) u();
   orchestrator.destroy();
@@ -389,7 +426,7 @@ async function handleClarifyPhase(
     language: req.language,
   };
 
-  const { stream, controller, encoder } = createSSEStream();
+  const { stream, controller, encoder, stopHeartbeat } = createSSEStream();
   const orchestrator = new ResearchOrchestrator(researchConfig, searchProvider);
   const unsubsGetter = subscribeOrchestrator(orchestrator, controller, encoder);
 
@@ -405,13 +442,13 @@ async function handleClarifyPhase(
         events.push(sseEvent("clarify-result", result));
       }
       events.push(sseEvent("done", {}));
-      finishStream(controller, encoder, events);
+      finishStream(controller, encoder, events, stopHeartbeat);
     } catch (error) {
       const err = toAppError(error, "RESEARCH_STEP_FAILED");
       logger.error("Clarify stream error", { code: err.code, message: err.message });
-      finishStream(controller, encoder, [sseError(err.code, err.message)]);
+      finishStream(controller, encoder, [sseError(err.code, err.message)], stopHeartbeat);
     } finally {
-      cleanup(unsubsGetter, orchestrator, onAbort, request);
+      cleanup(unsubsGetter, orchestrator, onAbort, request, stopHeartbeat);
     }
   })();
 
@@ -433,7 +470,7 @@ async function handlePlanPhase(
     promptOverrides: req.promptOverrides as ResearchConfig["promptOverrides"],
   };
 
-  const { stream, controller, encoder } = createSSEStream();
+  const { stream, controller, encoder, stopHeartbeat } = createSSEStream();
   const orchestrator = new ResearchOrchestrator(researchConfig);
   const unsubsGetter = subscribeOrchestrator(orchestrator, controller, encoder);
 
@@ -449,13 +486,13 @@ async function handlePlanPhase(
         events.push(sseEvent("plan-result", result));
       }
       events.push(sseEvent("done", {}));
-      finishStream(controller, encoder, events);
+      finishStream(controller, encoder, events, stopHeartbeat);
     } catch (error) {
       const err = toAppError(error, "RESEARCH_STEP_FAILED");
       logger.error("Plan stream error", { code: err.code, message: err.message });
-      finishStream(controller, encoder, [sseError(err.code, err.message)]);
+      finishStream(controller, encoder, [sseError(err.code, err.message)], stopHeartbeat);
     } finally {
-      cleanup(unsubsGetter, orchestrator, onAbort, request);
+      cleanup(unsubsGetter, orchestrator, onAbort, request, stopHeartbeat);
     }
   })();
 
@@ -481,7 +518,7 @@ async function handleResearchPhase(
     promptOverrides: req.promptOverrides as ResearchConfig["promptOverrides"],
   };
 
-  const { stream, controller, encoder } = createSSEStream();
+  const { stream, controller, encoder, stopHeartbeat } = createSSEStream();
   const orchestrator = new ResearchOrchestrator(researchConfig, searchProvider);
   const unsubsGetter = subscribeOrchestrator(orchestrator, controller, encoder);
 
@@ -497,13 +534,13 @@ async function handleResearchPhase(
         events.push(sseEvent("research-result", result));
       }
       events.push(sseEvent("done", {}));
-      finishStream(controller, encoder, events);
+      finishStream(controller, encoder, events, stopHeartbeat);
     } catch (error) {
       const err = toAppError(error, "RESEARCH_STEP_FAILED");
       logger.error("Research stream error", { code: err.code, message: err.message });
-      finishStream(controller, encoder, [sseError(err.code, err.message)]);
+      finishStream(controller, encoder, [sseError(err.code, err.message)], stopHeartbeat);
     } finally {
-      cleanup(unsubsGetter, orchestrator, onAbort, request);
+      cleanup(unsubsGetter, orchestrator, onAbort, request, stopHeartbeat);
     }
   })();
 
@@ -527,7 +564,7 @@ async function handleReportPhase(
     promptOverrides: req.promptOverrides as ResearchConfig["promptOverrides"],
   };
 
-  const { stream, controller, encoder } = createSSEStream();
+  const { stream, controller, encoder, stopHeartbeat } = createSSEStream();
   const orchestrator = new ResearchOrchestrator(researchConfig);
   const unsubsGetter = subscribeOrchestrator(orchestrator, controller, encoder);
 
@@ -549,13 +586,13 @@ async function handleReportPhase(
         events.push(sseEvent("result", result));
       }
       events.push(sseEvent("done", {}));
-      finishStream(controller, encoder, events);
+      finishStream(controller, encoder, events, stopHeartbeat);
     } catch (error) {
       const err = toAppError(error, "RESEARCH_STEP_FAILED");
       logger.error("Report stream error", { code: err.code, message: err.message });
-      finishStream(controller, encoder, [sseError(err.code, err.message)]);
+      finishStream(controller, encoder, [sseError(err.code, err.message)], stopHeartbeat);
     } finally {
-      cleanup(unsubsGetter, orchestrator, onAbort, request);
+      cleanup(unsubsGetter, orchestrator, onAbort, request, stopHeartbeat);
     }
   })();
 
@@ -584,7 +621,7 @@ async function handleFullPhase(
     promptOverrides: req.promptOverrides as ResearchConfig["promptOverrides"],
   };
 
-  const { stream, controller, encoder } = createSSEStream();
+  const { stream, controller, encoder, stopHeartbeat } = createSSEStream();
   const orchestrator = new ResearchOrchestrator(researchConfig, searchProvider);
   const unsubsGetter = subscribeOrchestrator(orchestrator, controller, encoder);
 
@@ -605,13 +642,13 @@ async function handleFullPhase(
         events.push(sseEvent("result", result));
       }
       events.push(sseEvent("done", {}));
-      finishStream(controller, encoder, events);
+      finishStream(controller, encoder, events, stopHeartbeat);
     } catch (error) {
       const err = toAppError(error, "RESEARCH_STEP_FAILED");
       logger.error("Research stream error", { code: err.code, message: err.message });
-      finishStream(controller, encoder, [sseError(err.code, err.message)]);
+      finishStream(controller, encoder, [sseError(err.code, err.message)], stopHeartbeat);
     } finally {
-      cleanup(unsubsGetter, orchestrator, onAbort, request);
+      cleanup(unsubsGetter, orchestrator, onAbort, request, stopHeartbeat);
     }
   })();
 
