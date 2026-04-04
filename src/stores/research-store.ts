@@ -58,7 +58,7 @@ export interface ResearchStoreState {
   readonly plan: string;
   readonly suggestion: string;
   readonly manualQueries: readonly string[];
-  readonly pendingRetryQueries: readonly string[];
+  readonly immediateRetryQuery: string | null;
   readonly reportFeedback: string;
   // Immutable phase checkpoints
   readonly checkpoints: ResearchCheckpoints;
@@ -80,7 +80,8 @@ export interface ResearchStoreActions {
   setReportFeedback: (text: string) => void;
   // CRUD actions for research workspace
   removeSearchResult: (index: number) => void;
-  retrySearchResult: (index: number) => void;
+  retrySearchResult: (index: number) => string | null;
+  clearImmediateRetry: () => void;
   clearSuggestion: () => void;
   // Checkpoint actions
   freeze: (phase: CheckpointPhase) => void;
@@ -111,7 +112,7 @@ const INITIAL_STATE: ResearchStoreState = {
   plan: "",
   suggestion: "",
   manualQueries: [],
-  pendingRetryQueries: [],
+  immediateRetryQuery: null,
   reportFeedback: "",
   checkpoints: {},
   connectionInterrupted: false,
@@ -204,21 +205,26 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
   },
 
   retrySearchResult: (index: number) => {
+    let retryQuery: string | null = null;
     set((s) => {
       if (index < 0 || index >= s.searchResults.length) return {};
       const query = s.searchResults[index].query;
+      retryQuery = query;
       const patch = stripResultData(s, index);
       return {
         ...patch,
-        pendingRetryQueries: [...s.pendingRetryQueries, query],
+        immediateRetryQuery: query,
         activityLog: makeLocalActivity(
           "info",
-          `Queued retry for: ${query}`,
+          `Retrying search: ${query}`,
           s.activityLog,
         ),
       };
     });
+    return retryQuery;
   },
+
+  clearImmediateRetry: () => set({ immediateRetryQuery: null }),
 
   clearSuggestion: () => set({ suggestion: "" }),
 
@@ -331,7 +337,6 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
       plan: saved.plan,
       suggestion: saved.suggestion,
       manualQueries: saved.manualQueries ?? [],
-      pendingRetryQueries: saved.pendingRetryQueries ?? [],
       reportFeedback: saved.reportFeedback ?? "",
       checkpoints: saved.checkpoints ?? {},
       connectionInterrupted,
@@ -369,7 +374,6 @@ useResearchStore.subscribe((state) => {
     plan: state.plan,
     suggestion: state.suggestion,
     manualQueries: state.manualQueries,
-    pendingRetryQueries: state.pendingRetryQueries,
     reportFeedback: state.reportFeedback,
     checkpoints: state.checkpoints,
   };

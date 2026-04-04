@@ -34,7 +34,6 @@ export function ClarifyPanel({
   const setQuestions = useResearchStore((s) => s.setQuestions);
   const feedback = useResearchStore((s) => s.feedback);
   const setFeedback = useResearchStore((s) => s.setFeedback);
-  const connectionInterrupted = useResearchStore((s) => s.connectionInterrupted);
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -45,8 +44,10 @@ export function ClarifyPanel({
   // questions once they arrive via clarify-result event
   const displayText = isClarifying ? clarifyText : questions;
 
-  // Detect interrupted clarify: awaiting_feedback with no questions and interrupted flag
-  const isInterrupted = isAwaitingFeedback && connectionInterrupted && !displayText;
+  // Detect interrupted clarify: awaiting_feedback with no questions to show.
+  // This covers both connectionInterrupted flag AND edge cases where the flag
+  // isn't set but the user is stuck with nothing to give feedback on.
+  const isInterrupted = isAwaitingFeedback && !displayText;
 
   const handleToggleEdit = useCallback(() => {
     setIsEditing((prev) => !prev);

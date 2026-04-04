@@ -86,6 +86,7 @@ export class TavilyProvider implements SearchProvider {
       .map((result) => ({
         title: result.title,
         url: result.url,
+        content: result.rawContent || result.content,
       }));
 
     const imageSources = images.map((img) => ({

@@ -20,8 +20,12 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { useUIStore } from "@/stores/ui-store";
 import { useHistoryStore } from "@/stores/history-store";
 import { createAuthHeaders } from "@/lib/client-signature";
+import { createSSEBuffer } from "@/hooks/sse-parser";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
 import type { Source, ImageSource } from "@/engine/research/types";
+
+// Re-export for backward compat with existing test imports
+export { parseSSEChunk, createSSEBuffer } from "@/hooks/sse-parser";
 
 /** Lazy import — keeps fuse.js out of the hot module path. */
 let _ks: typeof import("@/stores/knowledge-store").useKnowledgeStore | null = null;
@@ -58,69 +62,6 @@ export interface UseResearchReturn {
   elapsedMs: number | null;
   isActive: boolean;
   connectionError: string | null;
-}
-
-// SSE parser — splits on double-newlines, extracts event/data pairs.
-export function parseSSEChunk(
-  chunk: string,
-  onEvent: (eventType: string, data: unknown) => void,
-): void {
-  const lines = chunk.split("\n");
-  let currentEvent = "";
-  let currentData = "";
-
-  for (const line of lines) {
-    if (line.startsWith("event: ")) {
-      currentEvent = line.slice(7).trim();
-    } else if (line.startsWith("data: ")) {
-      currentData = line.slice(6);
-    } else if (line === "" && currentEvent && currentData) {
-      // End of event — dispatch
-      try {
-        const parsed = JSON.parse(currentData);
-        onEvent(currentEvent, parsed);
-      } catch {
-        // Malformed JSON — skip event
-        console.warn("[useResearch] Failed to parse SSE data:", currentData);
-      }
-      currentEvent = "";
-      currentData = "";
-    }
-  }
-}
-
-// SSE buffer — handles events split across chunks.
-export function createSSEBuffer(
-  onEvent: (eventType: string, data: unknown) => void,
-): (chunk: string) => void {
-  let buffer = "";
-
-  return (chunk: string) => {
-    buffer += chunk;
-    const parts = buffer.split("\n\n");
-    // Last element might be incomplete — keep it in buffer
-    buffer = parts.pop() ?? "";
-
-    for (const part of parts) {
-      let eventType = "";
-      let data = "";
-      for (const line of part.split("\n")) {
-        if (line.startsWith("event: ")) {
-          eventType = line.slice(7).trim();
-        } else if (line.startsWith("data: ")) {
-          data = line.slice(6);
-        }
-      }
-      if (eventType && data) {
-        try {
-          const parsed = JSON.parse(data);
-          onEvent(eventType, parsed);
-        } catch {
-          console.warn("[useResearch] Failed to parse SSE data:", data);
-        }
-      }
-    }
-  };
 }
 
 // Shared base body builder
@@ -425,24 +366,17 @@ export function useResearch(): UseResearchReturn {
     [connectSSE],
   );
 
-  /** Phase 3b: More Research — iterative deepening with retries + manual queries + suggestion. */
+  /** Phase 3b: More Research — iterative deepening with manual queries + suggestion. */
   const requestMoreResearch = useCallback(
     async () => {
       const {
         plan,
         suggestion,
         manualQueries,
-        pendingRetryQueries,
       } = useResearchStore.getState();
 
       // Build enhanced plan string with all pending inputs
       const sections: string[] = [plan];
-
-      if (pendingRetryQueries.length > 0) {
-        sections.push(
-          "Retry queries:\n" + pendingRetryQueries.map((q) => `- ${q}`).join("\n"),
-        );
-      }
 
       if (manualQueries.length > 0) {
         sections.push(
@@ -458,7 +392,6 @@ export function useResearch(): UseResearchReturn {
 
       // Clear pending inputs BEFORE connecting to avoid race
       useResearchStore.getState().setManualQueries([]);
-      useResearchStore.setState({ pendingRetryQueries: [] });
       useResearchStore.getState().clearSuggestion();
 
       await connectSSE({
@@ -622,6 +555,28 @@ export function useResearch(): UseResearchReturn {
       setElapsedMs(storeCompletedAt - storeStartedAt);
     }
   }, [storeStartedAt, storeCompletedAt]);
+
+  // Immediate retry: when retrySearchResult sets immediateRetryQuery,
+  // fire a research SSE with just that query, bypassing the queue.
+  const immediateRetryQuery = useResearchStore((s) => s.immediateRetryQuery);
+
+  useEffect(() => {
+    if (!immediateRetryQuery) return;
+
+    const query = immediateRetryQuery;
+    // Clear the signal immediately to prevent re-triggers
+    useResearchStore.getState().clearImmediateRetry();
+
+    const plan = useResearchStore.getState().plan;
+    const planString = `${plan}\n\nRetry query:\n- ${query}`;
+
+    connectSSE({
+      phase: "research",
+      plan: planString,
+      language: useSettingsStore.getState().language ?? undefined,
+      ...buildBaseBody(),
+    });
+  }, [immediateRetryQuery, connectSSE]);
 
   return {
     // Phase-specific

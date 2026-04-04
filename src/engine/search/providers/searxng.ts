@@ -81,6 +81,7 @@ export class SearXNGProvider implements SearchProvider {
       .map((result) => ({
         title: result.title,
         url: result.url,
+        content: result.content,
       }));
 
     const images = allResults

@@ -20,6 +20,7 @@ import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 interface PlanPanelProps {
   className?: string;
   onApprovePlanAndResearch: () => void;
+  onRewritePlan: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -29,6 +30,7 @@ interface PlanPanelProps {
 export function PlanPanel({
   className,
   onApprovePlanAndResearch,
+  onRewritePlan,
 }: PlanPanelProps) {
   const t = useTranslations("PlanPanel");
   const state = useResearchStore((s) => s.state);
@@ -140,11 +142,9 @@ export function PlanPanel({
           <button
             type="button"
             onClick={() => {
-              // Re-submit the same plan with feedback to regenerate
-              // For rewrite, we clear plan and re-trigger with modified content
               if (isEditing) setIsEditing(false);
-              // Rewrite: submit the current (edited) plan as feedback to get a new plan
-              onApprovePlanAndResearch();
+              // Rewrite: re-submit to plan phase to regenerate with current edits
+              onRewritePlan();
             }}
             className={cn(
               "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",

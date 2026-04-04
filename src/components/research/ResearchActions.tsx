@@ -40,7 +40,6 @@ export function ResearchActions({
   const result = useResearchStore((s) => s.result);
   const suggestion = useResearchStore((s) => s.suggestion);
   const setSuggestion = useResearchStore((s) => s.setSuggestion);
-  const pendingRetryQueries = useResearchStore((s) => s.pendingRetryQueries);
   const manualQueries = useResearchStore((s) => s.manualQueries);
 
   const isResearching =
@@ -51,7 +50,7 @@ export function ResearchActions({
 
   const learningsCount = result?.learnings?.length ?? 0;
   const sourcesCount = result?.sources?.length ?? 0;
-  const pendingCount = pendingRetryQueries.length + manualQueries.length;
+  const pendingCount = manualQueries.length;
 
   const handleSuggestionChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {

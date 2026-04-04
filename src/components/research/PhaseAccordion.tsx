@@ -16,6 +16,7 @@ import {
 import type {
   CheckpointPhase,
   ResearchState,
+  SearchTask,
   ClarifyCheckpoint,
   PlanCheckpoint,
   ResearchPhaseCheckpoint,
@@ -63,7 +64,14 @@ const PHASE_CONFIG: PhaseConfig[] = [
       const cp = _cp as PlanCheckpoint;
       return t("planSummary", { count: cp.searchTasks?.length ?? 0 });
     },
-    getFrozenContent: (cp) => (cp as PlanCheckpoint).plan ?? "",
+    getFrozenContent: (cp) => {
+      const { plan, searchTasks } = cp as PlanCheckpoint;
+      if (!searchTasks?.length) return plan ?? "";
+      const tasksList = searchTasks
+        .map((t: SearchTask, i: number) => `${i + 1}. **${t.query}** — ${t.researchGoal}`)
+        .join("\n");
+      return `${plan}\n\n---\n\n### Search Queries\n\n${tasksList}`;
+    },
   },
   {
     id: "research",
@@ -132,6 +140,8 @@ export function PhaseAccordion({
   const checkpoints = useResearchStore((s) => s.checkpoints);
   const searchResults = useResearchStore((s) => s.searchResults);
   const result = useResearchStore((s) => s.result);
+  const plan = useResearchStore((s) => s.plan);
+  const searchTasks = useResearchStore((s) => s.searchTasks);
 
   // Determine the active phase ID
   let activePhaseId: CheckpointPhase | null = null;
@@ -142,9 +152,6 @@ export function PhaseAccordion({
     }
   }
 
-  // Determine which accordion items are open by default — active phase expanded
-  const defaultValue = activePhaseId ? [activePhaseId] : [];
-
   // Phase ordering — used to infer "done" state when checkpoint hasn't landed yet
   const phaseOrder: CheckpointPhase[] = ["clarify", "plan", "research", "report"];
 
@@ -154,6 +161,15 @@ export function PhaseAccordion({
 
   // Helper: check if a phase is active
   const isActive = (phaseId: CheckpointPhase) => activePhaseId === phaseId;
+
+  // Determine which accordion items are open by default — active phase expanded.
+  // Also keep plan expanded while research is running but plan hasn't frozen yet,
+  // so the user can see their plan while searches execute.
+  const defaultValue = activePhaseId
+    ? activePhaseId === "research" && !isFrozen("plan")
+      ? ["plan", activePhaseId]
+      : [activePhaseId]
+    : [];
 
   // Helper: check if a phase is done (frozen, or a later phase is active/frozen)
   const isDone = (phaseId: CheckpointPhase) => {
@@ -269,6 +285,13 @@ export function PhaseAccordion({
                   </span>
                 )}
 
+                {/* Summary badge for plan that's done but not frozen yet — show live search task count */}
+                {done && !frozen && !active && phase.id === "plan" && searchTasks.length > 0 && (
+                  <span className="rounded-full bg-obsidian-surface-raised px-2.5 py-0.5 font-mono text-[10px] text-obsidian-on-surface-var/60">
+                    {t("planSummary", { count: searchTasks.length } as never)}
+                  </span>
+                )}
+
                 {/* Active label */}
                 {active && (
                   <span className="ml-1 rounded-full bg-obsidian-primary-deep/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-obsidian-primary-deep">
@@ -297,6 +320,44 @@ export function PhaseAccordion({
                 ) : active ? (
                   // Active: live editable workspace
                   <div className="mt-2">{renderActiveContent(phase.id)}</div>
+                ) : done && phase.id === "plan" ? (
+                  // Done but not frozen: plan is waiting for search tasks to freeze.
+                  // Show the plan text + any search tasks that have arrived.
+                  <div className="mt-2 opacity-80">
+                    <MarkdownRenderer content={plan} />
+                    {searchTasks.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-obsidian-primary-deep">
+                            {t("searchTasksLabel")}
+                          </span>
+                          <span className="rounded-full bg-obsidian-surface-raised px-2 py-0.5 font-mono text-[10px] text-obsidian-on-surface-var/60">
+                            {searchTasks.length}
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {searchTasks.map((task, i) => (
+                            <div
+                              key={`${task.query}-${i}`}
+                              className="flex items-start gap-2 rounded-md bg-obsidian-surface-sheet px-3 py-2"
+                            >
+                              <span className="shrink-0 font-mono text-[10px] text-obsidian-on-surface-var/40">
+                                {i + 1}.
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium text-obsidian-on-surface">
+                                  {task.query}
+                                </p>
+                                <p className="mt-0.5 font-mono text-[10px] text-obsidian-on-surface-var/50">
+                                  {task.researchGoal}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : null}
               </div>
             </AccordionContent>

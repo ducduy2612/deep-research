@@ -1,6 +1,6 @@
 /**
  * Tests for research store CRUD actions: removeSearchResult, retrySearchResult,
- * clearSuggestion, and pendingRetryQueries persistence.
+ * clearSuggestion, and clearImmediateRetry.
  *
  * Uses the same mock pattern as research-store-freeze.test.ts.
  */
@@ -183,13 +183,12 @@ describe("removeSearchResult", () => {
 // ---------------------------------------------------------------------------
 
 describe("retrySearchResult", () => {
-  it("stores query in pendingRetryQueries and removes from searchResults", () => {
+  it("sets immediateRetryQuery and removes from searchResults", () => {
     setupSearchResults();
-    useResearchStore.getState().retrySearchResult(1);
+    const result = useResearchStore.getState().retrySearchResult(1);
 
-    expect(useResearchStore.getState().pendingRetryQueries).toEqual([
-      "quantum error correction",
-    ]);
+    expect(result).toBe("quantum error correction");
+    expect(useResearchStore.getState().immediateRetryQuery).toBe("quantum error correction");
     expect(useResearchStore.getState().searchResults).toHaveLength(2);
   });
 
@@ -211,15 +210,17 @@ describe("retrySearchResult", () => {
     expect(sourceUrls).toContain("https://example.com/shared"); // shared with remaining results
   });
 
-  it("with invalid index is no-op", () => {
+  it("with invalid index is no-op and returns null", () => {
     setupSearchResults();
     const before = useResearchStore.getState().searchResults.length;
 
-    useResearchStore.getState().retrySearchResult(-1);
-    useResearchStore.getState().retrySearchResult(99);
+    const r1 = useResearchStore.getState().retrySearchResult(-1);
+    const r2 = useResearchStore.getState().retrySearchResult(99);
 
+    expect(r1).toBeNull();
+    expect(r2).toBeNull();
     expect(useResearchStore.getState().searchResults).toHaveLength(before);
-    expect(useResearchStore.getState().pendingRetryQueries).toEqual([]);
+    expect(useResearchStore.getState().immediateRetryQuery).toBeNull();
   });
 
   it("logs activity on retry", () => {
@@ -227,67 +228,35 @@ describe("retrySearchResult", () => {
     useResearchStore.getState().retrySearchResult(1);
 
     const log = useResearchStore.getState().activityLog;
-    const entry = log.find((e) => e.message.includes("Queued retry for"));
+    const entry = log.find((e) => e.message.includes("Retrying search"));
     expect(entry).toBeDefined();
     expect(entry!.message).toContain("quantum error correction");
   });
 
-  it("accumulates multiple pending retries", () => {
+  it("overwrites previous immediateRetryQuery on consecutive retries", () => {
     setupSearchResults();
 
     useResearchStore.getState().retrySearchResult(0);
     useResearchStore.getState().retrySearchResult(0); // was index 1, now 0 after first removal
 
-    expect(useResearchStore.getState().pendingRetryQueries).toEqual([
-      "quantum computing basics",
-      "quantum error correction",
-    ]);
+    expect(useResearchStore.getState().immediateRetryQuery).toBe("quantum error correction");
     expect(useResearchStore.getState().searchResults).toHaveLength(1);
     expect(useResearchStore.getState().searchResults[0].query).toBe("quantum algorithms");
   });
 });
 
 // ---------------------------------------------------------------------------
-// pendingRetryQueries persistence
+// clearImmediateRetry
 // ---------------------------------------------------------------------------
 
-describe("pendingRetryQueries persistence", () => {
-  it("persists across hydrate round-trip", async () => {
+describe("clearImmediateRetry", () => {
+  it("clears immediateRetryQuery to null", () => {
     setupSearchResults();
     useResearchStore.getState().retrySearchResult(0);
+    expect(useResearchStore.getState().immediateRetryQuery).toBe("quantum computing basics");
 
-    const savedData = storedData["research-state"];
-    useResearchStore.getState().reset();
-    storedData["research-state"] = savedData;
-    await useResearchStore.getState().hydrate();
-
-    expect(useResearchStore.getState().pendingRetryQueries).toEqual([
-      "quantum computing basics",
-    ]);
-  });
-
-  it("defaults to empty array on old state without field", async () => {
-    storedData["research-state"] = {
-      topic: "Test",
-      state: "awaiting_feedback",
-      steps: {},
-      searchTasks: [],
-      searchResults: [],
-      result: null,
-      error: null,
-      startedAt: 1000,
-      completedAt: null,
-      activityLog: [],
-      questions: "",
-      feedback: "",
-      plan: "",
-      suggestion: "",
-      // No pendingRetryQueries field
-    };
-
-    await useResearchStore.getState().hydrate();
-
-    expect(useResearchStore.getState().pendingRetryQueries).toEqual([]);
+    useResearchStore.getState().clearImmediateRetry();
+    expect(useResearchStore.getState().immediateRetryQuery).toBeNull();
   });
 });
 

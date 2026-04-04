@@ -128,7 +128,6 @@ export const persistedStateSchema = z.object({
   // Checkpoints & manual queries (added M003)
   checkpoints: checkpointsSchema.optional().default({}),
   manualQueries: z.array(z.string()).optional().default([]),
-  pendingRetryQueries: z.array(z.string()).optional().default([]),
   reportFeedback: z.string().optional().default(""),
 });
 

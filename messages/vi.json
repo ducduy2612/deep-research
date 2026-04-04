@@ -177,6 +177,7 @@
       "plan": "Plan",
       "serpQueries": "SERP Queries",
       "analyze": "Analyze",
+      "analyzeWithContent": "Analyze (with search content)",
       "review": "Review",
       "report": "Report",
       "outputGuidelines": "Output Guidelines"
@@ -293,7 +294,8 @@
     "reportSummary": "Báo cáo hoàn thành",
     "frozenBadge": "Đã lưu",
     "activeLabel": "Đang hoạt động",
-    "pendingLabel": "Chờ xử lý"
+    "pendingLabel": "Chờ xử lý",
+    "searchTasksLabel": "Truy vấn tìm kiếm"
   },
   "SearchResultCard": {
     "delete": "Xóa kết quả",

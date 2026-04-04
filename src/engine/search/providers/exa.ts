@@ -83,6 +83,7 @@ export class ExaProvider implements SearchProvider {
         return {
           title: result.title,
           url: result.url,
+          content: result.summary || result.text,
         };
       });
 

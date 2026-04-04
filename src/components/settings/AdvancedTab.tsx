@@ -14,6 +14,7 @@ const PROMPT_KEYS: PromptOverrideKey[] = [
   "plan",
   "serpQueries",
   "analyze",
+  "analyzeWithContent",
   "review",
   "report",
   "outputGuidelines",

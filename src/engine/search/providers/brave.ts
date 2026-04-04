@@ -88,6 +88,7 @@ export class BraveProvider implements SearchProvider {
       .map((result) => ({
         title: result.title,
         url: result.url,
+        content: result.description,
       }));
 
     const images = imageResults.map((item) => ({

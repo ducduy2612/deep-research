@@ -16,6 +16,8 @@ const { mockState } = vi.hoisted(() => {
     checkpoints: {} as Record<string, unknown>,
     searchResults: [] as { learning: string; sources: { url: string; title?: string }[] }[],
     result: null as { learnings: string[]; sources: { url: string; title?: string }[] } | null,
+    plan: "" as string,
+    searchTasks: [] as readonly { query: string; researchGoal: string }[],
   };
   return { mockState };
 });
@@ -36,6 +38,7 @@ vi.mock("next-intl", () => {
     frozenBadge: "Frozen",
     activeLabel: "Active",
     pendingLabel: "Pending",
+    searchTasksLabel: "Search Queries",
   };
 
   function t(key: string, params?: Record<string, number>): string {
@@ -94,6 +97,8 @@ describe("PhaseAccordion", () => {
     mockState.checkpoints = {};
     mockState.searchResults = [];
     mockState.result = null;
+    mockState.plan = "";
+    mockState.searchTasks = [];
   });
 
   // -------------------------------------------------------------------------
@@ -345,24 +350,32 @@ describe("PhaseAccordion", () => {
   // -------------------------------------------------------------------------
   // Plan done but not frozen yet (between approve and search-task arrival)
   // -------------------------------------------------------------------------
-  it("shows plan as done (checkmark, no summary badge) when research is active but plan checkpoint not yet set", () => {
+  it("shows plan as done with plan text visible when research is active but plan checkpoint not yet set", () => {
     mockState.state = "searching";
     mockState.checkpoints = {
       clarify: { frozenAt: Date.now(), questions: "1. What?" },
       // plan checkpoint NOT set yet — research started but search-tasks not received
     };
+    mockState.plan = "# My Research Plan\n\nWe will study quantum computing.";
 
     renderAccordion({
       onRenderStreaming: () => <div data-testid="streaming">Streaming...</div>,
     });
 
     // Plan should show as done (checkmark) not pending
-    // No summary badge for plan since it's not frozen yet
+    // No summary badge for plan since it's not frozen and has no search tasks yet
     expect(screen.queryByText(/queries planned/)).not.toBeInTheDocument();
     // Research is active
     expect(screen.getAllByText("Active").length).toBeGreaterThanOrEqual(1);
     // Streaming content rendered
     expect(screen.getByTestId("streaming")).toBeInTheDocument();
+    // Plan accordion should be expanded alongside research (defaultValue includes "plan")
+    // Plan text should be visible
+    const mdRenderers = screen.getAllByTestId("markdown-renderer");
+    const planRenderer = mdRenderers.find((el) =>
+      el.textContent?.includes("My Research Plan"),
+    );
+    expect(planRenderer).toBeTruthy();
   });
 
   // -------------------------------------------------------------------------
@@ -387,6 +400,78 @@ describe("PhaseAccordion", () => {
     });
 
     expect(screen.getByText("2 queries planned")).toBeInTheDocument();
+  });
+
+  // -------------------------------------------------------------------------
+  // Plan shows search tasks before freeze
+  // -------------------------------------------------------------------------
+  it("shows search tasks in plan panel when done but not frozen and tasks exist", () => {
+    mockState.state = "searching";
+    mockState.checkpoints = {
+      clarify: { frozenAt: Date.now(), questions: "Q?" },
+      // plan not frozen yet
+    };
+    mockState.plan = "# Research Plan";
+    mockState.searchTasks = [
+      { query: "quantum computing basics", researchGoal: "understand fundamentals" },
+      { query: "AI alignment", researchGoal: "safety approaches" },
+    ];
+
+    renderAccordion({
+      onRenderStreaming: () => <div data-testid="streaming">Streaming...</div>,
+    });
+
+    // Summary badge shows live search task count
+    expect(screen.getByText("2 queries planned")).toBeInTheDocument();
+    // Search tasks should be rendered
+    expect(screen.getByText("quantum computing basics")).toBeInTheDocument();
+    expect(screen.getByText("AI alignment")).toBeInTheDocument();
+    expect(screen.getByText("understand fundamentals")).toBeInTheDocument();
+    expect(screen.getByText("safety approaches")).toBeInTheDocument();
+    // Search Queries label
+    expect(screen.getByText("Search Queries")).toBeInTheDocument();
+  });
+
+  // -------------------------------------------------------------------------
+  // Frozen plan content includes search tasks
+  // -------------------------------------------------------------------------
+  it("includes search tasks in frozen plan content", () => {
+    mockState.state = "reporting";
+    mockState.checkpoints = {
+      clarify: { frozenAt: Date.now(), questions: "Q?" },
+      plan: {
+        frozenAt: Date.now(),
+        plan: "# Plan text",
+        searchTasks: [
+          { query: "quantum computing", researchGoal: "overview" },
+        ],
+      },
+      research: {
+        frozenAt: Date.now(),
+        searchResults: [],
+        result: null,
+      },
+    };
+
+    renderAccordion({
+      onRenderStreaming: () => <div>Streaming</div>,
+    });
+
+    // Plan is frozen and collapsed — click to expand it
+    const planButtons = screen.getAllByText("Plan");
+    const planButton = planButtons.find(
+      (el) => el.closest("button") !== null,
+    );
+    if (planButton) {
+      fireEvent.click(planButton.closest("button")!);
+    }
+
+    // Frozen plan should show both plan text and search tasks via MarkdownRenderer
+    const mdRenderers = screen.getAllByTestId("markdown-renderer");
+    const planRenderer = mdRenderers.find((el) =>
+      el.textContent?.includes("Plan text") && el.textContent?.includes("quantum computing"),
+    );
+    expect(planRenderer).toBeTruthy();
   });
 
   // -------------------------------------------------------------------------

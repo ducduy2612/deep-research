@@ -66,7 +66,7 @@ describe("TavilyProvider", () => {
     expect(body.include_raw_content).toBe("markdown");
 
     expect(result.sources).toHaveLength(1);
-    expect(result.sources[0]).toEqual({ title: "T1", url: "https://example.com" });
+    expect(result.sources[0]).toEqual({ title: "T1", url: "https://example.com", content: "RC1" });
     expect(result.images).toHaveLength(1);
     expect(result.images[0]).toEqual({ url: "https://img.example.com/1.jpg" });
   });
@@ -164,7 +164,7 @@ describe("FirecrawlProvider", () => {
     expect(body.timeout).toBe(60000);
 
     expect(result.sources).toHaveLength(1);
-    expect(result.sources[0]).toEqual({ title: "T1", url: "https://example.com" });
+    expect(result.sources[0]).toEqual({ title: "T1", url: "https://example.com", content: "# H1" });
     expect(result.images).toEqual([]);
   });
 
@@ -265,7 +265,7 @@ describe("ExaProvider", () => {
     expect(body.contents.extras.imageLinks).toBe(3);
 
     expect(result.sources).toHaveLength(1);
-    expect(result.sources[0]).toEqual({ title: "T1", url: "https://example.com" });
+    expect(result.sources[0]).toEqual({ title: "T1", url: "https://example.com", content: "S1" });
     expect(result.images).toHaveLength(1);
     expect(result.images[0].url).toBe("https://img.example.com/1.jpg");
   });
@@ -378,7 +378,7 @@ describe("BraveProvider", () => {
     expect((webInit.headers as Record<string, string>)["Authorization"]).toBeUndefined();
 
     expect(result.sources).toHaveLength(1);
-    expect(result.sources[0]).toEqual({ title: "T1", url: "https://example.com" });
+    expect(result.sources[0]).toEqual({ title: "T1", url: "https://example.com", content: "D1" });
     expect(result.images).toHaveLength(1);
     expect(result.images[0]).toEqual({ url: "https://img.example.com/1.jpg", description: "Img1" });
   });
@@ -467,7 +467,7 @@ describe("SearXNGProvider", () => {
     expect((init.headers as Record<string, string>)?.["Authorization"]).toBeUndefined();
 
     expect(result.sources).toHaveLength(1);
-    expect(result.sources[0]).toEqual({ title: "T1", url: "https://example.com" });
+    expect(result.sources[0]).toEqual({ title: "T1", url: "https://example.com", content: "C1" });
     expect(result.images).toHaveLength(1);
     expect(result.images[0]).toEqual({ url: "https://img.example.com/1.jpg", description: "Img1" });
   });

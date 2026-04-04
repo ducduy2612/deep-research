@@ -600,12 +600,35 @@ export class ResearchOrchestrator {
 
     try {
       const model = this.resolveModelForStep(step);
-      const prompt = resolvePrompt(
-        "analyze",
-        this.config.promptOverrides ?? {},
-        task.query,
-        task.researchGoal,
-      );
+
+      // When sources include fetched content, use the context-aware prompt
+      // so the AI analyzes the actual search results. Otherwise fall back to
+      // the model-native prompt where the AI is expected to search itself.
+      const sourcesWithContent = sources.filter((s) => s.content);
+      let prompt: string;
+
+      if (sourcesWithContent.length > 0) {
+        const context = sourcesWithContent
+          .map(
+            (result, idx) =>
+              `<content index="${idx + 1}" url="${result.url}">\n${result.content}\n</content>`,
+          )
+          .join("\n");
+        prompt = resolvePrompt(
+          "analyzeWithContent",
+          this.config.promptOverrides ?? {},
+          task.query,
+          task.researchGoal,
+          context,
+        );
+      } else {
+        prompt = resolvePrompt(
+          "analyze",
+          this.config.promptOverrides ?? {},
+          task.query,
+          task.researchGoal,
+        );
+      }
 
       const result = await streamWithAbort({
         model,

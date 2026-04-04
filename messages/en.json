@@ -177,6 +177,7 @@
       "plan": "Plan",
       "serpQueries": "SERP Queries",
       "analyze": "Analyze",
+      "analyzeWithContent": "Analyze (with search content)",
       "review": "Review",
       "report": "Report",
       "outputGuidelines": "Output Guidelines"
@@ -295,7 +296,8 @@
     "reportSummary": "Report complete",
     "frozenBadge": "Frozen",
     "activeLabel": "Active",
-    "pendingLabel": "Pending"
+    "pendingLabel": "Pending",
+    "searchTasksLabel": "Search Queries"
   },
   "SearchResultCard": {
     "delete": "Delete result",

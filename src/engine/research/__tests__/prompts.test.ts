@@ -380,6 +380,7 @@ describe("DEFAULT_PROMPTS", () => {
       "plan",
       "serpQueries",
       "analyze",
+      "analyzeWithContent",
       "review",
       "report",
       "outputGuidelines",

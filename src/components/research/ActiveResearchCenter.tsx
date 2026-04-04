@@ -152,7 +152,7 @@ export function ActiveResearchCenter({
               />
             )}
             onRenderPlan={() => (
-              <PlanPanel onApprovePlanAndResearch={onApprovePlanAndResearch} />
+              <PlanPanel onApprovePlanAndResearch={onApprovePlanAndResearch} onRewritePlan={onSubmitFeedbackAndPlan} />
             )}
             onRenderStreaming={renderStreamingView}
             onRenderResearchActions={() => (

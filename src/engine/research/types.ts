@@ -38,6 +38,10 @@ export type ResearchState =
 export interface Source {
   url: string;
   title?: string;
+  /** Page content fetched by the search provider. Used by the analyze step
+   *  to extract learnings. When absent, the AI relies on its own knowledge
+   *  or model-native search tools. */
+  content?: string;
 }
 
 /** An image source referenced in research results. */
@@ -86,6 +90,7 @@ export type PromptOverrideKey =
   | "plan"
   | "serpQueries"
   | "analyze"
+  | "analyzeWithContent"
   | "review"
   | "report"
   | "outputGuidelines";
@@ -176,6 +181,7 @@ export type ReportResult = ResearchResult;
 export const sourceSchema = z.object({
   url: z.string(),
   title: z.string().optional(),
+  content: z.string().optional(),
 });
 
 export const imageSourceSchema = z.object({

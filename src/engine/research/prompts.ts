@@ -394,6 +394,7 @@ export const DEFAULT_PROMPTS: Record<
   plan: getPlanPrompt,
   serpQueries: getSerpQueriesPrompt,
   analyze: getAnalyzePrompt,
+  analyzeWithContent: getSearchResultPrompt,
   review: getReviewPrompt,
   report: getReportPrompt,
   outputGuidelines: getOutputGuidelinesPrompt,

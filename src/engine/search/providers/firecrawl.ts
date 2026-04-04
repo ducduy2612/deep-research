@@ -66,6 +66,7 @@ export class FirecrawlProvider implements SearchProvider {
       .map((result) => ({
         title: result.title,
         url: result.url!,
+        content: result.markdown || result.description,
       }));
 
     logger.info("FirecrawlProvider: results", {
