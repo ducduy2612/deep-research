@@ -1,24 +1,104 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useState, useEffect } from "react";
 import { useSettingsStore } from "@/stores/settings-store";
+import {
+  getSystemPromptBody,
+  getOutputGuidelinesPrompt,
+} from "@/engine/research/prompts";
 import type { PromptOverrideKey } from "@/engine/research/types";
 
 // ---------------------------------------------------------------------------
-// Prompt override keys
+// Prompt configuration — only static-text prompts are user-editable
 // ---------------------------------------------------------------------------
 
-const PROMPT_KEYS: PromptOverrideKey[] = [
-  "system",
-  "clarify",
-  "plan",
-  "serpQueries",
-  "analyze",
-  "analyzeWithContent",
-  "review",
-  "report",
-  "outputGuidelines",
+interface PromptConfig {
+  key: PromptOverrideKey;
+  getDefault: () => string;
+}
+
+const PROMPT_CONFIGS: PromptConfig[] = [
+  { key: "system", getDefault: getSystemPromptBody },
+  { key: "outputGuidelines", getDefault: getOutputGuidelinesPrompt },
 ];
+
+// ---------------------------------------------------------------------------
+// Prompt editor — pre-filled with default text, editable by user
+// ---------------------------------------------------------------------------
+
+function PromptEditor({
+  config,
+  override,
+  onSave,
+  label,
+}: {
+  config: PromptConfig;
+  override: string | undefined;
+  onSave: (key: PromptOverrideKey, value: string | undefined) => void;
+  label: string;
+}) {
+  const isOverride = override !== undefined && override !== "";
+  const [value, setValue] = useState(override ?? config.getDefault());
+  const [dirty, setDirty] = useState(false);
+
+  // Sync from external reset (e.g. "Reset all" button)
+  useEffect(() => {
+    if (!override) {
+      setValue(config.getDefault());
+      setDirty(false);
+    }
+  }, [override, config]);
+
+  const handleBlur = () => {
+    setDirty(false);
+    const trimmed = value.trim();
+    if (!trimmed) {
+      onSave(config.key, undefined);
+      setValue(config.getDefault());
+    } else {
+      onSave(config.key, trimmed);
+    }
+  };
+
+  const handleReset = () => {
+    const defaultText = config.getDefault();
+    setValue(defaultText);
+    setDirty(false);
+    onSave(config.key, undefined);
+  };
+
+  const rows = Math.max(8, Math.min(30, value.split("\n").length + 1));
+
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between">
+        <label className="font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
+          {label}
+        </label>
+        {isOverride && (
+          <button
+            type="button"
+            onClick={handleReset}
+            className="font-mono text-[10px] uppercase tracking-widest text-obsidian-primary hover:text-obsidian-on-surface transition-colors"
+          >
+            Reset to default
+          </button>
+        )}
+      </div>
+      <textarea
+        value={value}
+        onChange={(e) => {
+          setValue(e.target.value);
+          setDirty(true);
+        }}
+        onBlur={handleBlur}
+        rows={rows}
+        className="w-full rounded-md border border-obsidian-surface-raised bg-obsidian-surface-well px-3 py-1.5 font-mono text-[11px] text-obsidian-on-surface focus:border-obsidian-primary focus:outline-none"
+      />
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Tab component
@@ -36,21 +116,16 @@ export function AdvancedTab() {
         {t("description")}
       </p>
 
-      {/* Prompt override textareas */}
+      {/* Prompt editors — system + output guidelines */}
       <div className="space-y-4">
-        {PROMPT_KEYS.map((key) => (
-          <div key={key}>
-            <label className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-obsidian-on-surface-var">
-              {t(`prompts.${key}`)}
-            </label>
-            <textarea
-              defaultValue={promptOverrides[key] ?? ""}
-              onBlur={(e) => setPromptOverride(key, e.target.value || undefined)}
-              placeholder={`Custom ${t(`prompts.${key}`).toLowerCase()} prompt...`}
-              rows={3}
-              className="w-full rounded-md border border-obsidian-surface-raised bg-obsidian-surface-well px-3 py-1.5 font-mono text-[11px] text-obsidian-on-surface placeholder:text-obsidian-on-surface-var/40 focus:border-obsidian-primary focus:outline-none"
-            />
-          </div>
+        {PROMPT_CONFIGS.map((config) => (
+          <PromptEditor
+            key={config.key}
+            config={config}
+            override={promptOverrides[config.key]}
+            onSave={setPromptOverride}
+            label={t("prompts." + config.key)}
+          />
         ))}
       </div>
 

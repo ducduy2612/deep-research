@@ -13,30 +13,34 @@ import type { PromptOverrideKey, PromptOverrides, Source, ImageSource, ReportSty
 // ---------------------------------------------------------------------------
 
 /**
+ * Static system prompt body — no date, no language.
+ * Used by the UI settings editor to show editable default text.
+ */
+export function getSystemPromptBody(): string {
+  return "You are an expert researcher. Today is {date}. Follow these instructions when responding:\n\n"
+    + "- You may be asked to research subjects that are after your knowledge cutoff, assume the user is right when presented with news.\n"
+    + "- The user is a highly experienced analyst, no need to simplify it, be as detailed as possible and make sure your response is correct.\n"
+    + "- Be highly organized.\n"
+    + "- Suggest solutions that I didn't think about.\n"
+    + "- Be proactive and anticipate my needs.\n"
+    + "- Treat me as an expert in all subject matter.\n"
+    + "- Mistakes erode my trust, so be accurate and thorough.\n"
+    + "- Provide detailed explanations, I'm comfortable with lots of detail.\n"
+    + "- Value good arguments over authorities, the source is irrelevant.\n"
+    + "- Consider new technologies and contrarian ideas, not just the conventional wisdom.\n"
+    + "- You may use high levels of speculation or prediction, just flag it for me.";
+}
+
+/**
  * System instruction establishing the expert-researcher persona.
- * Replaces `{now}` with the current locale date string.
+ * Injects the current date into the static prompt body.
  */
 export function getSystemPrompt(language?: string): string {
   const date = new Date().toLocaleDateString();
-
-  let prompt = `You are an expert researcher. Today is ${date}. Follow these instructions when responding:
-
-- You may be asked to research subjects that are after your knowledge cutoff, assume the user is right when presented with news.
-- The user is a highly experienced analyst, no need to simplify it, be as detailed as possible and make sure your response is correct.
-- Be highly organized.
-- Suggest solutions that I didn't think about.
-- Be proactive and anticipate my needs.
-- Treat me as an expert in all subject matter.
-- Mistakes erode my trust, so be accurate and thorough.
-- Provide detailed explanations, I'm comfortable with lots of detail.
-- Value good arguments over authorities, the source is irrelevant.
-- Consider new technologies and contrarian ideas, not just the conventional wisdom.
-- You may use high levels of speculation or prediction, just flag it for me.`;
-
+  let prompt = getSystemPromptBody().replace("{date}", date);
   if (language) {
-    prompt += `\n\nRespond in ${language}.`;
+    prompt += "\n\nRespond in " + language + ".";
   }
-
   return prompt;
 }
 
@@ -481,11 +485,13 @@ export function resolvePrompt(
 ): string {
   if (overrides[key] !== undefined) {
     let result = overrides[key] as string;
-    // Preserve language instruction even when system prompt is overridden
+    // Inject date + language for system prompt overrides
     if (key === "system") {
       const language = args[0] as string | undefined;
+      const date = new Date().toLocaleDateString();
+      result = result.replace("{date}", date);
       if (language) {
-        result += `\n\nRespond in ${language}.`;
+        result += "\n\nRespond in " + language + ".";
       }
     }
     return result;
