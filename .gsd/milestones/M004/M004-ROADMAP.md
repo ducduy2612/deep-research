@@ -8,5 +8,5 @@ Every SSE research connection finishes well within Vercel Hobby's 300s serverles
 |----|-------|------|---------|------|------------|
 | S01 | S01 | high | — | ✅ | Orchestrator respects 2-cycle cap, reviewOnly() method works, route has review phase and no full phase, maxDuration=300, timeBudgetMs=180s |
 | S02 | S02 | medium | — | ✅ | requestMoreResearch sends phase:review with learnings, auto-review triggers visibly after research completes with round progress |
-| S03 | S03 | low | — | ⬜ | No start() anywhere in the codebase, all entry points use clarify(), dead code removed |
-| S04 | Tests + verification | low | S03 | ⬜ | All 498+ existing tests pass + new tests for cycle cap, reviewOnly, review route, auto-review trigger, requestMoreResearch review |
+| S03 | S03 | low | — | ✅ | No start() anywhere in the codebase, all entry points use clarify(), dead code removed |
+| S04 | S04 | low | — | ⬜ | All 498+ existing tests pass + new tests for cycle cap, reviewOnly, review route, auto-review trigger, requestMoreResearch review |

@@ -10,9 +10,9 @@ Users can input a research question, interactively guide the research process th
 
 ## Current State
 
-M001–M003 are complete. M004 (Eliminate Vercel Timeout Dependency) is in progress — S01 and S02 complete. The application has:
+M001–M003 are complete. M004 (Eliminate Vercel Timeout Dependency) is in progress — S01, S02, S03 complete. The application has:
 - **135+ source files, ~24K lines, 823 passing tests**
-- Multi-phase orchestrator with clarify/plan/research/report/review SSE phases (full pipeline and start() removed)
+- Multi-phase orchestrator with clarify/plan/research/report/review SSE phases (full pipeline and start() completely removed, StartOptions renamed to ClarifyOptions)
 - Research batching with 2-cycle cap per SSE connection (~160s), auto-reconnect for remaining queries
 - Standalone reviewOnly() orchestrator phase for follow-up research rounds
 - Review-result SSE event type, autoReviewRoundsRemaining store field for auto-review trigger loop
@@ -24,7 +24,7 @@ M001–M003 are complete. M004 (Eliminate Vercel Timeout Dependency) is in progr
 - Report workspace with feedback textarea, Regenerate, Done button
 - PWA support, i18n (EN + VI), CORS proxy mode, knowledge base, history
 
-M004 S02 complete: Hook + store review integration. Auto-review shows visible round progress (N/M) in ResearchActions banner with spinner and abort. Round fields persisted to localforage. Abort callback threaded from page through component hierarchy. 27 new tests (796→823). Requirements R065, R066, R067 validated.
+M004 S03 complete: Dead code cleanup. Removed orphaned `d.phase === "full"` condition from research-store-events.ts, updated stale test comments/names in orchestrator.test.ts, renamed StartOptions → ClarifyOptions across use-research.ts, TopicInput.tsx, page.tsx. Zero references to start(), full phase, or StartOptions remain in production code. 823 tests pass, clean build.
 
 ## Architecture / Key Patterns
 
@@ -51,4 +51,4 @@ See `.gsd/REQUIREMENTS.md` for the explicit capability contract, requirement sta
 - [ ] M004: Eliminate Vercel Timeout Dependency — 2-cycle research cap, standalone review phase, full pipeline removal, auto-review
 
 ---
-*Last updated: 2026-04-14 — M004 S02 complete.*
+*Last updated: 2026-04-14 — M004 S03 complete.*
