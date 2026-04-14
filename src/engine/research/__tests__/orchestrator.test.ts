@@ -800,7 +800,7 @@ describe("ResearchOrchestrator", () => {
       expect(result!.images).toEqual([]);
     });
 
-    it("runs review loop when autoReviewRounds > 0", async () => {
+    it("does not run review loop even when autoReviewRounds > 0", async () => {
       const searchProvider = createMockSearchProvider();
       const config = createTestConfig({ autoReviewRounds: 1 });
       const orchestrator = new ResearchOrchestrator(config, searchProvider);
@@ -809,8 +809,6 @@ describe("ResearchOrchestrator", () => {
       mockContainer.generateFn.mockResolvedValueOnce([
         { query: "q1", researchGoal: "g1" },
       ]);
-      // Review returns empty (stop loop)
-      mockContainer.generateFn.mockResolvedValueOnce([]);
 
       const reviewStarts: unknown[] = [];
       orchestrator.on("step-start", (p) => {
@@ -820,7 +818,8 @@ describe("ResearchOrchestrator", () => {
       const result = await orchestrator.researchFromPlan("plan");
 
       expect(result).not.toBeNull();
-      expect(reviewStarts.length).toBe(1);
+      // researchFromPlan no longer calls runReviewLoop — review is separate
+      expect(reviewStarts.length).toBe(0);
     });
 
     it("returns null on abort", async () => {
@@ -837,6 +836,187 @@ describe("ResearchOrchestrator", () => {
       });
 
       const promise = orchestrator.researchFromPlan("plan");
+      orchestrator.abort();
+      const result = await promise;
+
+      expect(result).toBeNull();
+      expect(orchestrator.getState()).toBe("aborted");
+    });
+  });
+
+  // =========================================================================
+  // Cycle cap enforcement
+  // =========================================================================
+
+  describe("runSearchPhase cycle cap", () => {
+    it("stops after maxCyclesPerInvocation cycles and returns remaining queries", async () => {
+      const searchProvider = createMockSearchProvider();
+      const config = createTestConfig({ maxCyclesPerInvocation: 2 });
+      const orchestrator = new ResearchOrchestrator(config, searchProvider);
+
+      // Generate 4 queries — only 2 should execute
+      mockContainer.generateFn.mockResolvedValueOnce([
+        { query: "q1", researchGoal: "g1" },
+        { query: "q2", researchGoal: "g2" },
+        { query: "q3", researchGoal: "g3" },
+        { query: "q4", researchGoal: "g4" },
+      ]);
+
+      const result = await orchestrator.researchFromPlan("plan");
+
+      expect(result).not.toBeNull();
+      // Only 2 queries should have been executed
+      expect(searchProvider.search).toHaveBeenCalledTimes(2);
+      expect(result!.remainingQueries).toHaveLength(2);
+      expect(result!.learnings).toHaveLength(2);
+    });
+
+    it("defaults to 2 cycles when maxCyclesPerInvocation not set", async () => {
+      const searchProvider = createMockSearchProvider();
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config, searchProvider);
+
+      // Generate 5 queries — only 2 should execute with default cap
+      mockContainer.generateFn.mockResolvedValueOnce([
+        { query: "q1", researchGoal: "g1" },
+        { query: "q2", researchGoal: "g2" },
+        { query: "q3", researchGoal: "g3" },
+        { query: "q4", researchGoal: "g4" },
+        { query: "q5", researchGoal: "g5" },
+      ]);
+
+      const result = await orchestrator.researchFromPlan("plan");
+
+      expect(result).not.toBeNull();
+      expect(searchProvider.search).toHaveBeenCalledTimes(2);
+      expect(result!.remainingQueries).toHaveLength(3);
+    });
+
+    it("executes all queries when under the cycle cap", async () => {
+      const searchProvider = createMockSearchProvider();
+      const config = createTestConfig({ maxCyclesPerInvocation: 5 });
+      const orchestrator = new ResearchOrchestrator(config, searchProvider);
+
+      mockContainer.generateFn.mockResolvedValueOnce([
+        { query: "q1", researchGoal: "g1" },
+        { query: "q2", researchGoal: "g2" },
+      ]);
+
+      const result = await orchestrator.researchFromPlan("plan");
+
+      expect(result).not.toBeNull();
+      expect(searchProvider.search).toHaveBeenCalledTimes(2);
+      expect(result!.remainingQueries ?? []).toHaveLength(0);
+    });
+  });
+
+  // =========================================================================
+  // reviewOnly()
+  // =========================================================================
+
+  describe("reviewOnly()", () => {
+    it("generates follow-up queries and executes 1 search+analyze cycle", async () => {
+      const searchProvider = createMockSearchProvider();
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config, searchProvider);
+
+      // Review generates 2 follow-up queries
+      mockContainer.generateFn.mockResolvedValueOnce([
+        { query: "follow-up 1", researchGoal: "deeper research" },
+        { query: "follow-up 2", researchGoal: "more context" },
+      ]);
+
+      const result = await orchestrator.reviewOnly(
+        "plan text",
+        ["learning 1"],
+        [{ url: "https://example.com" }],
+        [],
+      );
+
+      expect(result).not.toBeNull();
+      expect(result!.learnings.length).toBe(3); // 1 original + 2 new
+      expect(result!.sources.length).toBeGreaterThan(0);
+      expect(searchProvider.search).toHaveBeenCalledTimes(2);
+    });
+
+    it("returns existing data when no follow-up queries needed", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      // Review returns empty — no follow-up needed
+      mockContainer.generateFn.mockResolvedValueOnce([]);
+
+      const existingLearnings = ["l1", "l2"];
+      const existingSources = [{ url: "https://example.com" }];
+
+      const result = await orchestrator.reviewOnly(
+        "plan",
+        existingLearnings,
+        existingSources,
+        [],
+      );
+
+      expect(result).not.toBeNull();
+      expect(result!.learnings).toEqual(existingLearnings);
+      expect(result!.sources).toEqual(existingSources);
+    });
+
+    it("passes suggestion to review prompt", async () => {
+      const searchProvider = createMockSearchProvider();
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config, searchProvider);
+
+      // Review returns no follow-up queries
+      mockContainer.generateFn.mockResolvedValueOnce([]);
+
+      await orchestrator.reviewOnly(
+        "plan",
+        ["learning"],
+        [],
+        [],
+        "Focus on error correction",
+      );
+
+      // Verify generateStructured was called (review query generation)
+      expect(mockContainer.generateFn).toHaveBeenCalledTimes(1);
+    });
+
+    it("transitions to awaiting_results_review on success", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      mockContainer.generateFn.mockResolvedValueOnce([]);
+
+      await orchestrator.reviewOnly("plan", [], [], []);
+
+      expect(orchestrator.getState()).toBe("awaiting_results_review");
+    });
+
+    it("returns null on failure", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      mockContainer.generateFn.mockRejectedValue(new Error("Review failure"));
+
+      const result = await orchestrator.reviewOnly("plan", [], [], []);
+
+      expect(result).toBeNull();
+      expect(orchestrator.getState()).toBe("failed");
+    });
+
+    it("returns null on abort", async () => {
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config);
+
+      let genResolve: (() => void) | undefined;
+      mockContainer.generateFn.mockImplementation(() => {
+        return new Promise((resolve) => {
+          genResolve = () => resolve([]);
+          setTimeout(genResolve, 50);
+        });
+      });
+
+      const promise = orchestrator.reviewOnly("plan", [], [], []);
       orchestrator.abort();
       const result = await promise;
 

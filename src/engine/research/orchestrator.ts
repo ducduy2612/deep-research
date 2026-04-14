@@ -264,12 +264,6 @@ export class ResearchOrchestrator {
         await this.runSearchPhase(plan, queries);
       if (this.isAborted()) return null;
 
-      // Only run review loop if no remaining queries (completed all in budget)
-      if (remainingQueries.length === 0) {
-        await this.runReviewLoop(plan, allLearnings, allSources, allImages);
-        if (this.isAborted()) return null;
-      }
-
       this.transitionTo("awaiting_results_review");
       logger.info("ResearchFromPlan completed, awaiting results review", {
         learnings: allLearnings.length,
@@ -329,6 +323,131 @@ export class ResearchOrchestrator {
       if (this.state !== "aborted") {
         this.transitionTo("failed");
         logger.error("ReportFromLearnings failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Run a single review cycle: generate follow-up queries from plan +
+   * learnings + optional suggestion, execute 1 search+analyze cycle for
+   * each, and return accumulated data. Does NOT run a report.
+   */
+  async reviewOnly(
+    plan: string,
+    learnings: string[],
+    sources: Source[],
+    images: ImageSource[],
+    suggestion?: string,
+  ): Promise<ResearchPhaseResult | null> {
+    this.abortController = new AbortController();
+
+    try {
+      const reviewStart = Date.now();
+      this.transitionTo("reviewing");
+      this.emit("step-start", { step: "review", state: this.state });
+
+      const model = this.resolveModelForStep("review");
+      const learningsText = learnings.join("\n");
+      const prompt = resolvePrompt(
+        "review",
+        this.config.promptOverrides ?? {},
+        plan,
+        learningsText,
+        suggestion,
+      );
+
+      const followUpQueries = await generateStructured({
+        model,
+        schema: reviewQueryArraySchema,
+        system: this.buildSystemPrompt(),
+        prompt,
+        abortSignal: this.abortController?.signal,
+      });
+
+      if (this.isAborted()) return null;
+
+      const reviewDuration = Date.now() - reviewStart;
+      this.emit("step-complete", {
+        step: "review",
+        duration: reviewDuration,
+      });
+      logger.info("ReviewOnly: follow-up queries generated", {
+        followUpCount: followUpQueries.length,
+        duration: reviewDuration,
+      });
+
+      if (followUpQueries.length === 0) {
+        this.transitionTo("awaiting_results_review");
+        logger.info("ReviewOnly: no follow-up queries needed");
+        return {
+          learnings,
+          sources,
+          images,
+          remainingQueries: [],
+        };
+      }
+
+      // Execute exactly 1 search+analyze cycle for each follow-up query
+      for (const task of followUpQueries) {
+        if (this.isAborted()) return null;
+
+        // Search
+        this.transitionTo("searching");
+        const searchStart = Date.now();
+        this.emit("step-start", { step: "search", state: this.state });
+
+        let searchSources: Source[];
+        let searchImages: ImageSource[];
+
+        try {
+          const searchResult = await this.searchProvider.search(task.query, {
+            abortSignal: this.abortController?.signal,
+          });
+          searchSources = searchResult.sources;
+          searchImages = searchResult.images ?? [];
+          const searchDuration = Date.now() - searchStart;
+          this.emit("step-complete", { step: "search", duration: searchDuration });
+          this.emit("search-result", {
+            query: task.query,
+            sources: searchSources,
+            images: searchImages,
+          });
+        } catch (error) {
+          this.handleStepError("search", error);
+          throw error; // unreachable
+        }
+
+        if (this.isAborted()) return null;
+
+        // Analyze
+        const analyzeResult = await this.runAnalyze(task, searchSources);
+        learnings.push(analyzeResult.learning);
+        sources.push(...analyzeResult.sources);
+        images.push(...searchImages);
+      }
+
+      const totalDuration = Date.now() - reviewStart;
+      logger.info("ReviewOnly: completed", {
+        followUpQueriesExecuted: followUpQueries.length,
+        totalLearnings: learnings.length,
+        totalSources: sources.length,
+        duration: totalDuration,
+      });
+
+      this.transitionTo("awaiting_results_review");
+      return {
+        learnings,
+        sources,
+        images,
+        remainingQueries: [],
+      };
+    } catch (error) {
+      if (this.state !== "aborted") {
+        this.transitionTo("failed");
+        logger.error("ReviewOnly failed", {
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -535,8 +654,12 @@ export class ResearchOrchestrator {
     const allImages: ImageSource[] = [];
 
     const phaseStart = Date.now();
-    // Default 780s budget — leaves 20s headroom under Vercel Pro's 800s limit
-    const timeBudgetMs = this.config.timeBudgetMs ?? 780_000;
+    // Default 180s budget — leaves 120s headroom under Vercel Hobby's 300s limit
+    const timeBudgetMs = this.config.timeBudgetMs ?? 180_000;
+    // Cap search-analyze cycles per invocation (default 2) to stay within
+    // Vercel Hobby's 300s serverless function timeout.
+    const maxCycles = this.config.maxCyclesPerInvocation ?? 2;
+    let cyclesCompleted = 0;
     // Estimate per-cycle cost (search + analyze). If less than this remains, skip.
     const CYCLE_COST_ESTIMATE_MS = 80_000;
 
@@ -569,6 +692,17 @@ export class ResearchOrchestrator {
     for (let i = 0; i < queries.length; i++) {
       if (this.isAborted())
         return { allLearnings, allSources, allImages, remainingQueries: queries.slice(i) };
+
+      // Enforce cycle cap — stop after maxCycles search-analyze iterations
+      if (cyclesCompleted >= maxCycles) {
+        const skipped = queries.slice(i);
+        logger.warn("Search phase cycle cap reached, returning remaining queries", {
+          completedQueries: cyclesCompleted,
+          remainingQueries: skipped.length,
+          maxCycles,
+        });
+        return { allLearnings, allSources, allImages, remainingQueries: skipped };
+      }
 
       // Check time budget before starting a new cycle
       const elapsed = Date.now() - phaseStart;
@@ -625,7 +759,15 @@ export class ResearchOrchestrator {
       allSources.push(...analyzeResult.sources);
       // Images come from the search provider, not from analysis — push directly
       allImages.push(...images);
+
+      cyclesCompleted++;
     }
+
+    logger.info("Search phase completed", {
+      completedQueries: cyclesCompleted,
+      remainingQueries: 0,
+      maxCycles,
+    });
 
     return { allLearnings, allSources, allImages, remainingQueries: [] };
   }

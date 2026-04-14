@@ -40,18 +40,15 @@ function PromptEditor({
 }) {
   const isOverride = override !== undefined && override !== "";
   const [value, setValue] = useState(override ?? config.getDefault());
-  const [dirty, setDirty] = useState(false);
 
   // Sync from external reset (e.g. "Reset all" button)
   useEffect(() => {
     if (!override) {
       setValue(config.getDefault());
-      setDirty(false);
     }
   }, [override, config]);
 
   const handleBlur = () => {
-    setDirty(false);
     const trimmed = value.trim();
     if (!trimmed) {
       onSave(config.key, undefined);
@@ -64,7 +61,6 @@ function PromptEditor({
   const handleReset = () => {
     const defaultText = config.getDefault();
     setValue(defaultText);
-    setDirty(false);
     onSave(config.key, undefined);
   };
 
@@ -90,7 +86,6 @@ function PromptEditor({
         value={value}
         onChange={(e) => {
           setValue(e.target.value);
-          setDirty(true);
         }}
         onBlur={handleBlur}
         rows={rows}

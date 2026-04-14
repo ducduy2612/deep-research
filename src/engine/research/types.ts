@@ -114,14 +114,20 @@ export interface ResearchConfig {
   autoReviewRounds?: number;
   /** Max SERP queries generated per planning step. */
   maxSearchQueries?: number;
+  /**
+   * Max search-analyze cycles per invocation. When reached, remaining
+   * queries are returned as remainingQueries so the client can reconnect.
+   * Defaults to 2 to stay within Vercel Hobby's 300s serverless limit.
+   */
+  maxCyclesPerInvocation?: number;
   /** Custom prompt templates. */
   promptOverrides?: PromptOverrides;
   /**
    * Maximum time budget in ms for the search+analyze phase.
    * When approaching this limit, remaining queries are skipped and
    * partial results are returned so the client can continue via
-   * requestMoreResearch(). Defaults to 780000 (13 minutes) to stay
-   * under Vercel Pro's 800s serverless function timeout.
+   * requestMoreResearch(). Defaults to 180000 (3 minutes) to stay
+   * under Vercel Hobby's 300s serverless function timeout.
    */
   timeBudgetMs?: number;
 }
@@ -311,6 +317,7 @@ export const researchConfigSchema = z.object({
   reportLength: z.enum(["brief", "standard", "comprehensive"]).optional(),
   autoReviewRounds: z.number().int().min(0).optional(),
   maxSearchQueries: z.number().int().min(1).optional(),
+  maxCyclesPerInvocation: z.number().int().min(1).optional(),
   promptOverrides: z
     .record(
       z.string().superRefine((key, ctx) => {
