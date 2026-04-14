@@ -84,7 +84,7 @@ Upstream: S01's autoReviewRoundsRemaining store field, review-result SSE event, 
   - Files: `src/stores/research-store.ts`, `src/stores/research-store-persist.ts`, `src/hooks/use-research.ts`, `src/stores/research-store-events.ts`
   - Verify: pnpm test --run && pnpm build
 
-- [ ] **T02: Add auto-review progress banner and abort button to ResearchActions + i18n keys** `est:45m`
+- [x] **T02: Add auto-review progress banner and abort button to ResearchActions + i18n keys** `est:45m`
   Render auto-review state in ResearchActions component. When autoReviewCurrentRound > 0 and state is 'reviewing', show a progress banner with round count and spinner. Hide More Research and Finalize buttons during auto-review. Show abort button that resets autoReviewRoundsRemaining to 0 and calls the abort handler. Add all i18n keys to both en.json and vi.json.
 
 ## Steps

@@ -271,7 +271,11 @@
     "finalizeFindings": "Finalize Findings",
     "pendingQueries": "{count} pending",
     "generateReport": "Generate Report",
-    "loading": "Researching..."
+    "loading": "Researching...",
+    "autoReviewProgress": "Auto-review round {current}/{total}...",
+    "autoReviewComplete": "Auto-review complete",
+    "autoReviewAbort": "Abort auto-review",
+    "autoReviewBannerTitle": "AUTO-REVIEW"
   },
   "Workflow": {
     "steps": {

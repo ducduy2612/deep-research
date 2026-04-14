@@ -25,6 +25,7 @@ interface ActiveResearchCenterProps {
   onApprovePlanAndResearch: () => void;
   onRequestMoreResearch: () => void;
   onFinalizeFindings: () => void;
+  onAbortAutoReview?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,6 +47,7 @@ export function ActiveResearchCenter({
   onApprovePlanAndResearch,
   onRequestMoreResearch,
   onFinalizeFindings,
+  onAbortAutoReview,
 }: ActiveResearchCenterProps) {
   const t = useTranslations("Research");
   const steps = useResearchStore((s) => s.steps);
@@ -159,6 +161,7 @@ export function ActiveResearchCenter({
               <ResearchActions
                 onRequestMoreResearch={onRequestMoreResearch}
                 onFinalizeFindings={onFinalizeFindings}
+                onAbortAutoReview={onAbortAutoReview}
               />
             )}
             onRenderReport={() => <ReportWorkspace />}

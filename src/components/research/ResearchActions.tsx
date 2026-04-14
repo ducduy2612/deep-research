@@ -9,6 +9,7 @@ import {
   Lightbulb,
   ArrowRight,
   CheckCircle2,
+  StopCircle,
 } from "lucide-react";
 
 import { cn } from "@/utils/style";
@@ -23,6 +24,7 @@ interface ResearchActionsProps {
   className?: string;
   onRequestMoreResearch: () => void;
   onFinalizeFindings: () => void;
+  onAbortAutoReview?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -33,6 +35,7 @@ export function ResearchActions({
   className,
   onRequestMoreResearch,
   onFinalizeFindings,
+  onAbortAutoReview,
 }: ResearchActionsProps) {
   const t = useTranslations("ResearchActions");
 
@@ -41,12 +44,15 @@ export function ResearchActions({
   const suggestion = useResearchStore((s) => s.suggestion);
   const setSuggestion = useResearchStore((s) => s.setSuggestion);
   const manualQueries = useResearchStore((s) => s.manualQueries);
+  const autoReviewCurrentRound = useResearchStore((s) => s.autoReviewCurrentRound);
+  const autoReviewTotalRounds = useResearchStore((s) => s.autoReviewTotalRounds);
 
   const isResearching =
     state === "searching" ||
     state === "analyzing" ||
     state === "reviewing";
   const isAwaitingReview = state === "awaiting_results_review";
+  const isAutoReviewing = state === "reviewing" && autoReviewCurrentRound > 0;
 
   const learningsCount = result?.learnings?.length ?? 0;
   const sourcesCount = result?.sources?.length ?? 0;
@@ -67,19 +73,86 @@ export function ResearchActions({
     onFinalizeFindings();
   }, [onFinalizeFindings]);
 
+  const handleAbortAutoReview = useCallback(() => {
+    onAbortAutoReview?.();
+  }, [onAbortAutoReview]);
+
   // Only show during research or awaiting review states
   if (!isResearching && !isAwaitingReview) {
     return null;
   }
 
-  // Loading state while still researching
-  if (isResearching && !isAwaitingReview) {
+  // Loading state while still researching (not auto-review — that shows banner)
+  if (isResearching && !isAwaitingReview && !isAutoReviewing) {
     return (
       <div className={cn("flex flex-col items-center justify-center py-12", className)}>
         <Loader2 className="h-5 w-5 animate-spin text-obsidian-primary-deep" />
         <p className="mt-3 font-mono text-xs text-obsidian-on-surface-var">
           {t("loading")}
         </p>
+      </div>
+    );
+  }
+
+  // Auto-review progress banner — shown when auto-review is active during reviewing state
+  if (isAutoReviewing) {
+    return (
+      <div className={cn("flex flex-col gap-6", className)}>
+        {/* Header */}
+        <div className="space-y-1">
+          <h3 className="text-lg font-semibold tracking-tight text-obsidian-on-surface">
+            {t("title")}
+          </h3>
+        </div>
+
+        {/* Stats row */}
+        <div className="flex items-center gap-4">
+          <StatBadge
+            icon={<BookOpen className="h-3.5 w-3.5" />}
+            label={t("learnings", { count: learningsCount })}
+            value={learningsCount}
+          />
+          <StatBadge
+            icon={<Globe className="h-3.5 w-3.5" />}
+            label={t("sources", { count: sourcesCount })}
+            value={sourcesCount}
+          />
+        </div>
+
+        {/* Auto-review progress banner */}
+        <div className="rounded-lg bg-obsidian-surface-sheet p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Lightbulb className="h-3.5 w-3.5 text-obsidian-on-surface-var" />
+            <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-obsidian-on-surface-var">
+              {t("autoReviewBannerTitle")}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-4 w-4 animate-spin text-obsidian-primary-deep" />
+            <span className="text-sm text-obsidian-on-surface">
+              {t("autoReviewProgress", {
+                current: autoReviewCurrentRound,
+                total: autoReviewTotalRounds,
+              })}
+            </span>
+          </div>
+          {/* Abort button */}
+          {onAbortAutoReview && (
+            <button
+              type="button"
+              onClick={handleAbortAutoReview}
+              className={cn(
+                "mt-4 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
+                "bg-obsidian-surface-raised text-obsidian-on-surface-var",
+                "hover:bg-obsidian-surface-float hover:text-obsidian-on-surface",
+                "active:scale-[0.98]",
+              )}
+            >
+              <StopCircle className="h-3.5 w-3.5" />
+              <span>{t("autoReviewAbort")}</span>
+            </button>
+          )}
+        </div>
       </div>
     );
   }

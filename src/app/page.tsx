@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { toast } from "sonner";
 
 import { Header } from "@/components/Header";
@@ -34,7 +34,17 @@ export default function Home() {
     requestMoreResearch,
     finalizeFindings,
     reset,
+    abort,
   } = useResearch();
+
+  const handleAbortAutoReview = useCallback(() => {
+    useResearchStore.setState({
+      autoReviewRoundsRemaining: 0,
+      autoReviewCurrentRound: 0,
+      autoReviewTotalRounds: 0,
+    });
+    abort();
+  }, [abort]);
 
   // Show error toast when connection errors occur
   useEffect(() => {
@@ -84,6 +94,7 @@ export default function Home() {
             onApprovePlanAndResearch={approvePlanAndResearch}
             onRequestMoreResearch={requestMoreResearch}
             onFinalizeFindings={finalizeFindings}
+            onAbortAutoReview={handleAbortAutoReview}
           />
         )}
 

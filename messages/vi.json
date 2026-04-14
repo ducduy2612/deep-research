@@ -269,7 +269,11 @@
     "finalizeFindings": "Chốt phát hiện",
     "pendingQueries": "{count} đang chờ",
     "generateReport": "Tạo báo cáo",
-    "loading": "Đang nghiên cứu..."
+    "loading": "Đang nghiên cứu...",
+    "autoReviewProgress": "Tự động xem xét vòng {current}/{total}...",
+    "autoReviewComplete": "Tự động xem xét hoàn tất",
+    "autoReviewAbort": "Hủy tự động xem xét",
+    "autoReviewBannerTitle": "TỰ ĐỘNG XEM XÉT"
   },
   "Workflow": {
     "steps": {
