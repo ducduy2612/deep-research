@@ -107,6 +107,112 @@ describe("useResearch auto-review round tracking", () => {
     useSettingsStore.setState({ autoReviewRounds: 0 });
   });
 
+  it("research-result with remainingQueries keeps state as researching (blocks auto-review)", async () => {
+    const { useSettingsStore } = await import("@/stores/settings-store");
+    useSettingsStore.setState({ autoReviewRounds: 2 });
+
+    renderHook(() => useResearch());
+
+    // Simulate research hitting cycle cap with remaining queries
+    // The store handler keeps state="researching" when remainingQueries exist
+    useResearchStore.setState({
+      topic: "test",
+      plan: "# Plan",
+      state: "researching",
+      autoReviewRoundsRemaining: 2,
+      pendingRemainingQueries: [{ query: "remaining query", scope: "general" }],
+      result: {
+        title: "",
+        report: "",
+        learnings: ["L1"],
+        sources: [],
+        images: [],
+      },
+    });
+
+    // Auto-reconnect will consume pendingRemainingQueries
+    // Return research-result with NO remaining → transitions to awaiting_results_review
+    // Then auto-review fires. We just verify the FIRST call is research (not review).
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createMockStream([
+        sse("research-result", { learnings: ["L2"], sources: [], images: [] }),
+        sse("done", {}),
+      ]),
+    });
+
+    await act(async () => {
+      await wait(200);
+    });
+
+    // The first call must be research (auto-reconnect), not review (auto-review)
+    const firstBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(firstBody.phase).toBe("research");
+    useSettingsStore.setState({ autoReviewRounds: 0 });
+  });
+
+  it("auto-review fires only after all remainingQueries are consumed", async () => {
+    const { useSettingsStore } = await import("@/stores/settings-store");
+    useSettingsStore.setState({ autoReviewRounds: 2 });
+
+    renderHook(() => useResearch());
+
+    // Start with pending remaining queries — state stays "researching"
+    useResearchStore.setState({
+      topic: "test",
+      plan: "# Plan",
+      state: "researching",
+      autoReviewRoundsRemaining: 2,
+      pendingRemainingQueries: [{ query: "remaining query", scope: "general" }],
+      result: {
+        title: "",
+        report: "",
+        learnings: ["L1"],
+        sources: [],
+        images: [],
+      },
+    });
+
+    // All fetch calls return SSE streams
+    mockFetch.mockResolvedValue({
+      ok: true,
+      body: createMockStream([sse("review-result", {
+        learnings: ["L-reviewed"],
+        sources: [],
+        images: [],
+      }), sse("done", {})]),
+    });
+
+    // First call: auto-reconnect (phase: research) returns no remaining
+    // Need to override for first call only
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      body: createMockStream([
+        sse("research-result", {
+          learnings: ["L2"],
+          sources: [],
+          images: [],
+          // No remainingQueries → state transitions to awaiting_results_review
+        }),
+        sse("done", {}),
+      ]),
+    });
+
+    await act(async () => {
+      await wait(600);
+    });
+
+    // Should have 3 calls: research (auto-reconnect), review (round 1), review (round 2)
+    const phases = mockFetch.mock.calls.map(
+      (call: unknown[]) => JSON.parse((call as RequestInit[])[1].body as string).phase
+    );
+    expect(phases[0]).toBe("research");
+    expect(phases[1]).toBe("review");
+    expect(phases[2]).toBe("review");
+    expect(phases.length).toBe(3);
+    useSettingsStore.setState({ autoReviewRounds: 0 });
+  });
+
   it("abort during auto-review sets state to aborted (store-level abort)", async () => {
     const { result } = renderHook(() => useResearch());
 

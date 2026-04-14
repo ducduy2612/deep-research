@@ -352,8 +352,13 @@ export function createEventHandler(set: StoreSet) {
           const mergedSources = [...(prevResult?.sources ?? []), ...d.sources];
           const mergedImages = [...(prevResult?.images ?? []), ...d.images];
 
+          const hasRemaining = d.remainingQueries && d.remainingQueries.length > 0;
+
           return {
-            state: "awaiting_results_review" as ResearchState,
+            // Stay in "researching" while auto-reconnect is pending — only
+            // transition to awaiting_results_review when all queries are done.
+            // This prevents the auto-review trigger from firing prematurely.
+            state: (hasRemaining ? "researching" : "awaiting_results_review") as ResearchState,
             result: {
               title: prevResult?.title ?? "",
               report: prevResult?.report ?? "",
@@ -364,8 +369,8 @@ export function createEventHandler(set: StoreSet) {
             pendingRemainingQueries: d.remainingQueries ?? [],
             activityLog: [
               ...s.activityLog,
-              ...(d.remainingQueries && d.remainingQueries.length > 0
-                ? [makeActivity("warn", `Time budget reached — ${d.remainingQueries.length} queries pending, auto-continuing...`)]
+              ...(hasRemaining
+                ? [makeActivity("warn", `Time budget reached — ${d.remainingQueries!.length} queries pending, auto-continuing...`)]
                 : [makeActivity("info", "Research phase complete — awaiting review")]),
             ],
           };

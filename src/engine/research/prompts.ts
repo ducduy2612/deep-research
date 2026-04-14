@@ -270,7 +270,7 @@ You MUST respond in **JSON** matching this format:
 ]
 \`\`\`
 
-Return an array of objects (or an empty array if no further research is needed). Do not include any other text outside the JSON array.`;
+Return an array of objects (or an empty array if no further research is needed). Limit to at most 2 queries. Do not include any other text outside the JSON array.`;
 }
 
 // ---------------------------------------------------------------------------

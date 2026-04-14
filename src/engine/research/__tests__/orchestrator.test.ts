@@ -693,6 +693,32 @@ describe("ResearchOrchestrator", () => {
       expect(result).toBeNull();
       expect(orchestrator.getState()).toBe("aborted");
     });
+    it("truncates AI-generated review queries to 2 even when AI returns more", async () => {
+      const searchProvider = createMockSearchProvider();
+      const config = createTestConfig();
+      const orchestrator = new ResearchOrchestrator(config, searchProvider);
+
+      // AI ignores prompt and returns 4 queries
+      mockContainer.generateFn.mockResolvedValueOnce([
+        { query: "follow-up 1", researchGoal: "goal 1" },
+        { query: "follow-up 2", researchGoal: "goal 2" },
+        { query: "follow-up 3", researchGoal: "goal 3" },
+        { query: "follow-up 4", researchGoal: "goal 4" },
+      ]);
+
+      const result = await orchestrator.reviewOnly(
+        "plan text",
+        ["learning 1"],
+        [],
+        [],
+      );
+
+      expect(result).not.toBeNull();
+      // Only 2 search+analyze cycles should execute (truncated from 4)
+      expect(searchProvider.search).toHaveBeenCalledTimes(2);
+      // 1 original learning + 2 new learnings
+      expect(result!.learnings.length).toBe(3);
+    });
   });
 
   describe("reportFromLearnings()", () => {

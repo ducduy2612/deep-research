@@ -290,6 +290,9 @@ export class ResearchOrchestrator {
         abortSignal: this.abortController?.signal,
       });
 
+      // Cap at 2 queries to keep review SSE under ~160s (2 × ~80s per cycle)
+      followUpQueries.splice(2);
+
       if (this.isAborted()) return null;
 
       const reviewDuration = Date.now() - reviewStart;
