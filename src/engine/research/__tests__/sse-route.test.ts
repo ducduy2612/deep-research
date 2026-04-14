@@ -173,6 +173,16 @@ describe("SSE Research Stream Route", () => {
       expect(evts[0].event).toBe("error");
       expect(evts[0].data.code).toBe("VALIDATION_FAILED");
     });
+
+    it("returns 400 for unknown phase", async () => {
+      const res = await POST(
+        createRequest({ phase: "full", topic: "test topic" }),
+      );
+      expect(res.status).toBe(400);
+      const evts = await collectSSEEvents(res);
+      expect(evts[0].event).toBe("error");
+      expect(evts[0].data.code).toBe("VALIDATION_FAILED");
+    });
   });
 
   // =========================================================================

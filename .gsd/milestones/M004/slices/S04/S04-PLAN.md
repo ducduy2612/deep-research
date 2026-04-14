@@ -58,7 +58,7 @@ Nothing — this is a verification-only slice. All integration was completed in 
   - Files: `vitest.config.ts`, `tsconfig.json`
   - Verify: pnpm test --run && pnpm build
 
-- [ ] **T02: Dead code sweep and gap test for unknown phase rejection** `est:20m`
+- [x] **T02: Dead code sweep and gap test for unknown phase rejection** `est:20m`
   Run grep sweeps to confirm zero residual references to dead code (start(), StartOptions, phase=full, fullSchema, handleFullPhase) in production code. Then add an explicit test that sending an unknown phase like `phase: "full"` to the SSE route returns 400 — currently this behavior is only implicitly covered by Zod's discriminated union rejecting unknown literals.
 
 ## Steps
