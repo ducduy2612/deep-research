@@ -64,6 +64,10 @@ export interface ResearchStoreState {
   readonly pendingRemainingQueries: readonly SearchTask[];
   /** Tracks remaining auto-review rounds for the current research session. Decremented per review SSE connection. */
   readonly autoReviewRoundsRemaining: number;
+  /** Current auto-review round (1-based). 0 when auto-review is not active. */
+  readonly autoReviewCurrentRound: number;
+  /** Total number of auto-review rounds configured. 0 when auto-review is not active. */
+  readonly autoReviewTotalRounds: number;
   // Immutable phase checkpoints
   readonly checkpoints: ResearchCheckpoints;
   // Persistence
@@ -119,6 +123,8 @@ const INITIAL_STATE: ResearchStoreState = {
   immediateRetryQuery: null,
   pendingRemainingQueries: [],
   autoReviewRoundsRemaining: 0,
+  autoReviewCurrentRound: 0,
+  autoReviewTotalRounds: 0,
   reportFeedback: "",
   checkpoints: {},
   connectionInterrupted: false,
@@ -347,6 +353,8 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
       checkpoints: saved.checkpoints ?? {},
       pendingRemainingQueries: saved.pendingRemainingQueries ?? [],
       autoReviewRoundsRemaining: saved.autoReviewRoundsRemaining ?? 0,
+      autoReviewCurrentRound: saved.autoReviewCurrentRound ?? 0,
+      autoReviewTotalRounds: saved.autoReviewTotalRounds ?? 0,
       connectionInterrupted,
     });
   },
@@ -386,6 +394,8 @@ useResearchStore.subscribe((state) => {
     checkpoints: state.checkpoints,
     pendingRemainingQueries: state.pendingRemainingQueries,
     autoReviewRoundsRemaining: state.autoReviewRoundsRemaining,
+    autoReviewCurrentRound: state.autoReviewCurrentRound,
+    autoReviewTotalRounds: state.autoReviewTotalRounds,
   };
 
   storage.set(STORAGE_KEY, persistData as never, persistedStateSchema).catch((err) => {

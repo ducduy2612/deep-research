@@ -409,3 +409,31 @@ The research store's persistence schemas (Zod schemas for saved state) were extr
 - `searchResultToKnowledgeItem()` maps SearchResult to KnowledgeItem with `type: "file"` — no "research" type exists in the KnowledgeItem union
 - Content field combines learning + formatted source list. `nanoid()` generates the ID, matching the pattern from FileUpload and UrlCrawler.
 - Single chunk (`chunkCount: 1`) since the content is typically under 10K characters — below the chunking threshold
+
+## M004 — Eliminate Vercel Timeout Dependency
+
+### S01 — Engine + API Timeout Overhaul
+
+#### Cycle cap replaces time budget as primary research batching control
+- `maxCyclesPerInvocation` (default 2) stops research after N search-analyze cycles per SSE connection, returning `remainingQueries` for client reconnect
+- `timeBudgetMs` reduced from 780s to 180s as a safety net — the cycle cap is the primary mechanism, time budget is backup
+- Each cycle is ~80s (search + analyze), so 2 cycles ≈ 160s, well within Vercel Hobby's 300s limit
+
+#### reviewOnly() as standalone orchestrator phase (not a sub-step)
+- `reviewOnly()` is a first-class orchestrator method that generates follow-up queries from plan + learnings + optional suggestion, then executes 1 search+analyze cycle per query
+- It does NOT call runReviewLoop() — review is now a single SSE invocation, not a recursive loop
+- The SSE route emits `review-result` event type (distinct from `result`) so the store can merge data correctly
+
+#### Removing start() and the full pipeline eliminated dead state transitions
+- The `start()` convenience method, `runPlan()`, and `runReviewLoop()` private methods were all removed — they were only called from `start()`
+- Phase type changed from including `"full"` to including `"review"` — the default switch case now returns an explicit error
+- `requestMoreResearch()` sends `phase: 'review'` with structured learnings/sources/images/suggestion instead of embedding into the plan string
+
+#### Auto-review trigger via useEffect watching store state
+- Auto-review uses a useEffect watching `researchState === 'awaiting_results_review'` AND `autoReviewRoundsRemaining > 0`
+- Counter is initialized from `settings.autoReviewRounds` when research starts, decremented each round
+- `autoReviewRoundsRemaining` is persisted in the store (survives page refresh during active review)
+
+#### Test count progression: M003 → M004
+- 498 → 796 tests across 40 files after S01 completion
+- Major additions: cycle cap tests (3), reviewOnly tests (7), review phase route tests (18), store auto-review tests (8), converted ~17 start() tests to phase methods

@@ -61,6 +61,9 @@ interface HandlerState {
   readonly plan: string;
   readonly connectionInterrupted: boolean;
   readonly checkpoints: ResearchCheckpoints;
+  readonly autoReviewRoundsRemaining: number;
+  readonly autoReviewCurrentRound: number;
+  readonly autoReviewTotalRounds: number;
 }
 
 type StoreSet = (
@@ -383,6 +386,12 @@ export function createEventHandler(set: StoreSet) {
           const mergedSources = [...(prevResult?.sources ?? []), ...d.sources];
           const mergedImages = [...(prevResult?.images ?? []), ...d.images];
 
+          // When all auto-review rounds are consumed, reset round progress fields
+          const roundReset =
+            s.autoReviewRoundsRemaining <= 0
+              ? { autoReviewCurrentRound: 0, autoReviewTotalRounds: 0 }
+              : {};
+
           return {
             state: "awaiting_results_review" as ResearchState,
             result: {
@@ -396,6 +405,7 @@ export function createEventHandler(set: StoreSet) {
               ...s.activityLog,
               makeActivity("success", `Review complete — ${d.learnings.length} new learnings, ${d.sources.length} sources`),
             ],
+            ...roundReset,
           };
         });
         break;

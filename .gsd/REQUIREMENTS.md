@@ -142,15 +142,6 @@ This file is the explicit capability and coverage contract for the project.
 - Supporting slices: none
 - Validation: unmapped
 
-### R063 — The research phase (search+analyze) runs at most 2 cycles per SSE connection invocation, then returns remainingQueries. Client auto-reconnects for the next batch. timeBudgetMs defaults to 180s as a safety net.
-- Class: core-capability
-- Status: active
-- Description: The research phase (search+analyze) runs at most 2 cycles per SSE connection invocation, then returns remainingQueries. Client auto-reconnects for the next batch. timeBudgetMs defaults to 180s as a safety net.
-- Why it matters: Each SSE connection must finish well within Vercel Hobby's 300s serverless function limit. Without batching, research can loop for 780s — unrecoverable on Hobby.
-- Source: user
-- Primary owning slice: M004/S01
-- Validation: mapped
-
 ### R064 — The full pipeline (phase=full, single SSE connection running clarify→plan→research→report) is completely removed from the API route, hook, and types. All entry points use the multi-phase flow.
 - Class: core-capability
 - Status: active
@@ -196,6 +187,17 @@ This file is the explicit capability and coverage contract for the project.
 - Primary owning slice: M004/S01
 - Validation: mapped
 
+## Validated
+
+### R063 — The research phase (search+analyze) runs at most 2 cycles per SSE connection invocation, then returns remainingQueries. Client auto-reconnects for the next batch. timeBudgetMs defaults to 180s as a safety net.
+- Class: core-capability
+- Status: validated
+- Description: The research phase (search+analyze) runs at most 2 cycles per SSE connection invocation, then returns remainingQueries. Client auto-reconnects for the next batch. timeBudgetMs defaults to 180s as a safety net.
+- Why it matters: Each SSE connection must finish well within Vercel Hobby's 300s serverless function limit. Without batching, research can loop for 780s — unrecoverable on Hobby.
+- Source: user
+- Primary owning slice: M004/S01
+- Validation: Validated by T01 cycle cap tests (3 tests: cap hit returns remaining, default cap is 2, under-cap executes all), T04 full test suite (796 pass). timeBudgetMs default confirmed at 180s in orchestrator.ts line 533. maxCyclesPerInvocation default confirmed at 2 in types.ts.
+
 ## Traceability
 
 | ID | Class | Status | Primary owner | Supporting | Proof |
@@ -213,7 +215,7 @@ This file is the explicit capability and coverage contract for the project.
 | R060 | core-capability | active | M003/S05 | M003/S03 | unmapped |
 | R061 | integration | active | M003/S05 | M003/S03 | unmapped |
 | R062 | core-capability | active | M003/S02 | none | unmapped |
-| R063 | core-capability | active | M004/S01 | none | mapped |
+| R063 | core-capability | validated | M004/S01 | none | Validated by T01 cycle cap tests (3 tests: cap hit returns remaining, default cap is 2, under-cap executes all), T04 full test suite (796 pass). timeBudgetMs default confirmed at 180s in orchestrator.ts line 533. maxCyclesPerInvocation default confirmed at 2 in types.ts. |
 | R064 | core-capability | active | M004/S01 | none | mapped |
 | R065 | primary-user-loop | active | M004/S02 | none | mapped |
 | R066 | primary-user-loop | active | M004/S02 | none | mapped |
@@ -222,7 +224,7 @@ This file is the explicit capability and coverage contract for the project.
 
 ## Coverage Summary
 
-- Active requirements: 19
-- Mapped to slices: 19
-- Validated: 0
+- Active requirements: 18
+- Mapped to slices: 18
+- Validated: 1 (R063)
 - Unmapped active requirements: 0

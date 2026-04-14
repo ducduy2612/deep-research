@@ -579,6 +579,8 @@ export function useResearch(): UseResearchReturn {
     const currentRound = settings.autoReviewRounds - autoReviewRoundsRemaining + 1;
     useResearchStore.setState({
       autoReviewRoundsRemaining: autoReviewRoundsRemaining - 1,
+      autoReviewCurrentRound: currentRound,
+      autoReviewTotalRounds: settings.autoReviewRounds,
     });
 
     console.info("[useResearch] Auto-review triggered", {
