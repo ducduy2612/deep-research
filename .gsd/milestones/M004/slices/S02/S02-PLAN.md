@@ -151,7 +151,7 @@ Upstream: S01's autoReviewRoundsRemaining store field, review-result SSE event, 
   - Files: `src/components/research/ResearchActions.tsx`, `src/components/research/ActiveResearchCenter.tsx`, `messages/en.json`, `messages/vi.json`
   - Verify: pnpm build && pnpm lint
 
-- [ ] **T03: Add unit tests for auto-review round tracking and ResearchActions banner** `est:1h`
+- [x] **T03: Add unit tests for auto-review round tracking and ResearchActions banner** `est:1h`
   Write tests covering: (1) store autoReviewCurrentRound/TotalRounds persistence and hydration, (2) auto-review trigger writing round data, (3) ResearchActions rendering during auto-review vs normal review, (4) abort resetting round fields.
 
 ## Steps
