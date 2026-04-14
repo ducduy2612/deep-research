@@ -192,7 +192,7 @@ describe("ResearchOrchestrator", () => {
   });
 
   // -------------------------------------------------------------------------
-  // Abort (using clarifyOnly since start() is removed)
+  // Abort
   // -------------------------------------------------------------------------
 
   it("transitions to aborted state on abort call during clarifyOnly", async () => {
@@ -783,7 +783,7 @@ describe("ResearchOrchestrator", () => {
   // =========================================================================
 
   describe("phase chaining", () => {
-    it("produces same final state as start() when chained manually", async () => {
+    it("produces consistent final state when chained manually", async () => {
       const searchProvider = createMockSearchProvider({
         sources: [{ url: "https://example.com", title: "Example" }],
         images: [],

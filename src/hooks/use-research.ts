@@ -34,7 +34,7 @@ async function getKS() {
 }
 
 // Types
-export interface StartOptions {
+export interface ClarifyOptions {
   topic: string;
   reportStyle?: ReportStyle;
   reportLength?: ReportLength;
@@ -43,7 +43,7 @@ export interface StartOptions {
 
 export interface UseResearchReturn {
   // Phase-specific actions
-  clarify: (options: StartOptions) => void;
+  clarify: (options: ClarifyOptions) => void;
   retryClarify: () => void;
   submitFeedbackAndPlan: () => void;
   approvePlanAndResearch: () => void;
@@ -278,7 +278,7 @@ export function useResearch(): UseResearchReturn {
 
   /** Phase 1: Clarify — generate clarification questions for the topic. */
   const clarify = useCallback(
-    async (options: StartOptions) => {
+    async (options: ClarifyOptions) => {
       // Reset store for new research session
       useResearchStore.getState().reset();
       useResearchStore.getState().setTopic(options.topic);

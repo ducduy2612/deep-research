@@ -115,7 +115,7 @@ export default function Home() {
 // Hub view — Topic input + report configuration
 // ---------------------------------------------------------------------------
 
-function HubView({ onStart }: { onStart: (options: import("@/hooks/use-research").StartOptions) => void }) {
+function HubView({ onStart }: { onStart: (options: import("@/hooks/use-research").ClarifyOptions) => void }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-12">
       <TopicInput onStart={onStart} />

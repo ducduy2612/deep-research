@@ -142,33 +142,6 @@ This file is the explicit capability and coverage contract for the project.
 - Supporting slices: none
 - Validation: unmapped
 
-### R064 — The full pipeline (phase=full, single SSE connection running clarify→plan→research→report) is completely removed from the API route, hook, and types. All entry points use the multi-phase flow.
-- Class: core-capability
-- Status: active
-- Description: The full pipeline (phase=full, single SSE connection running clarify→plan→research→report) is completely removed from the API route, hook, and types. All entry points use the multi-phase flow.
-- Why it matters: The full pipeline is architecturally incompatible with serverless timeout constraints. Removing it eliminates dead code and forces the correct multi-phase pattern.
-- Source: user
-- Primary owning slice: M004/S01
-- Validation: mapped
-
-### R065 — Auto-review and manual "More Research" use the same phase:review SSE endpoint. Both send existing learnings to the AI so it generates targeted follow-up queries. AI generates at most 1 follow-up query per review round. Auto-review triggers N rounds after research completes (configurable). Manual review includes user suggestion/manual queries as direction.
-- Class: primary-user-loop
-- Status: active
-- Description: Auto-review and manual "More Research" use the same phase:review SSE endpoint. Both send existing learnings to the AI so it generates targeted follow-up queries. AI generates at most 1 follow-up query per review round. Auto-review triggers N rounds after research completes (configurable). Manual review includes user suggestion/manual queries as direction.
-- Why it matters: Eliminates blind duplication where "More Research" regenerated queries without seeing what was already found. Unified phase simplifies the API surface and gives both paths the same smart behavior.
-- Source: user
-- Primary owning slice: M004/S02
-- Validation: mapped
-
-### R066 — When auto-review triggers after research completes, the UI shows a visible state ("Auto-review round 1/N...") with a progress indicator. User can abort at any time. Auto-review does not happen silently.
-- Class: primary-user-loop
-- Status: active
-- Description: When auto-review triggers after research completes, the UI shows a visible state ("Auto-review round 1/N...") with a progress indicator. User can abort at any time. Auto-review does not happen silently.
-- Why it matters: Users need to know what the system is doing and maintain control. Silent auto-review would feel like the app is stuck or doing something unexpected.
-- Source: user
-- Primary owning slice: M004/S02
-- Validation: mapped
-
 ### R067 — The review phase sends accumulated learnings, sources, and images to the AI so it can identify gaps rather than re-searching what was already found. This fixes the duplication problem in the current "More Research" implementation.
 - Class: core-capability
 - Status: active
@@ -176,15 +149,6 @@ This file is the explicit capability and coverage contract for the project.
 - Why it matters: Without learnings context, the AI regenerates SERP queries from the plan alone, duplicating previous search work. Sending learnings produces targeted, gap-filling queries.
 - Source: user
 - Primary owning slice: M004/S02
-- Validation: mapped
-
-### R068 — Every SSE connection (research, review, clarify, plan, report) must complete within 300s, the Vercel Hobby serverless function hard limit. Research batches at ~160s, review at ~70s, all others well under 60s.
-- Class: constraint
-- Status: active
-- Description: Every SSE connection (research, review, clarify, plan, report) must complete within 300s, the Vercel Hobby serverless function hard limit. Research batches at ~160s, review at ~70s, all others well under 60s.
-- Why it matters: This is the hard constraint driving the entire milestone. Hitting the 300s wall causes hard-kill with no graceful exit, losing partial work.
-- Source: user
-- Primary owning slice: M004/S01
 - Validation: mapped
 
 ## Validated
@@ -197,6 +161,42 @@ This file is the explicit capability and coverage contract for the project.
 - Source: user
 - Primary owning slice: M004/S01
 - Validation: Validated by T01 cycle cap tests (3 tests: cap hit returns remaining, default cap is 2, under-cap executes all), T04 full test suite (796 pass). timeBudgetMs default confirmed at 180s in orchestrator.ts line 533. maxCyclesPerInvocation default confirmed at 2 in types.ts.
+
+### R064 — The full pipeline (phase=full, single SSE connection running clarify→plan→research→report) is completely removed from the API route, hook, and types. All entry points use the multi-phase flow.
+- Class: core-capability
+- Status: validated
+- Description: The full pipeline (phase=full, single SSE connection running clarify→plan→research→report) is completely removed from the API route, hook, and types. All entry points use the multi-phase flow.
+- Why it matters: The full pipeline is architecturally incompatible with serverless timeout constraints. Removing it eliminates dead code and forces the correct multi-phase pattern.
+- Source: user
+- Primary owning slice: M004/S01
+- Validation: Validated by T02 (fullSchema/handleFullPhase/Phase 'full' all removed from route.ts, reviewSchema/handleReviewPhase added), T04 (start() removed from orchestrator, runPlan/runReviewLoop removed, all tests converted to phase methods). grep confirms zero references to start(), full phase, or fullSchema in source files.
+
+### R065 — Auto-review and manual "More Research" use the same phase:review SSE endpoint. Both send existing learnings to the AI so it generates targeted follow-up queries. AI generates at most 1 follow-up query per review round. Auto-review triggers N rounds after research completes (configurable). Manual review includes user suggestion/manual queries as direction.
+- Class: primary-user-loop
+- Status: validated
+- Description: Auto-review and manual "More Research" use the same phase:review SSE endpoint. Both send existing learnings to the AI so it generates targeted follow-up queries. AI generates at most 1 follow-up query per review round. Auto-review triggers N rounds after research completes (configurable). Manual review includes user suggestion/manual queries as direction.
+- Why it matters: Eliminates blind duplication where "More Research" regenerated queries without seeing what was already found. Unified phase simplifies the API surface and gives both paths the same smart behavior.
+- Source: user
+- Primary owning slice: M004/S02
+- Validation: S02 implemented auto-review using the same phase:review SSE endpoint as manual "More Research". The auto-review trigger in use-research.ts fires after research completes with state=awaiting_results_review and autoReviewRoundsRemaining > 0. Both paths go through reviewOnly() which sends accumulated learnings. Verified by store auto-review trigger tests and build/tests passing (823 tests).
+
+### R066 — When auto-review triggers after research completes, the UI shows a visible state ("Auto-review round 1/N...") with a progress indicator. User can abort at any time. Auto-review does not happen silently.
+- Class: primary-user-loop
+- Status: validated
+- Description: When auto-review triggers after research completes, the UI shows a visible state ("Auto-review round 1/N...") with a progress indicator. User can abort at any time. Auto-review does not happen silently.
+- Why it matters: Users need to know what the system is doing and maintain control. Silent auto-review would feel like the app is stuck or doing something unexpected.
+- Source: user
+- Primary owning slice: M004/S02
+- Validation: S02 added autoReviewCurrentRound/TotalRounds to store, rendered in ResearchActions as "Auto-review round N/M..." banner with Loader2 spinner during auto-review (state=reviewing, autoReviewCurrentRound > 0). Abort button resets autoReviewRoundsRemaining to 0 and calls SSE abort. Verified by ResearchActions.test.tsx (12 tests for banner visibility, button hiding, abort click) and build passing.
+
+### R068 — Every SSE connection (research, review, clarify, plan, report) must complete within 300s, the Vercel Hobby serverless function hard limit. Research batches at ~160s, review at ~70s, all others well under 60s.
+- Class: constraint
+- Status: validated
+- Description: Every SSE connection (research, review, clarify, plan, report) must complete within 300s, the Vercel Hobby serverless function hard limit. Research batches at ~160s, review at ~70s, all others well under 60s.
+- Why it matters: This is the hard constraint driving the entire milestone. Hitting the 300s wall causes hard-kill with no graceful exit, losing partial work.
+- Source: user
+- Primary owning slice: M004/S01
+- Validation: Validated by T01 (timeBudgetMs=180s default), T02 (maxDuration=300 in route.ts line 19), T01 (cycle cap 2×80s≈160s per connection), T02 (review phase ~70s). All SSE connections now respect 300s limit through cycle cap + time budget + maxDuration triple constraint.
 
 ## Traceability
 
@@ -216,15 +216,15 @@ This file is the explicit capability and coverage contract for the project.
 | R061 | integration | active | M003/S05 | M003/S03 | unmapped |
 | R062 | core-capability | active | M003/S02 | none | unmapped |
 | R063 | core-capability | validated | M004/S01 | none | Validated by T01 cycle cap tests (3 tests: cap hit returns remaining, default cap is 2, under-cap executes all), T04 full test suite (796 pass). timeBudgetMs default confirmed at 180s in orchestrator.ts line 533. maxCyclesPerInvocation default confirmed at 2 in types.ts. |
-| R064 | core-capability | active | M004/S01 | none | mapped |
-| R065 | primary-user-loop | active | M004/S02 | none | mapped |
-| R066 | primary-user-loop | active | M004/S02 | none | mapped |
+| R064 | core-capability | validated | M004/S01 | none | Validated by T02 (fullSchema/handleFullPhase/Phase 'full' all removed from route.ts, reviewSchema/handleReviewPhase added), T04 (start() removed from orchestrator, runPlan/runReviewLoop removed, all tests converted to phase methods). grep confirms zero references to start(), full phase, or fullSchema in source files. |
+| R065 | primary-user-loop | validated | M004/S02 | none | S02 implemented auto-review using the same phase:review SSE endpoint as manual "More Research". The auto-review trigger in use-research.ts fires after research completes with state=awaiting_results_review and autoReviewRoundsRemaining > 0. Both paths go through reviewOnly() which sends accumulated learnings. Verified by store auto-review trigger tests and build/tests passing (823 tests). |
+| R066 | primary-user-loop | validated | M004/S02 | none | S02 added autoReviewCurrentRound/TotalRounds to store, rendered in ResearchActions as "Auto-review round N/M..." banner with Loader2 spinner during auto-review (state=reviewing, autoReviewCurrentRound > 0). Abort button resets autoReviewRoundsRemaining to 0 and calls SSE abort. Verified by ResearchActions.test.tsx (12 tests for banner visibility, button hiding, abort click) and build passing. |
 | R067 | core-capability | active | M004/S02 | none | mapped |
-| R068 | constraint | active | M004/S01 | none | mapped |
+| R068 | constraint | validated | M004/S01 | none | Validated by T01 (timeBudgetMs=180s default), T02 (maxDuration=300 in route.ts line 19), T01 (cycle cap 2×80s≈160s per connection), T02 (review phase ~70s). All SSE connections now respect 300s limit through cycle cap + time budget + maxDuration triple constraint. |
 
 ## Coverage Summary
 
-- Active requirements: 18
-- Mapped to slices: 18
-- Validated: 1 (R063)
+- Active requirements: 14
+- Mapped to slices: 14
+- Validated: 5 (R063, R064, R065, R066, R068)
 - Unmapped active requirements: 0

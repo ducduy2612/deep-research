@@ -437,3 +437,27 @@ The research store's persistence schemas (Zod schemas for saved state) were extr
 #### Test count progression: M003 → M004
 - 498 → 796 tests across 40 files after S01 completion
 - Major additions: cycle cap tests (3), reviewOnly tests (7), review phase route tests (18), store auto-review tests (8), converted ~17 start() tests to phase methods
+
+### S02 — Hook + Store Review Integration
+
+#### Auto-review round tracking as persisted store fields
+- `autoReviewCurrentRound` and `autoReviewTotalRounds` are separate from `autoReviewRoundsRemaining` — they track progress (1/N) while remaining counts down
+- Round fields are set in the trigger useEffect (same setState call that decrements remaining), reset in the review-result handler when remaining hits 0
+- Both persisted in localforage with Zod validation (survive page refresh during active auto-review)
+
+#### Prop threading for abort callbacks through component hierarchy
+- `onAbortAutoReview` is created in page.tsx (which has access to useResearch's abort) and threaded through ActiveResearch → ActiveResearchCenter → ResearchActions
+- The handler combines store state reset (autoReviewRoundsRemaining/CurrentRound/TotalRounds to 0) with SSE abort in one callback
+- ResearchActions is a leaf component that only receives callbacks, not the store directly — keeps concerns separated
+
+#### Test file extraction under ESLint 500-line limit
+- When the existing test file (use-research.test.ts) is at the 500-line ESLint limit, create a new companion file (use-research-auto-review.test.ts) for new feature tests
+- This avoids ESLint failures while keeping tests discoverable by their feature name
+
+#### fireEvent over @testing-library/user-event
+- The project does not install @testing-library/user-event — use fireEvent from @testing-library/react for component click/change events
+- fireEvent works for most cases but doesn't simulate full user interaction (focus, blur, etc.) — plan accordingly
+
+#### Test count: M004 S01 → S02
+- 796 → 823 tests across 40 → 43 test files after S02 completion
+- New files: research-store-auto-review.test.ts (12), ResearchActions.test.tsx (12), use-research-auto-review.test.ts (3)

@@ -124,7 +124,7 @@ export function createEventHandler(set: StoreSet) {
     switch (eventType) {
       case "start": {
         const d = data as { topic?: string; phase?: string };
-        if (!d.phase || d.phase === "full" || d.phase === "clarify") {
+        if (!d.phase || d.phase === "clarify") {
           set({
             topic: d.topic ?? "",
             state: "clarifying" as ResearchState,

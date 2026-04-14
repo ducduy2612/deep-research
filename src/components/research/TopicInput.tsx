@@ -13,7 +13,7 @@ import { cn } from "@/utils/style";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useResearchStore } from "@/stores/research-store";
 import type { ReportStyle, ReportLength } from "@/engine/research/types";
-import type { StartOptions } from "@/hooks/use-research";
+import type { ClarifyOptions } from "@/hooks/use-research";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -21,7 +21,7 @@ import type { StartOptions } from "@/hooks/use-research";
 
 interface TopicInputProps {
   className?: string;
-  onStart: (options: StartOptions) => void;
+  onStart: (options: ClarifyOptions) => void;
 }
 
 // ---------------------------------------------------------------------------
