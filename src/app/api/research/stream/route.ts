@@ -7,7 +7,7 @@
  * - `plan`: Generate research plan with Q&A context
  * - `research`: Execute search+analyze from a plan
  * - `report`: Generate report from learnings
- * - `full` (default): Full pipeline (backward compat)
+ * - `review`: Run a review cycle (follow-up queries from plan + learnings)
  *
  * Each phase creates a ResearchOrchestrator, calls the appropriate method,
  * subscribes to events, and streams them as SSE with a phase-specific
@@ -15,8 +15,8 @@
  */
 
 // Route config — max out Vercel serverless function duration.
-// Hobby: 10s, Pro: 60s, Enterprise: 300s. This requests the plan maximum.
-export const maxDuration = 800;
+// Hobby: 300s max. This requests the plan maximum.
+export const maxDuration = 300;
 export const runtime = "nodejs";
 
 import { z } from "zod";
@@ -53,7 +53,7 @@ import { enforceResearchAuth } from "@/lib/proxy-auth";
 // Phase type
 // ---------------------------------------------------------------------------
 
-type Phase = "clarify" | "plan" | "research" | "report" | "full";
+type Phase = "clarify" | "plan" | "research" | "report" | "review";
 
 // ---------------------------------------------------------------------------
 // Shared schemas
@@ -90,10 +90,14 @@ const baseFieldsSchema = z.object({
   localOnly: z.boolean().optional(),
 });
 
-/** Full schema: when `phase` is absent or "full". */
-const fullSchema = baseFieldsSchema.extend({
-  phase: z.enum(["full"]).optional(),
-  topic: z.string().min(1),
+/** Review phase schema. */
+const reviewSchema = baseFieldsSchema.extend({
+  phase: z.literal("review"),
+  plan: z.string().min(1),
+  learnings: z.array(z.string()),
+  sources: z.array(z.object({ url: z.string(), title: z.string().optional() })),
+  images: z.array(z.object({ url: z.string(), description: z.string().nullable().optional() })),
+  suggestion: z.string().optional(),
 });
 
 /** Clarify phase schema. */
@@ -134,7 +138,7 @@ const reportSchema = baseFieldsSchema.extend({
 });
 
 const requestSchema = z.union([
-  fullSchema,
+  reviewSchema,
   clarifySchema,
   planSchema,
   researchSchema,
@@ -608,8 +612,8 @@ async function handleReportPhase(
   });
 }
 
-async function handleFullPhase(
-  req: z.infer<typeof fullSchema> & { phase: "full" },
+async function handleReviewPhase(
+  req: z.infer<typeof reviewSchema>,
   request: Request,
   providerConfigs: ProviderConfig[],
 ): Promise<Response> {
@@ -617,14 +621,10 @@ async function handleFullPhase(
   const searchProvider = buildSearchProvider(req, providerConfigs, registry);
 
   const researchConfig: ResearchConfig = {
-    topic: req.topic,
+    topic: "", // not needed for review phase
     providerConfigs,
     stepModelMap: (req.stepModelMap as ResearchConfig["stepModelMap"]) ?? {},
     language: req.language,
-    reportStyle: req.reportStyle,
-    reportLength: req.reportLength,
-    autoReviewRounds: req.autoReviewRounds,
-    maxSearchQueries: req.maxSearchQueries,
     promptOverrides: req.promptOverrides as ResearchConfig["promptOverrides"],
   };
 
@@ -633,26 +633,36 @@ async function handleFullPhase(
   const unsubsGetter = subscribeOrchestrator(orchestrator, controller, encoder);
 
   const onAbort = () => {
-    logger.info("Abort signal received from client");
+    logger.info("Abort signal received from client during review phase");
     orchestrator.abort();
   };
   request.signal.addEventListener("abort", onAbort);
 
   (async () => {
     try {
-      logger.info("Starting research orchestrator", { topic: req.topic });
-      controller.enqueue(encoder.encode(sseEvent("start", { topic: req.topic })));
+      logger.info("Starting review phase", {
+        learningsCount: req.learnings.length,
+        sourcesCount: req.sources.length,
+        hasSuggestion: !!req.suggestion,
+      });
+      controller.enqueue(encoder.encode(sseEvent("start", { phase: "review" })));
 
-      const result = await orchestrator.start();
+      const result = await orchestrator.reviewOnly(
+        req.plan,
+        req.learnings,
+        req.sources as Source[],
+        req.images as ImageSource[],
+        req.suggestion,
+      );
       const events: string[] = [];
       if (result) {
-        events.push(sseEvent("result", result));
+        events.push(sseEvent("review-result", result));
       }
       events.push(sseEvent("done", {}));
       finishStream(controller, encoder, events, stopHeartbeat);
     } catch (error) {
       const err = toAppError(error, "RESEARCH_STEP_FAILED");
-      logger.error("Research stream error", { code: err.code, message: err.message });
+      logger.error("Review stream error", { code: err.code, message: err.message });
       finishStream(controller, encoder, [sseError(err.code, err.message)], stopHeartbeat);
     } finally {
       cleanup(unsubsGetter, orchestrator, onAbort, request, stopHeartbeat);
@@ -714,8 +724,13 @@ export async function POST(request: Request): Promise<Response> {
       return handleResearchPhase(req, request, providerConfigs);
     case "report":
       return handleReportPhase(req, request, providerConfigs);
-    case "full":
+    case "review":
+      return handleReviewPhase(req, request, providerConfigs);
     default:
-      return handleFullPhase(req, request, providerConfigs);
+      return sseErrorResponse(
+        "VALIDATION_FAILED",
+        `Unknown phase: ${(req as { phase: string }).phase}. Supported phases: clarify, plan, research, report, review.`,
+        400,
+      );
   }
 }
