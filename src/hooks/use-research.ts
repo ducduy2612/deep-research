@@ -52,8 +52,6 @@ export interface UseResearchReturn {
   generateReport: () => void;
   finalizeFindings: () => void;
   regenerateReport: () => void;
-  // Backward-compatible full pipeline
-  start: (options: StartOptions) => void;
   // Lifecycle
   abort: () => void;
   reset: () => void;
@@ -356,6 +354,9 @@ export function useResearch(): UseResearchReturn {
       const { plan } = useResearchStore.getState();
       const settings = useSettingsStore.getState();
 
+      // Initialize auto-review counter from settings
+      useResearchStore.setState({ autoReviewRoundsRemaining: settings.autoReviewRounds });
+
       await connectSSE({
         phase: "research",
         plan,
@@ -366,37 +367,25 @@ export function useResearch(): UseResearchReturn {
     [connectSSE],
   );
 
-  /** Phase 3b: More Research — iterative deepening with manual queries + suggestion. */
+  /** Phase 3b: More Research — send review phase with current learnings/sources/images. */
   const requestMoreResearch = useCallback(
     async () => {
       const {
         plan,
         suggestion,
-        manualQueries,
+        result,
       } = useResearchStore.getState();
 
-      // Build enhanced plan string with all pending inputs
-      const sections: string[] = [plan];
-
-      if (manualQueries.length > 0) {
-        sections.push(
-          "Manual queries:\n" + manualQueries.map((q) => `- ${q}`).join("\n"),
-        );
-      }
-
-      if (suggestion.trim()) {
-        sections.push(`Additional direction:\n${suggestion.trim()}`);
-      }
-
-      const planString = sections.join("\n\n");
-
-      // Clear pending inputs BEFORE connecting to avoid race
-      useResearchStore.getState().setManualQueries([]);
+      // Clear pending suggestion BEFORE connecting to avoid race
       useResearchStore.getState().clearSuggestion();
 
       await connectSSE({
-        phase: "research",
-        plan: planString,
+        phase: "review",
+        plan,
+        learnings: result?.learnings ?? [],
+        sources: (result?.sources ?? []).map((s) => ({ url: s.url, title: s.title })),
+        images: (result?.images ?? []).map((i) => ({ url: i.url, description: i.description ?? undefined })),
+        suggestion: suggestion.trim() || undefined,
         language: useSettingsStore.getState().language ?? undefined,
         ...buildBaseBody(),
       });
@@ -473,39 +462,6 @@ export function useResearch(): UseResearchReturn {
       await connectSSE(body, true);
     },
     [connectSSE],
-  );
-
-  // Backward-compatible full pipeline
-  const start = useCallback(
-    async (options: StartOptions) => {
-      // Reset store and start fresh
-      useResearchStore.getState().reset();
-      useResearchStore.getState().setTopic(options.topic);
-
-      // Navigate to active research view
-      navigate("active");
-
-      // Build full-pipeline body inline (no phase field → defaults to "full")
-      const base = buildBaseBody();
-      const knowledgeContent = await loadKnowledgeContent();
-
-      connectSSE({
-        topic: options.topic,
-        language: options.language,
-        reportStyle: options.reportStyle,
-        reportLength: options.reportLength,
-        knowledgeContent,
-        promptOverrides: base.promptOverrides,
-        autoReviewRounds: base.autoReviewRounds,
-        maxSearchQueries: base.maxSearchQueries,
-        localOnly: base.localOnly,
-        providers: base.providers,
-        search: base.search,
-        _auth: base._auth,
-        // Mark as report phase for auto-save since full pipeline produces a report
-      }, true);
-    },
-    [navigate, connectSSE],
   );
 
   // Lifecycle actions
@@ -604,6 +560,46 @@ export function useResearch(): UseResearchReturn {
     });
   }, [pendingRemainingQueries, connectSSE]);
 
+  // Auto-review trigger: when research-result completes and auto-review rounds
+  // remain, automatically fire a review SSE connection to deepen the research.
+  const autoReviewRoundsRemaining = useResearchStore((s) => s.autoReviewRoundsRemaining);
+  const researchState = useResearchStore((s) => s.state);
+
+  useEffect(() => {
+    // Only trigger when state has settled to awaiting_results_review from a
+    // research-result or review-result completion, and rounds remain.
+    if (researchState !== "awaiting_results_review") return;
+    if (autoReviewRoundsRemaining <= 0) return;
+
+    const settings = useSettingsStore.getState();
+    if (settings.autoReviewRounds <= 0) return;
+
+    const { plan, suggestion, result } = useResearchStore.getState();
+
+    // Decrement counter before firing to prevent re-triggers
+    const currentRound = settings.autoReviewRounds - autoReviewRoundsRemaining + 1;
+    useResearchStore.setState({
+      autoReviewRoundsRemaining: autoReviewRoundsRemaining - 1,
+    });
+
+    console.info("[useResearch] Auto-review triggered", {
+      round: currentRound,
+      remaining: autoReviewRoundsRemaining - 1,
+      learningsCount: result?.learnings?.length ?? 0,
+    });
+
+    connectSSE({
+      phase: "review",
+      plan,
+      learnings: result?.learnings ?? [],
+      sources: (result?.sources ?? []).map((s) => ({ url: s.url, title: s.title })),
+      images: (result?.images ?? []).map((i) => ({ url: i.url, description: i.description ?? undefined })),
+      suggestion: suggestion.trim() || undefined,
+      language: settings.language ?? undefined,
+      ...buildBaseBody(),
+    });
+  }, [researchState, autoReviewRoundsRemaining, connectSSE]);
+
   return {
     // Phase-specific
     clarify,
@@ -614,8 +610,6 @@ export function useResearch(): UseResearchReturn {
     generateReport,
     finalizeFindings,
     regenerateReport,
-    // Full pipeline
-    start,
     // Lifecycle
     abort,
     reset,

@@ -130,6 +130,7 @@ export const persistedStateSchema = z.object({
   manualQueries: z.array(z.string()).optional().default([]),
   reportFeedback: z.string().optional().default(""),
   pendingRemainingQueries: z.array(searchTaskPersistSchema).optional().default([]),
+  autoReviewRoundsRemaining: z.number().int().min(0).optional().default(0),
 });
 
 /** Storage key for research state persistence. */

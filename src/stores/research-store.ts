@@ -62,6 +62,8 @@ export interface ResearchStoreState {
   readonly reportFeedback: string;
   /** Queries not yet executed due to time budget — auto-reconnect picks these up. */
   readonly pendingRemainingQueries: readonly SearchTask[];
+  /** Tracks remaining auto-review rounds for the current research session. Decremented per review SSE connection. */
+  readonly autoReviewRoundsRemaining: number;
   // Immutable phase checkpoints
   readonly checkpoints: ResearchCheckpoints;
   // Persistence
@@ -116,6 +118,7 @@ const INITIAL_STATE: ResearchStoreState = {
   manualQueries: [],
   immediateRetryQuery: null,
   pendingRemainingQueries: [],
+  autoReviewRoundsRemaining: 0,
   reportFeedback: "",
   checkpoints: {},
   connectionInterrupted: false,
@@ -343,6 +346,7 @@ export const useResearchStore = create<ResearchStore>()((set) => ({
       reportFeedback: saved.reportFeedback ?? "",
       checkpoints: saved.checkpoints ?? {},
       pendingRemainingQueries: saved.pendingRemainingQueries ?? [],
+      autoReviewRoundsRemaining: saved.autoReviewRoundsRemaining ?? 0,
       connectionInterrupted,
     });
   },
@@ -381,6 +385,7 @@ useResearchStore.subscribe((state) => {
     reportFeedback: state.reportFeedback,
     checkpoints: state.checkpoints,
     pendingRemainingQueries: state.pendingRemainingQueries,
+    autoReviewRoundsRemaining: state.autoReviewRoundsRemaining,
   };
 
   storage.set(STORAGE_KEY, persistData as never, persistedStateSchema).catch((err) => {

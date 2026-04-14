@@ -369,6 +369,37 @@ export function createEventHandler(set: StoreSet) {
         });
         break;
       }
+      case "review-result": {
+        const d = data as {
+          learnings: string[];
+          sources: Source[];
+          images: ImageSource[];
+          remainingQueries?: SearchTask[];
+        };
+        set((s) => {
+          // Accumulate review learnings/sources/images into existing result
+          const prevResult = s.result;
+          const mergedLearnings = [...(prevResult?.learnings ?? []), ...d.learnings];
+          const mergedSources = [...(prevResult?.sources ?? []), ...d.sources];
+          const mergedImages = [...(prevResult?.images ?? []), ...d.images];
+
+          return {
+            state: "awaiting_results_review" as ResearchState,
+            result: {
+              title: prevResult?.title ?? "",
+              report: prevResult?.report ?? "",
+              learnings: mergedLearnings,
+              sources: mergedSources,
+              images: mergedImages,
+            },
+            activityLog: [
+              ...s.activityLog,
+              makeActivity("success", `Review complete — ${d.learnings.length} new learnings, ${d.sources.length} sources`),
+            ],
+          };
+        });
+        break;
+      }
       default: break;
     }
   };

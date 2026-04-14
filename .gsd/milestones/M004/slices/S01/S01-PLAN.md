@@ -41,7 +41,7 @@ What remains: S02 (Auto-review UX — visible progress, abort button, round trac
   - Files: `src/app/api/research/stream/route.ts`
   - Verify: pnpm test -- --run src/engine/research/__tests__/sse-route.test.ts 2>&1 | tail -5
 
-- [ ] **T03: Add review-result store handler, auto-review trigger in hook, remove start()** `est:2h`
+- [x] **T03: Add review-result store handler, auto-review trigger in hook, remove start()** `est:2h`
   In research-store-events.ts: add review-result handler that merges learnings/sources/images like research-result does. In research-store.ts: add autoReviewRoundsRemaining to state/INITIAL_STATE. In research-store-persist.ts: add autoReviewRoundsRemaining to persistedStateSchema. In use-research.ts: (a) remove start() method and StartOptions type (keep it for clarify parameter), (b) remove start from UseResearchReturn interface, (c) update requestMoreResearch to send phase:'review' with learnings/sources/images/suggestion from store, (d) add auto-review trigger effect: when research-result done fires AND autoReviewRounds > 0 AND autoReviewRoundsRemaining > 0, decrement counter and fire review SSE connection, (e) set autoReviewRoundsRemaining from settings when research phase starts.
   - Files: `src/stores/research-store-events.ts`, `src/stores/research-store.ts`, `src/stores/research-store-persist.ts`, `src/hooks/use-research.ts`
   - Verify: pnpm test -- --run src/hooks/__tests__/use-research.test.ts src/hooks/__tests__/use-research-multi-phase.test.ts 2>&1 | tail -5

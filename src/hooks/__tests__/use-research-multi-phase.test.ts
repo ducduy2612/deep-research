@@ -132,13 +132,19 @@ describe("useResearch multi-phase flow", () => {
     expect(useResearchStore.getState().state).toBe("awaiting_results_review");
   });
 
-  it("requestMoreResearch() appends suggestion to plan", async () => {
+  it("requestMoreResearch() sends review phase with learnings and suggestion", async () => {
     const { result } = renderHook(() => useResearch());
 
     useResearchStore.setState({
       topic: "test", plan: "# Plan\n1. Search",
       suggestion: "Look deeper into X",
       state: "awaiting_results_review", startedAt: Date.now(),
+      result: {
+        title: "", report: "",
+        learnings: ["L1"],
+        sources: [{ url: "https://a.com", title: "A" }],
+        images: [],
+      },
     });
 
     mockFetch.mockResolvedValue({
@@ -151,16 +157,25 @@ describe("useResearch multi-phase flow", () => {
     });
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.phase).toBe("research");
-    expect(body.plan).toContain("Look deeper into X");
+    expect(body.phase).toBe("review");
+    expect(body.plan).toBe("# Plan\n1. Search");
+    expect(body.learnings).toEqual(["L1"]);
+    expect(body.sources).toEqual([{ url: "https://a.com", title: "A" }]);
+    expect(body.suggestion).toBe("Look deeper into X");
   });
 
-  it("requestMoreResearch() sends plan without suggestion when empty", async () => {
+  it("requestMoreResearch() sends review phase without suggestion when empty", async () => {
     const { result } = renderHook(() => useResearch());
 
     useResearchStore.setState({
       topic: "test", plan: "# Plan\n1. Search",
       suggestion: "", state: "awaiting_results_review", startedAt: Date.now(),
+      result: {
+        title: "", report: "",
+        learnings: [],
+        sources: [],
+        images: [],
+      },
     });
 
     mockFetch.mockResolvedValue({
@@ -173,7 +188,9 @@ describe("useResearch multi-phase flow", () => {
     });
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.phase).toBe("review");
     expect(body.plan).toBe("# Plan\n1. Search");
+    expect(body.suggestion).toBeUndefined();
   });
 
   it("generateReport() reads result from store and sends phase=report", async () => {
