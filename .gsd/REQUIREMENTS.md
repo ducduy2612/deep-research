@@ -142,15 +142,6 @@ This file is the explicit capability and coverage contract for the project.
 - Supporting slices: none
 - Validation: unmapped
 
-### R067 — The review phase sends accumulated learnings, sources, and images to the AI so it can identify gaps rather than re-searching what was already found. This fixes the duplication problem in the current "More Research" implementation.
-- Class: core-capability
-- Status: active
-- Description: The review phase sends accumulated learnings, sources, and images to the AI so it can identify gaps rather than re-searching what was already found. This fixes the duplication problem in the current "More Research" implementation.
-- Why it matters: Without learnings context, the AI regenerates SERP queries from the plan alone, duplicating previous search work. Sending learnings produces targeted, gap-filling queries.
-- Source: user
-- Primary owning slice: M004/S02
-- Validation: mapped
-
 ## Validated
 
 ### R063 — The research phase (search+analyze) runs at most 2 cycles per SSE connection invocation, then returns remainingQueries. Client auto-reconnects for the next batch. timeBudgetMs defaults to 180s as a safety net.
@@ -189,6 +180,15 @@ This file is the explicit capability and coverage contract for the project.
 - Primary owning slice: M004/S02
 - Validation: S02 added autoReviewCurrentRound/TotalRounds to store, rendered in ResearchActions as "Auto-review round N/M..." banner with Loader2 spinner during auto-review (state=reviewing, autoReviewCurrentRound > 0). Abort button resets autoReviewRoundsRemaining to 0 and calls SSE abort. Verified by ResearchActions.test.tsx (12 tests for banner visibility, button hiding, abort click) and build passing.
 
+### R067 — The review phase sends accumulated learnings, sources, and images to the AI so it can identify gaps rather than re-searching what was already found. This fixes the duplication problem in the current "More Research" implementation.
+- Class: core-capability
+- Status: validated
+- Description: The review phase sends accumulated learnings, sources, and images to the AI so it can identify gaps rather than re-searching what was already found. This fixes the duplication problem in the current "More Research" implementation.
+- Why it matters: Without learnings context, the AI regenerates SERP queries from the plan alone, duplicating previous search work. Sending learnings produces targeted, gap-filling queries.
+- Source: user
+- Primary owning slice: M004/S02
+- Validation: Validated by S02 implementation (reviewOnly() method sends accumulated learnings/sources/images to AI for gap analysis). Verified by S04 T01 (823 tests pass including review phase tests) and T02 (824 tests pass including unknown phase rejection test). Both auto-review and manual "More Research" use phase:review with learnings context.
+
 ### R068 — Every SSE connection (research, review, clarify, plan, report) must complete within 300s, the Vercel Hobby serverless function hard limit. Research batches at ~160s, review at ~70s, all others well under 60s.
 - Class: constraint
 - Status: validated
@@ -219,12 +219,12 @@ This file is the explicit capability and coverage contract for the project.
 | R064 | core-capability | validated | M004/S01 | none | Validated by T02 (fullSchema/handleFullPhase/Phase 'full' all removed from route.ts, reviewSchema/handleReviewPhase added), T04 (start() removed from orchestrator, runPlan/runReviewLoop removed, all tests converted to phase methods). grep confirms zero references to start(), full phase, or fullSchema in source files. |
 | R065 | primary-user-loop | validated | M004/S02 | none | S02 implemented auto-review using the same phase:review SSE endpoint as manual "More Research". The auto-review trigger in use-research.ts fires after research completes with state=awaiting_results_review and autoReviewRoundsRemaining > 0. Both paths go through reviewOnly() which sends accumulated learnings. Verified by store auto-review trigger tests and build/tests passing (823 tests). |
 | R066 | primary-user-loop | validated | M004/S02 | none | S02 added autoReviewCurrentRound/TotalRounds to store, rendered in ResearchActions as "Auto-review round N/M..." banner with Loader2 spinner during auto-review (state=reviewing, autoReviewCurrentRound > 0). Abort button resets autoReviewRoundsRemaining to 0 and calls SSE abort. Verified by ResearchActions.test.tsx (12 tests for banner visibility, button hiding, abort click) and build passing. |
-| R067 | core-capability | active | M004/S02 | none | mapped |
+| R067 | core-capability | validated | M004/S02 | none | Validated by S02 implementation (reviewOnly() method sends accumulated learnings/sources/images to AI for gap analysis). Verified by S04 T01 (823 tests pass including review phase tests) and T02 (824 tests pass including unknown phase rejection test). Both auto-review and manual "More Research" use phase:review with learnings context. |
 | R068 | constraint | validated | M004/S01 | none | Validated by T01 (timeBudgetMs=180s default), T02 (maxDuration=300 in route.ts line 19), T01 (cycle cap 2×80s≈160s per connection), T02 (review phase ~70s). All SSE connections now respect 300s limit through cycle cap + time budget + maxDuration triple constraint. |
 
 ## Coverage Summary
 
-- Active requirements: 14
-- Mapped to slices: 14
-- Validated: 5 (R063, R064, R065, R066, R068)
+- Active requirements: 13
+- Mapped to slices: 13
+- Validated: 6 (R063, R064, R065, R066, R067, R068)
 - Unmapped active requirements: 0
