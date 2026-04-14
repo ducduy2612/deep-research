@@ -254,7 +254,7 @@ describe("useResearchStore — data persistence across phases", () => {
     expect(useResearchStore.getState().plan).toBe("User-modified plan");
   });
 
-  it("research-result preserves existing result title and report", () => {
+  it("research-result accumulates learnings into existing result", () => {
     dispatch("start", { topic: "test" });
     // First, a result event sets the report
     dispatch("result", {
@@ -265,7 +265,7 @@ describe("useResearchStore — data persistence across phases", () => {
       images: [],
     });
 
-    // Then a research-result event (from a subsequent phase) should not overwrite
+    // Then a research-result event accumulates into the existing result
     dispatch("research-result", {
       learnings: ["L2", "L3"],
       sources: [{ url: "https://b.com" }],
@@ -275,8 +275,9 @@ describe("useResearchStore — data persistence across phases", () => {
     const r = useResearchStore.getState().result;
     expect(r!.title).toBe("My Report");
     expect(r!.report).toBe("# Full report content");
-    // The existing result's learnings/sources are preserved, not merged
-    expect(r!.learnings).toEqual(["L1"]);
+    // Learnings and sources are accumulated across rounds
+    expect(r!.learnings).toEqual(["L1", "L2", "L3"]);
+    expect(r!.sources).toEqual([{ url: "https://a.com" }, { url: "https://b.com" }]);
   });
 });
 

@@ -57,7 +57,7 @@ vi.mock("@/engine/provider/factory", () => ({
 // ---------------------------------------------------------------------------
 
 import { ResearchOrchestrator } from "../orchestrator";
-import type { ResearchConfig, ResearchState } from "../types";
+import type { ResearchConfig } from "../types";
 import type { SearchProvider } from "../search-provider";
 import type { ProviderConfig } from "@/engine/provider/types";
 import { MockLanguageModelV3 } from "ai/test";
@@ -192,88 +192,10 @@ describe("ResearchOrchestrator", () => {
   });
 
   // -------------------------------------------------------------------------
-  // State transitions — full happy path
+  // Abort (using clarifyOnly since start() is removed)
   // -------------------------------------------------------------------------
 
-  it("transitions through all states during successful run", async () => {
-    const searchProvider = createMockSearchProvider();
-    const config = createTestConfig();
-    const orchestrator = new ResearchOrchestrator(config, searchProvider);
-
-    // SERP query generation returns one query
-    mockContainer.generateFn.mockResolvedValueOnce([
-      { query: "test query", researchGoal: "test goal" },
-    ]);
-
-    const states: ResearchState[] = [];
-    orchestrator.on("step-start", (payload) => {
-      states.push(payload.state);
-    });
-
-    const result = await orchestrator.start();
-
-    expect(result).not.toBeNull();
-    expect(orchestrator.getState()).toBe("completed");
-
-    expect(states).toContain("clarifying");
-    expect(states).toContain("planning");
-    expect(states).toContain("searching");
-    expect(states).toContain("analyzing");
-    expect(states).toContain("reporting");
-  });
-
-  // -------------------------------------------------------------------------
-  // Event emission
-  // -------------------------------------------------------------------------
-
-  it("emits step-start, step-delta, and step-complete events", async () => {
-    const config = createTestConfig();
-    const orchestrator = new ResearchOrchestrator(config);
-
-    // One SERP query
-    mockContainer.generateFn.mockResolvedValueOnce([
-      { query: "q1", researchGoal: "g1" },
-    ]);
-
-    const events: Array<{ type: string }> = [];
-
-    orchestrator.on("step-start", () => events.push({ type: "step-start" }));
-    orchestrator.on("step-delta", () => events.push({ type: "step-delta" }));
-    orchestrator.on("step-complete", () => events.push({ type: "step-complete" }));
-
-    await orchestrator.start();
-
-    const startEvents = events.filter((e) => e.type === "step-start");
-    const deltaEvents = events.filter((e) => e.type === "step-delta");
-    const completeEvents = events.filter((e) => e.type === "step-complete");
-
-    // At least 5 steps: clarify, plan, search, analyze, report
-    expect(startEvents.length).toBeGreaterThanOrEqual(5);
-    expect(deltaEvents.length).toBeGreaterThan(0);
-    expect(completeEvents.length).toBeGreaterThanOrEqual(5);
-  });
-
-  it("emits step-complete with positive duration", async () => {
-    const config = createTestConfig();
-    const orchestrator = new ResearchOrchestrator(config);
-
-    const durations: number[] = [];
-    orchestrator.on("step-complete", (payload) => {
-      durations.push(payload.duration);
-    });
-
-    await orchestrator.start();
-
-    for (const d of durations) {
-      expect(d).toBeGreaterThanOrEqual(0);
-    }
-  });
-
-  // -------------------------------------------------------------------------
-  // Abort
-  // -------------------------------------------------------------------------
-
-  it("transitions to aborted state on abort call", async () => {
+  it("transitions to aborted state on abort call during clarifyOnly", async () => {
     const config = createTestConfig();
     const orchestrator = new ResearchOrchestrator(config);
 
@@ -282,17 +204,15 @@ describe("ResearchOrchestrator", () => {
     mockContainer.streamFn.mockImplementation(() => {
       return new Promise((resolve) => {
         streamResolve = () => resolve(fakeStreamResponse(["starting..."]));
-        // Resolve quickly so the test doesn't hang
         setTimeout(streamResolve, 10);
       });
     });
 
-    const startPromise = orchestrator.start();
+    const clarifyPromise = orchestrator.clarifyOnly();
 
-    // Abort immediately
     orchestrator.abort();
 
-    const result = await startPromise;
+    const result = await clarifyPromise;
     expect(orchestrator.getState()).toBe("aborted");
     expect(result).toBeNull();
   });
@@ -301,170 +221,13 @@ describe("ResearchOrchestrator", () => {
     const config = createTestConfig();
     const orchestrator = new ResearchOrchestrator(config);
 
-    // Must start first so there's an AbortController
-    const startPromise = orchestrator.start();
+    // Start clarifyOnly so there's an AbortController
+    const promise = orchestrator.clarifyOnly();
     orchestrator.abort();
     orchestrator.abort();
     expect(orchestrator.getState()).toBe("aborted");
 
-    return startPromise.catch(() => {});
-  });
-
-  // -------------------------------------------------------------------------
-  // Error handling
-  // -------------------------------------------------------------------------
-
-  it("emits step-error and transitions to failed when model throws", async () => {
-    const config = createTestConfig();
-    const orchestrator = new ResearchOrchestrator(config);
-
-    // Make streaming throw
-    mockContainer.streamFn.mockRejectedValue(new Error("Simulated failure"));
-
-    const errors: Array<{ step: string }> = [];
-    orchestrator.on("step-error", (payload) => {
-      errors.push({ step: payload.step });
-    });
-
-    const result = await orchestrator.start();
-
-    expect(result).toBeNull();
-    expect(orchestrator.getState()).toBe("failed");
-    expect(errors.length).toBeGreaterThan(0);
-    expect(errors[0].step).toBe("clarify");
-  });
-
-  // -------------------------------------------------------------------------
-  // SERP query generation
-  // -------------------------------------------------------------------------
-
-  it("uses generateStructured for SERP query generation", async () => {
-    const searchProvider = createMockSearchProvider();
-    const config = createTestConfig({ maxSearchQueries: 2 });
-    const orchestrator = new ResearchOrchestrator(config, searchProvider);
-
-    // SERP query generation returns two queries
-    mockContainer.generateFn.mockResolvedValueOnce([
-      { query: "quantum computing 2024", researchGoal: "latest advances" },
-      { query: "quantum error correction", researchGoal: "error methods" },
-    ]);
-
-    await orchestrator.start();
-
-    // generateStructured should have been called at least once (SERP queries)
-    expect(mockContainer.generateFn).toHaveBeenCalled();
-
-    // Search provider should have been called for each query
-    expect(searchProvider.search).toHaveBeenCalledTimes(2);
-  });
-
-  // -------------------------------------------------------------------------
-  // Review loop
-  // -------------------------------------------------------------------------
-
-  it("runs review loop when autoReviewRounds > 0", async () => {
-    const searchProvider = createMockSearchProvider();
-    const config = createTestConfig({ autoReviewRounds: 2 });
-    const orchestrator = new ResearchOrchestrator(config, searchProvider);
-
-    // 1st generateStructured: SERP queries
-    mockContainer.generateFn.mockResolvedValueOnce([
-      { query: "q1", researchGoal: "g1" },
-    ]);
-    // 2nd generateStructured: review returns empty (stop loop)
-    mockContainer.generateFn.mockResolvedValueOnce([]);
-
-    const reviewStarts: unknown[] = [];
-    orchestrator.on("step-start", (payload) => {
-      if (payload.step === "review") {
-        reviewStarts.push(payload);
-      }
-    });
-
-    await orchestrator.start();
-
-    // Review should have been started at least once
-    expect(reviewStarts.length).toBeGreaterThanOrEqual(1);
-    // At least 2 generateStructured calls: SERP + review
-    expect(mockContainer.generateFn.mock.calls.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it("caps review loop at autoReviewRounds", async () => {
-    const searchProvider = createMockSearchProvider();
-    const config = createTestConfig({ autoReviewRounds: 1 });
-    const orchestrator = new ResearchOrchestrator(config, searchProvider);
-
-    // SERP queries
-    mockContainer.generateFn.mockResolvedValueOnce([
-      { query: "q1", researchGoal: "g1" },
-    ]);
-    // Review always returns queries (to test capping)
-    mockContainer.generateFn.mockResolvedValueOnce([
-      { query: "follow-up", researchGoal: "more research" },
-    ]);
-
-    const reviewStarts: unknown[] = [];
-    orchestrator.on("step-start", (payload) => {
-      if (payload.step === "review") {
-        reviewStarts.push(payload);
-      }
-    });
-
-    await orchestrator.start();
-
-    // Exactly 1 review round despite follow-up queries
-    expect(reviewStarts.length).toBe(1);
-  });
-
-  it("skips review loop when autoReviewRounds is 0", async () => {
-    const config = createTestConfig({ autoReviewRounds: 0 });
-    const orchestrator = new ResearchOrchestrator(config);
-
-    // Only SERP query generation
-    mockContainer.generateFn.mockResolvedValueOnce([
-      { query: "q1", researchGoal: "g1" },
-    ]);
-
-    const reviewStarts: unknown[] = [];
-    orchestrator.on("step-start", (payload) => {
-      if (payload.step === "review") {
-        reviewStarts.push(payload);
-      }
-    });
-
-    await orchestrator.start();
-
-    expect(reviewStarts.length).toBe(0);
-    // Only 1 generateStructured call (SERP queries)
-    expect(mockContainer.generateFn).toHaveBeenCalledTimes(1);
-  });
-
-  // -------------------------------------------------------------------------
-  // Model resolution — verified via step execution
-  // -------------------------------------------------------------------------
-
-  it("resolves models for each step and executes all steps", async () => {
-    const searchProvider = createMockSearchProvider();
-    const config = createTestConfig();
-    const orchestrator = new ResearchOrchestrator(config, searchProvider);
-
-    // SERP queries
-    mockContainer.generateFn.mockResolvedValueOnce([
-      { query: "q1", researchGoal: "g1" },
-    ]);
-
-    const steps: string[] = [];
-    orchestrator.on("step-start", (payload) => {
-      steps.push(payload.step);
-    });
-
-    await orchestrator.start();
-
-    expect(steps).toContain("clarify");
-    expect(steps).toContain("plan");
-    expect(steps).toContain("search");
-    expect(steps).toContain("analyze");
-    expect(steps).toContain("report");
+    return promise.catch(() => {});
   });
 
   // -------------------------------------------------------------------------
@@ -482,7 +245,7 @@ describe("ResearchOrchestrator", () => {
 
     unsubscribe();
 
-    await orchestrator.start();
+    await orchestrator.clarifyOnly();
 
     expect(received.length).toBe(0);
   });
@@ -509,106 +272,13 @@ describe("ResearchOrchestrator", () => {
       received.push(1);
     });
 
-    const startPromise = orchestrator.start();
+    const clarifyPromise = orchestrator.clarifyOnly();
 
     orchestrator.destroy();
 
-    await startPromise.catch(() => {});
+    await clarifyPromise.catch(() => {});
 
     expect(orchestrator.getState()).toBe("aborted");
-  });
-
-  // -------------------------------------------------------------------------
-  // Result assembly
-  // -------------------------------------------------------------------------
-
-  it("assembles ResearchResult with title, report, learnings, sources, images", async () => {
-    const searchProvider = createMockSearchProvider({
-      sources: [{ url: "https://example.com/page1", title: "Page 1" }],
-      images: [{ url: "https://example.com/img1.png", description: "Test image" }],
-    });
-
-    const config = createTestConfig();
-    const orchestrator = new ResearchOrchestrator(config, searchProvider);
-
-    mockContainer.generateFn.mockResolvedValueOnce([
-      { query: "test query", researchGoal: "test goal" },
-    ]);
-
-    const result = await orchestrator.start();
-
-    expect(result).not.toBeNull();
-    expect(result!.title).toBeDefined();
-    expect(result!.report).toBeDefined();
-    expect(typeof result!.report).toBe("string");
-    expect(result!.learnings).toBeDefined();
-    expect(result!.sources).toBeDefined();
-    expect(result!.images).toBeDefined();
-  });
-
-  // -------------------------------------------------------------------------
-  // No-op search provider
-  // -------------------------------------------------------------------------
-
-  it("works with NoOpSearchProvider returning empty results", async () => {
-    const config = createTestConfig();
-    const orchestrator = new ResearchOrchestrator(config);
-
-    mockContainer.generateFn.mockResolvedValueOnce([
-      { query: "q1", researchGoal: "g1" },
-    ]);
-
-    const result = await orchestrator.start();
-
-    expect(result).not.toBeNull();
-    expect(orchestrator.getState()).toBe("completed");
-    expect(result!.sources).toEqual([]);
-    expect(result!.images).toEqual([]);
-  });
-
-  // -------------------------------------------------------------------------
-  // Title extraction
-  // -------------------------------------------------------------------------
-
-  it("extracts title from markdown heading in report", async () => {
-    const config = createTestConfig();
-    const orchestrator = new ResearchOrchestrator(config);
-
-    mockContainer.generateFn.mockResolvedValueOnce([]);
-
-    // Report is the 3rd streaming call (clarify, plan, report)
-    let streamCallCount = 0;
-    mockContainer.streamFn.mockImplementation(() => {
-      streamCallCount++;
-      if (streamCallCount === 3) {
-        return Promise.resolve(
-          fakeStreamResponse(["# My Research Title\n", "Report body."]),
-        );
-      }
-      return Promise.resolve(fakeStreamResponse(["text"]));
-    });
-
-    const result = await orchestrator.start();
-
-    expect(result).not.toBeNull();
-    expect(result!.title).toBe("My Research Title");
-  });
-
-  // -------------------------------------------------------------------------
-  // Empty SERP queries
-  // -------------------------------------------------------------------------
-
-  it("handles empty SERP queries gracefully", async () => {
-    const config = createTestConfig();
-    const orchestrator = new ResearchOrchestrator(config);
-
-    mockContainer.generateFn.mockResolvedValueOnce([]);
-
-    const result = await orchestrator.start();
-
-    expect(result).not.toBeNull();
-    expect(orchestrator.getState()).toBe("completed");
-    expect(result!.learnings).toEqual([]);
   });
 
   // =========================================================================

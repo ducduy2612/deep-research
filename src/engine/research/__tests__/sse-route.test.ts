@@ -18,7 +18,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // ---------------------------------------------------------------------------
 
 const mockOrchestratorInstance = {
-  start: vi.fn(),
   clarifyOnly: vi.fn(),
   planWithContext: vi.fn(),
   researchFromPlan: vi.fn(),
@@ -135,20 +134,6 @@ function setupHappyPath(
       return vi.fn();
     },
   );
-  mockOrchestratorInstance.start.mockImplementation(async () => {
-    for (const [et, handler] of mockOrchestratorInstance.on.mock.calls) {
-      for (const evt of events) {
-        if (evt.type === et) handler(evt.payload);
-      }
-    }
-    return {
-      title: "Test Report",
-      report: "# Test Report\nContent here.",
-      learnings: ["learning 1"],
-      sources: [{ url: "https://example.com" }],
-      images: [],
-    };
-  });
 }
 
 function getOrchestratorConfig() {
@@ -158,7 +143,6 @@ function getOrchestratorConfig() {
 function resetMocks() {
   vi.clearAllMocks();
   mockOrchestratorInstance.on.mockReturnValue(vi.fn());
-  mockOrchestratorInstance.start.mockResolvedValue(null);
   mockOrchestratorInstance.clarifyOnly.mockResolvedValue(null);
   mockOrchestratorInstance.planWithContext.mockResolvedValue(null);
   mockOrchestratorInstance.researchFromPlan.mockResolvedValue(null);

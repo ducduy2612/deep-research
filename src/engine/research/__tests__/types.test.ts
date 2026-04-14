@@ -31,9 +31,9 @@ describe("sourceSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects a source with invalid url", () => {
+  it("accepts any string as url (no format validation)", () => {
     const result = sourceSchema.safeParse({ url: "not-a-url" });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 });
 

@@ -263,7 +263,7 @@ describe("useResearchStore — multi-phase edge cases", () => {
     expect(useResearchStore.getState().state).toBe("awaiting_plan_review");
   });
 
-  it("multiple research-result events preserve first result when set", () => {
+  it("multiple research-result events accumulate learnings into existing result", () => {
     dispatch("start", { topic: "test" });
     dispatch("result", {
       title: "Initial",
@@ -276,14 +276,14 @@ describe("useResearchStore — multi-phase edge cases", () => {
     dispatch("research-result", { learnings: ["L1"], sources: [], images: [] });
     dispatch("research-result", { learnings: ["L2"], sources: [], images: [] });
 
-    // Original result preserved through multiple research-result events
+    // Learnings accumulate through multiple research-result events
     const r = useResearchStore.getState().result;
     expect(r!.title).toBe("Initial");
-    expect(r!.learnings).toEqual(["L0"]);
+    expect(r!.learnings).toEqual(["L0", "L1", "L2"]);
     expect(useResearchStore.getState().state).toBe("awaiting_results_review");
   });
 
-  it("consecutive research-result events without prior result create minimal results", () => {
+  it("consecutive research-result events without prior result accumulate learnings", () => {
     dispatch("start", { topic: "test" });
     // First research-result with no prior result creates a minimal one
     dispatch("research-result", { learnings: ["L1"], sources: [], images: [] });
@@ -292,10 +292,10 @@ describe("useResearchStore — multi-phase edge cases", () => {
     expect(r!.title).toBe("");
     expect(r!.learnings).toEqual(["L1"]);
 
-    // Second research-result preserves the first minimal result
+    // Second research-result accumulates into the first minimal result
     dispatch("research-result", { learnings: ["L2"], sources: [], images: [] });
     r = useResearchStore.getState().result;
-    expect(r!.learnings).toEqual(["L1"]); // preserved from first
+    expect(r!.learnings).toEqual(["L1", "L2"]);
   });
 
   it("step streaming data persists across checkpoint transitions", () => {

@@ -4,7 +4,6 @@
  * Supports multi-phase streaming via phase-specific actions:
  * - clarify() → submitFeedbackAndPlan() → approvePlanAndResearch() → generateReport()
  * - requestMoreResearch() for iterative deepening
- * - start() for backward-compatible full pipeline
  *
  * Each phase opens its own SSE connection, streams events to the store,
  * and stops the timer only on final completion or abort.

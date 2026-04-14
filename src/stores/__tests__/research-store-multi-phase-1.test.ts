@@ -88,7 +88,7 @@ describe("useResearchStore — multi-phase SSE events", () => {
     expect(s.activityLog.at(-1)!.message).toContain("awaiting review");
   });
 
-  it("research-result preserves existing result if already set", () => {
+  it("research-result accumulates new learnings into existing result", () => {
     dispatch("start", { topic: "test" });
     dispatch("result", {
       title: "Existing Report",
@@ -97,7 +97,6 @@ describe("useResearchStore — multi-phase SSE events", () => {
       sources: [],
       images: [],
     });
-    const existingResult = useResearchStore.getState().result;
 
     dispatch("research-result", {
       learnings: ["New learning"],
@@ -105,7 +104,13 @@ describe("useResearchStore — multi-phase SSE events", () => {
       images: [],
     });
 
-    expect(useResearchStore.getState().result).toBe(existingResult);
+    const result = useResearchStore.getState().result;
+    expect(result).not.toBeNull();
+    expect(result!.title).toBe("Existing Report");
+    expect(result!.report).toBe("Content");
+    // New learnings are accumulated into the existing result
+    expect(result!.learnings).toEqual(["New learning"]);
+    expect(result!.sources).toEqual([]);
   });
 
   it("research-result creates minimal result when none exists", () => {

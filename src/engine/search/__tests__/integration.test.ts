@@ -146,18 +146,15 @@ describe("Orchestrator search integration", () => {
 
   it("passes abortSignal to search provider during initial search", async () => {
     const searchProvider = new MockSearchProvider();
-    setupStreamMock("Clarification text");
-    setupStreamMock("Plan text");
-    setupSerpQueries([{ query: "test query", researchGoal: "learn about testing" }]);
     setupStreamMock("Analysis learning");
-    setupStreamMock("# Research Report\n\nFinal report content.");
+    setupSerpQueries([{ query: "test query", researchGoal: "learn about testing" }]);
 
     const orchestrator = new ResearchOrchestrator(
       makeConfig(),
       searchProvider,
     );
 
-    const result = await orchestrator.start();
+    const result = await orchestrator.researchFromPlan("## Plan\n1. Research testing");
 
     // Verify the search provider was called with options containing abortSignal
     expect(searchProvider.calls.length).toBeGreaterThan(0);
@@ -168,32 +165,28 @@ describe("Orchestrator search integration", () => {
     }
 
     expect(result).not.toBeNull();
-    // Sources flow through — images from search are not yet propagated
-    // through the analyze step (S05 will address this).
     expect(result!.sources.length).toBeGreaterThan(0);
   });
 
   it("passes abortSignal to search provider during review search", async () => {
     const searchProvider = new MockSearchProvider();
-    setupStreamMock("Clarification text");
-    setupStreamMock("Plan text");
-    setupSerpQueries([{ query: "initial query", researchGoal: "goal 1" }]);
-    setupStreamMock("Initial analysis");
     // Review structured output returns a follow-up query
     setupSerpQueries([{ query: "follow-up query", researchGoal: "deeper dive" }]);
     // Follow-up search + analyze
     setupStreamMock("Follow-up analysis");
-    // Report
-    setupStreamMock("# Research Report\n\nFinal report.");
 
     const config = makeConfig();
-    config.autoReviewRounds = 1;
 
     const orchestrator = new ResearchOrchestrator(config, searchProvider);
-    const result = await orchestrator.start();
+    const result = await orchestrator.reviewOnly(
+      "## Plan\n1. Research X",
+      ["Initial learning"],
+      [],
+      [],
+    );
 
-    // Should have been called at least twice — initial + review
-    expect(searchProvider.calls.length).toBeGreaterThanOrEqual(2);
+    // Should have been called once — review follow-up
+    expect(searchProvider.calls.length).toBeGreaterThanOrEqual(1);
 
     for (const call of searchProvider.calls) {
       expect(call.options).toBeDefined();
@@ -205,37 +198,31 @@ describe("Orchestrator search integration", () => {
 
   it("sources and images flow through the pipeline", async () => {
     const searchProvider = new MockSearchProvider();
-    setupStreamMock("Clarification text");
-    setupStreamMock("Plan text");
     setupSerpQueries([{ query: "quantum computing", researchGoal: "understand advances" }]);
     setupStreamMock("Quantum computing is advancing rapidly.");
-    setupStreamMock("# Quantum Computing Report\n\nDetailed analysis.");
 
     const orchestrator = new ResearchOrchestrator(makeConfig(), searchProvider);
-    const result = await orchestrator.start();
+
+    const result = await orchestrator.researchFromPlan(
+      "## Plan\n1. Research quantum computing",
+    );
 
     expect(result).not.toBeNull();
     expect(result!.sources).toHaveLength(1);
     expect(result!.sources[0].title).toBe("Result for: quantum computing");
-    // Images from search are not yet propagated through the analyze step
-    // (S05 will address this).
   });
 
   it("remains backward-compatible with NoOpSearchProvider (no options)", async () => {
     const { NoOpSearchProvider } = await import("@/engine/research/search-provider");
 
-    setupStreamMock("Clarification text");
-    setupStreamMock("Plan text");
-    setupSerpQueries([]);
-    setupStreamMock("# Report\n\nNo search needed.");
-
+    // No SERP queries — empty research phase
     const orchestrator = new ResearchOrchestrator(
       makeConfig(),
       new NoOpSearchProvider(),
     );
 
     // Should complete without error — NoOp ignores options
-    const result = await orchestrator.start();
+    const result = await orchestrator.researchFromPlan("# Plan\n1. Step");
     expect(result).not.toBeNull();
     expect(result!.sources).toEqual([]);
     expect(result!.images).toEqual([]);
